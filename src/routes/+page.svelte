@@ -145,7 +145,38 @@
 			}
 		}
 	);
+	const compactDepositedBalance: Readable<number> = derived(
+		[activeWallet, activeChain, activeAsset, compactAllocator],
+		([activeWallet, activeChain, activeAsset, compactAllocator], set) => {
+			if (!activeWallet) set(0);
+			if (activeWallet) {
+				const asset = coinMap[activeChain][activeAsset];
+				const assetId = toId(
+					true,
+					ResetPeriod.OneDay,
+					compactAllocator,
+					asset
+				);
+				const accountAddress = activeWallet.accounts[0].address;
+				$publicClient
+					?.readContract({
+						address: COMPACT,
+						abi: COMPACT_ABI,
+						functionName: 'balanceOf',
+						args: [accountAddress, assetId]
+					})
+					.then((v) => {
+						console.log(v);
+						set(Number(v));
+					});
+				
+			}
+		}
+	);
+	
+	
 	$: formattedDeposit = $depositBalance / 10 ** decimalMap[$activeAsset];
+	$: formattedCompactDepositedBalance = $compactDepositedBalance / 10 ** decimalMap[$activeAsset];
 
 	const allowance: Readable<number> = derived(
 		[activeWallet, activeChain, activeAsset],
@@ -189,7 +220,7 @@
 	// TODO:
 	let fromChainId: number = 1;
 
-	$: swapInputError =
+	$: depositAndSwapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
 			: 0 + chains.findIndex((c) => c == destinationChain) == -1
@@ -199,6 +230,18 @@
 					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedDeposit
+							? 100
+							: 0;
+	$: swapInputError =
+		chains.findIndex((c) => c == $activeChain) == -1
+			? 1
+			: 0 + chains.findIndex((c) => c == destinationChain) == -1
+				? 2
+				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
+					? 10
+					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
+						? 20
+						: 0 + $inputValue > formattedCompactDepositedBalance
 							? 100
 							: 0;
 
@@ -488,7 +531,7 @@
 		{/if}
 	</div>
 
-	<div class="flex flex-col justify-items-center align-middle md:flex-row">
+	<div class="flex flex-col justify-items-center align-middle">
 		<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
 			<h1 class="text-xl font-medium">Manage Compact</h1>
 			<div class="flex flex-row space-x-2">
@@ -561,11 +604,18 @@
 		</form>
 
 		<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
-			<h1 class="text-xl font-medium">Execute Transaction</h1>
+			<h1 class="text-xl font-medium">Sign Intent with Deposit</h1>
 			<!-- Sell -->
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Sell</span>
 				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$inputValue} />
+				<span>of</span>
+				<input
+					type="text"
+					class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+					disabled
+					value={formattedCompactDepositedBalance}
+				/>
 				<select id="sell-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
 					<option value="sepolia" selected>Sepolia</option>
 					<option value="baseSepolia">Base Sepolia</option>
@@ -628,35 +678,110 @@
 						Input not valid {swapInputError}
 					</button>
 				{:else}
-					<div class="space-x-1.5">
-						{#if formattedAllowance < $inputValue}
-							<AwaitButton buttonFunction={approve}>
-								{#snippet name()}
-									Set allowance
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{:else}
-							<AwaitButton buttonFunction={swap}>
-								{#snippet name()}
-									Sign Swap 
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for signature...
-								{/snippet}
-							</AwaitButton>
-							<AwaitButton buttonFunction={depositAndSwap}>
-								{#snippet name()}
-									Execute depositAndSwap
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{/if}
-					</div>
+					<AwaitButton buttonFunction={swap}>
+						{#snippet name()}
+							Sign Swap 
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for signature...
+						{/snippet}
+					</AwaitButton>
+				{/if}
+			</div>
+		</form>
+
+		<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
+			<h1 class="text-xl font-medium">Execute Deposit and Register Intent</h1>
+			<!-- Sell -->
+			<div class="flex flex-wrap items-center justify-start gap-2">
+				<span class="font-medium">Sell</span>
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$inputValue} />
+				<span>of</span>
+				<input
+					type="text"
+					class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+					disabled
+					value={formattedDeposit + formattedCompactDepositedBalance}
+				/>
+				<select id="sell-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
+					<option value="sepolia" selected>Sepolia</option>
+					<option value="baseSepolia">Base Sepolia</option>
+					<option value="optimismSepolia">Optimism Sepolia</option>
+				</select>
+				<select id="sell-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
+					<option value="eth" selected>ETH</option>
+					<option value="usdc">USDC</option>
+				</select>
+			</div>
+
+			<!-- Swap button -->
+			<div class="flex justify-center">
+				<button type="button" class="px-4 text-xl font-bold text-gray-600 hover:text-blue-600">
+					⇅
+				</button>
+			</div>
+
+			<!-- Buy -->
+			<div class="flex flex-wrap items-center justify-start gap-2">
+				<span class="font-medium">Buy</span>
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={buyValue} />
+				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={destinationChain}>
+					<option value="sepolia">Sepolia</option>
+					<option value="baseSepolia" selected>Base Sepolia</option>
+					<option value="optimismSepolia">Optimism Sepolia</option>
+				</select>
+				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={destinationAsset}>
+					<option value="eth" selected>WETH</option>
+					<option value="usdc">USDC</option>
+				</select>
+			</div>
+
+			<!-- Verified by -->
+			<div class="flex flex-wrap items-center justify-center gap-2">
+				<span class="font-medium">Verified by</span>
+				<select id="verified-by" class="rounded border px-2 py-1" bind:value={verifier}>
+					<option value="yes" selected> AlwaysYesOracle </option>
+					<option value="wormhole"> Wormhole </option>
+				</select>
+			</div>
+
+			<!-- Action Button -->
+			<div class="flex justify-center">
+				{#if !connectedAccount}
+					<AwaitButton buttonFunction={connect}>
+						{#snippet name()}
+							Connect Wallet
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for wallet...
+						{/snippet}
+					</AwaitButton>
+				{:else if depositAndSwapInputError}
+					<button
+						type="button"
+						class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
+						disabled
+					>
+						Input not valid {depositAndSwapInputError}
+					</button>
+				{:else if formattedAllowance < $inputValue}
+					<AwaitButton buttonFunction={approve}>
+						{#snippet name()}
+							Set allowance
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
+				{:else}
+					<AwaitButton buttonFunction={depositAndSwap}>
+						{#snippet name()}
+							Execute depositAndSwap
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
 				{/if}
 			</div>
 		</form>
