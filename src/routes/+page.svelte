@@ -21,6 +21,7 @@
 	import { ERC20_ABI } from '$lib/abi/erc20';
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { ResetPeriod, toId } from '$lib/IdLib';
+	import AwaitButton from '$lib/AwaitButton.svelte';
 
 	type MessageTypeProperty = {
 		name: string;
@@ -60,10 +61,10 @@
 	const ALWAYS_YES_ORACLE = '0xabFd7B10F872356BEbe82405e3D83B3E5C8BE8c8' as const;
 	const COIN_FILLER = '0x0a8a2521325B259f531F353A55615817FC1d672d' as const;
 	const WORMHOLE_ORACLE = {
-		"sepolia": "0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb",
-		"baseSepolia": "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
-		"arbitrumSepolia": "0x46080096B5970d26634479f2F40e9e264B8D439b",
-		"optimismSepolia": "0xb516aD609f9609C914F5292084398B44fBE84A0C",
+		sepolia: '0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb',
+		baseSepolia: '0xb2477079b498594192837fa3EC4Ebc97153eaA65',
+		arbitrumSepolia: '0x46080096B5970d26634479f2F40e9e264B8D439b',
+		optimismSepolia: '0xb516aD609f9609C914F5292084398B44fBE84A0C'
 	} as const;
 
 	const coinMap = {
@@ -243,12 +244,12 @@
 		)
 			.replace('0x', '')
 			.slice(0, 24)}`;
-		console.log({lockTag, id: toId(true, ResetPeriod.OneDay, $compactAllocator, ADDRESS_ZERO)})
+		console.log({ lockTag, id: toId(true, ResetPeriod.OneDay, $compactAllocator, ADDRESS_ZERO) });
 		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
 		const recipient = ADDRESS_ZERO; // This means sender.
 
 		if (asset === ADDRESS_ZERO) {
-			$walletClient.writeContract({
+			return $walletClient.writeContract({
 				account: connectedAccount.address,
 				address: COMPACT,
 				abi: COMPACT_ABI,
@@ -257,7 +258,7 @@
 				args: [lockTag, recipient]
 			});
 		} else {
-			$walletClient.writeContract({
+			return $walletClient.writeContract({
 				account: connectedAccount.address,
 				address: COMPACT,
 				abi: COMPACT_ABI,
@@ -317,7 +318,7 @@
 	};
 
 	function addressToBytes32(address: `0x${string}`): `0x${string}` {
-		return `0x${address.replace("0x", "").padStart(64, "0")}`;
+		return `0x${address.replace('0x', '').padStart(64, '0')}`;
 	}
 
 	function createOrder() {
@@ -329,12 +330,8 @@
 		const inputs = [input];
 
 		const remoteFiller = COIN_FILLER;
-		const remoteOracle = verifier === 'yes'
-				? ALWAYS_YES_ORACLE
-				: WORMHOLE_ORACLE[destinationChain];
-		const localOracle = verifier === 'yes'
-			? ALWAYS_YES_ORACLE
-			: WORMHOLE_ORACLE[$activeChain];
+		const remoteOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[destinationChain];
+		const localOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
 
 		// Make Outputs
 		const output: OutputDescription = {
@@ -387,7 +384,7 @@
 				name: 'The Compact',
 				version: '1',
 				chainId: fromChainId,
-				verifyingContract: COMPACT,
+				verifyingContract: COMPACT
 			} as const,
 			types: compactTypes,
 			primaryType: 'BatchCompact',
@@ -396,7 +393,8 @@
 		const signature = await signaturePromise;
 
 		// Needs to be sent to the Catalyst order server:
-		console.log({order, batchCompact, signature});
+		console.log({ order, batchCompact, signature });
+		return;
 	}
 
 	const compact_type =
@@ -451,8 +449,12 @@
 
 		await callPromise;
 		// Needs to be sent to the Catalyst order server:
-		console.log({order, batchCompact, signature: ""});
+		console.log({ order, batchCompact, signature: '' });
+		return;
 	}
+
+	let manageCompactPromise: Promise<any> | undefined = undefined;
+	let exeucteTransactionPromise: Promise<any> | undefined = undefined;
 
 	const trunc = (address: string) =>
 		address ? address.slice(0, 6) + '...' + address.slice(-6) : null;
@@ -518,15 +520,16 @@
 			</div>
 
 			<!-- Action Button -->
-			<div class="flex justify-center">
+			<div class="flex flex-col justify-center">
 				{#if !connectedAccount}
-					<button
-						onclick={connect}
-						type="button"
-						class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-					>
-						Connect Wallet
-					</button>
+					<AwaitButton buttonFunction={connect}>
+						{#snippet name()}
+							Connect Wallet
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for wallet...
+						{/snippet}
+					</AwaitButton>
 				{:else if depositInputError}
 					<button
 						type="button"
@@ -536,21 +539,23 @@
 						Input not valid {depositInputError}
 					</button>
 				{:else if formattedAllowance < $inputValue}
-					<button
-						onclick={approve}
-						type="button"
-						class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-					>
-						Approve
-					</button>
+					<AwaitButton buttonFunction={approve}>
+						{#snippet name()}
+							Set allowance
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
 				{:else}
-					<button
-						onclick={deposit}
-						type="button"
-						class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-					>
-						Execute
-					</button>
+					<AwaitButton buttonFunction={deposit}>
+						{#snippet name()}
+							Execute Transaction
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
 				{/if}
 			</div>
 		</form>
@@ -598,25 +603,22 @@
 			<div class="flex flex-wrap items-center justify-center gap-2">
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={verifier}>
-					<option value="yes" selected>
-						AlwaysYesOracle
-					</option>
-					<option value="wormhole">
-						Wormhole
-					</option>
+					<option value="yes" selected> AlwaysYesOracle </option>
+					<option value="wormhole"> Wormhole </option>
 				</select>
 			</div>
 
 			<!-- Action Button -->
 			<div class="flex justify-center">
 				{#if !connectedAccount}
-					<button
-						onclick={connect}
-						type="button"
-						class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-					>
-						Connect Wallet
-					</button>
+					<AwaitButton buttonFunction={connect}>
+						{#snippet name()}
+							Connect Wallet
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for wallet...
+						{/snippet}
+					</AwaitButton>
 				{:else if swapInputError}
 					<button
 						type="button"
@@ -628,28 +630,31 @@
 				{:else}
 					<div class="space-x-1.5">
 						{#if formattedAllowance < $inputValue}
-							<button
-								onclick={approve}
-								type="button"
-								class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-							>
-								Approve
-							</button>
+							<AwaitButton buttonFunction={approve}>
+								{#snippet name()}
+									Set allowance
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
 						{:else}
-							<button
-								onclick={swap}
-								type="button"
-								class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-							>
-								Swap
-							</button>
-							<button
-								onclick={depositAndSwap}
-								type="button"
-								class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-							>
-								depositAndSwap
-							</button>
+							<AwaitButton buttonFunction={swap}>
+								{#snippet name()}
+									Sign Swap 
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for signature...
+								{/snippet}
+							</AwaitButton>
+							<AwaitButton buttonFunction={depositAndSwap}>
+								{#snippet name()}
+									Execute depositAndSwap
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
 						{/if}
 					</div>
 				{/if}
