@@ -151,12 +151,7 @@
 			if (!activeWallet) set(0);
 			if (activeWallet) {
 				const asset = coinMap[activeChain][activeAsset];
-				const assetId = toId(
-					true,
-					ResetPeriod.OneDay,
-					compactAllocator,
-					asset
-				);
+				const assetId = toId(true, ResetPeriod.OneDay, compactAllocator, asset);
 				const accountAddress = activeWallet.accounts[0].address;
 				$publicClient
 					?.readContract({
@@ -169,12 +164,10 @@
 						console.log(v);
 						set(Number(v));
 					});
-				
 			}
 		}
 	);
-	
-	
+
 	$: formattedDeposit = $depositBalance / 10 ** decimalMap[$activeAsset];
 	$: formattedCompactDepositedBalance = $compactDepositedBalance / 10 ** decimalMap[$activeAsset];
 
@@ -206,7 +199,7 @@
 			? 1
 			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 				? 10
-				: 0 + $inputValue > formattedDeposit
+				: 0 + $inputValue > ($depositAction === "deposit" ? formattedDeposit : formattedCompactDepositedBalance)
 					? 100
 					: 0;
 
@@ -309,6 +302,38 @@
 				args: [asset, lockTag, amount, recipient]
 			});
 		}
+	}
+
+	async function withdraw() {
+		await setWalletToCorrectChain();
+		const asset = coinMap[$activeChain][$activeAsset];
+		const assetId = toId(true, ResetPeriod.OneDay, $compactAllocator, asset);
+		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
+
+		const allocatedTransferStruct: {
+			allocatorData: `0x${string}`;
+			nonce: bigint;
+			expires: bigint;
+			id: bigint;
+			recipients: {
+				claimant: bigint;
+				amount: bigint;
+			}[];
+		} = {
+			allocatorData: '0x', // TODO: Get from allocator
+			nonce: BigInt(Math.floor(Math.random() * 2 ** 32)),
+			expires: maxInt32, // TODO:
+			id: assetId,
+			recipients: [{ claimant: BigInt(addressToBytes32(connectedAccount.address)), amount }]
+		};
+
+		return $walletClient.writeContract({
+			account: connectedAccount.address,
+			address: COMPACT,
+			abi: COMPACT_ABI,
+			functionName: 'allocatedTransfer',
+			args: [allocatedTransferStruct]
+		});
 	}
 
 	async function approve() {
@@ -419,6 +444,7 @@
 	}
 
 	async function swap() {
+		await setWalletToCorrectChain();
 		const { order, batchCompact } = createOrder();
 
 		const signaturePromise = $walletClient.signTypedData({
@@ -541,16 +567,25 @@
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<select id="in-asset" class="rounded border px-2 py-1" bind:value={$depositAction}>
 					<option value="deposit" selected>Deposit</option>
-					<option value="withdraw" disabled>Withdraw</option>
+					<option value="withdraw">Withdraw</option>
 				</select>
 				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$inputValue} />
 				<span>of</span>
-				<input
-					type="text"
-					class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
-					disabled
-					value={formattedDeposit}
-				/>
+				{#if $depositAction === 'withdraw'}
+					<input
+						type="text"
+						class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+						disabled
+						value={formattedCompactDepositedBalance}
+					/>
+				{:else}
+					<input
+						type="text"
+						class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+						disabled
+						value={formattedDeposit}
+					/>
+				{/if}
 				<select id="deposit-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
 					<option value="sepolia" selected>Sepolia</option>
 					<option value="baseSepolia">Base Sepolia</option>
@@ -585,6 +620,15 @@
 					<AwaitButton buttonFunction={approve}>
 						{#snippet name()}
 							Set allowance
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
+				{:else if $depositAction === 'withdraw'}
+					<AwaitButton buttonFunction={withdraw}>
+						{#snippet name()}
+							Withdraw
 						{/snippet}
 						{#snippet awaiting()}
 							Waiting for transaction...
@@ -680,7 +724,7 @@
 				{:else}
 					<AwaitButton buttonFunction={swap}>
 						{#snippet name()}
-							Sign Swap 
+							Sign Swap
 						{/snippet}
 						{#snippet awaiting()}
 							Waiting for signature...
