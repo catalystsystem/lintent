@@ -44,7 +44,7 @@
 	// The first wallet in the array of connected wallets
 	$: connectedAccount = $activeWallet?.accounts?.[0];
 
-	const COMPACT = '0x0000000000000000000000000000000000000000' as const;
+	const COMPACT = '0xE7d08C4D2a8AB8512b6a920bA8E4F4F11f78d376' as const;
 
 	// Web3 account
 	const chains = ['sepolia', 'baseSepolia', 'optimismSepolia'] as const;
@@ -55,7 +55,16 @@
 
 	const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
 
-	const DEFAULT_ALLOCATOR = ADDRESS_ZERO;
+	const CATALYST_SETTLER = '0xf5D08Ca45a5C98706715F1eEed431798F0E3c5ac' as const;
+	const DEFAULT_ALLOCATOR = '22031956229997787190855790' as const;
+	const ALWAYS_YES_ORACLE = '0xabFd7B10F872356BEbe82405e3D83B3E5C8BE8c8' as const;
+	const COIN_FILLER = '0x0a8a2521325B259f531F353A55615817FC1d672d' as const;
+	const WORMHOLE_ORACLE = {
+		"sepolia": "0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb",
+		"baseSepolia": "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
+		"arbitrumSepolia": "0x46080096B5970d26634479f2F40e9e264B8D439b",
+		"optimismSepolia": "0xb516aD609f9609C914F5292084398B44fBE84A0C",
+	} as const;
 
 	const coinMap = {
 		sepolia: {
@@ -143,7 +152,9 @@
 			if (!activeWallet) set(0);
 			if (activeWallet) {
 				const asset = coinMap[activeChain][activeAsset];
-				if (asset === ADDRESS_ZERO) set(Number(maxUint256));
+				if (asset == ADDRESS_ZERO) {
+					return set(Number(maxUint256));
+				}
 				const accountAddress = activeWallet.accounts[0].address;
 				$publicClient
 					?.readContract({
@@ -170,8 +181,9 @@
 	// Execute Transaction Variables
 	let buyValue = 0;
 	const buyAmount = writable(0n);
-	let buyChain: chain = 'baseSepolia';
-	let buyAsset: coin = 'eth';
+	let destinationChain: chain = 'baseSepolia';
+	let destinationAsset: coin = 'eth';
+	let verifier: 'yes' | 'wormhole' = 'yes';
 
 	// TODO:
 	let fromChainId: number = 1;
@@ -179,11 +191,11 @@
 	$: swapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + chains.findIndex((c) => c == buyChain) == -1
+			: 0 + chains.findIndex((c) => c == destinationChain) == -1
 				? 2
 				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == buyAsset) == -1
+					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedDeposit
 							? 100
@@ -229,10 +241,11 @@
 				size: 32
 			}
 		)
-			.replace('0x', '32')
+			.replace('0x', '')
 			.slice(0, 24)}`;
+		console.log({lockTag, id: toId(true, ResetPeriod.OneDay, $compactAllocator, ADDRESS_ZERO)})
 		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
-		const recipient = ADDRESS_ZERO;
+		const recipient = ADDRESS_ZERO; // This means sender.
 
 		if (asset === ADDRESS_ZERO) {
 			$walletClient.writeContract({
@@ -303,22 +316,34 @@
 		mandate: CompactMandate;
 	};
 
+	function addressToBytes32(address: `0x${string}`): `0x${string}` {
+		return `0x${address.replace("0x", "").padStart(64, "0")}`;
+	}
+
 	function createOrder() {
-		const asset = coinMap[$activeChain][$activeAsset];
-		const inputTokenId = toId(true, ResetPeriod.OneDay, $compactAllocator, asset.replace('0x', ''));
+		const inputAsset = coinMap[$activeChain][$activeAsset];
+		const inputTokenId = toId(true, ResetPeriod.OneDay, $compactAllocator, inputAsset);
 		// Make Inputs
 		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
 		const input: [bigint, bigint] = [inputTokenId, amount];
 		const inputs = [input];
 
+		const remoteFiller = COIN_FILLER;
+		const remoteOracle = verifier === 'yes'
+				? ALWAYS_YES_ORACLE
+				: WORMHOLE_ORACLE[destinationChain];
+		const localOracle = verifier === 'yes'
+			? ALWAYS_YES_ORACLE
+			: WORMHOLE_ORACLE[$activeChain];
+
 		// Make Outputs
 		const output: OutputDescription = {
-			remoteOracle: ADDRESS_ZERO, // TODO:
-			remoteFiller: ADDRESS_ZERO, // TODO:
-			chainId: chainMap[$activeChain].id,
-			token: coinMap[$activeChain][$activeAsset],
+			remoteOracle: addressToBytes32(remoteOracle),
+			remoteFiller: addressToBytes32(remoteFiller),
+			chainId: chainMap[destinationChain].id,
+			token: addressToBytes32(coinMap[destinationChain][destinationAsset]),
 			amount: $buyAmount,
-			recipient: ADDRESS_ZERO, // TODO:
+			recipient: addressToBytes32(connectedAccount.address),
 			remoteCall: '',
 			fulfillmentContext: ''
 		};
@@ -331,7 +356,7 @@
 			originChainId: chainMap[$activeChain].id,
 			fillDeadline: Number(maxInt32), // TODO:
 			expires: Number(maxInt32), //  TODO:
-			localOracle: ADDRESS_ZERO,
+			localOracle: localOracle,
 			inputs: inputs,
 			outputs: outputs
 		};
@@ -342,7 +367,7 @@
 		};
 
 		const batchCompact: BatchCompact = {
-			arbiter: ADDRESS_ZERO,
+			arbiter: CATALYST_SETTLER,
 			sponsor: order.user,
 			nonce: order.nonce,
 			expires: order.expires,
@@ -353,16 +378,25 @@
 		return { order, batchCompact };
 	}
 
-	function swap() {
-		const { batchCompact } = createOrder();
+	async function swap() {
+		const { order, batchCompact } = createOrder();
 
 		const signaturePromise = $walletClient.signTypedData({
 			account: connectedAccount.address,
-			domain: compactDomain(fromChainId),
+			domain: {
+				name: 'The Compact',
+				version: '1',
+				chainId: fromChainId,
+				verifyingContract: COMPACT,
+			} as const,
 			types: compactTypes,
 			primaryType: 'BatchCompact',
 			message: batchCompact
 		});
+		const signature = await signaturePromise;
+
+		// Needs to be sent to the Catalyst order server:
+		console.log({order, batchCompact, signature});
 	}
 
 	const compact_type =
@@ -377,7 +411,7 @@
 
 	async function depositAndSwap() {
 		await setWalletToCorrectChain();
-		const { batchCompact } = createOrder();
+		const { order, batchCompact } = createOrder();
 		const claimHash = hashStruct({
 			data: batchCompact,
 			types: compactTypes,
@@ -393,7 +427,7 @@
 				size: 32
 			}
 		)
-			.replace('0x', '32')
+			.replace('0x', '')
 			.slice(0, 24)}`;
 		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
 
@@ -414,6 +448,10 @@
 						functionName: 'depositERC20AndRegister',
 						args: [asset, lockTag, amount, claimHash, typeHash]
 					});
+
+		await callPromise;
+		// Needs to be sent to the Catalyst order server:
+		console.log({order, batchCompact, signature: ""});
 	}
 
 	const trunc = (address: string) =>
@@ -545,14 +583,27 @@
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Buy</span>
 				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={buyValue} />
-				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={buyChain}>
+				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={destinationChain}>
 					<option value="sepolia">Sepolia</option>
 					<option value="baseSepolia" selected>Base Sepolia</option>
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
-				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={buyAsset}>
+				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={destinationAsset}>
 					<option value="eth" selected>WETH</option>
 					<option value="usdc">USDC</option>
+				</select>
+			</div>
+
+			<!-- Verified by -->
+			<div class="flex flex-wrap items-center justify-center gap-2">
+				<span class="font-medium">Verified by</span>
+				<select id="verified-by" class="rounded border px-2 py-1" bind:value={verifier}>
+					<option value="yes" selected>
+						AlwaysYesOracle
+					</option>
+					<option value="wormhole">
+						Wormhole
+					</option>
 				</select>
 			</div>
 
