@@ -22,6 +22,13 @@
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { ResetPeriod, toId } from '$lib/IdLib';
 	import AwaitButton from '$lib/AwaitButton.svelte';
+	import type {
+		BatchCompact,
+		StandardOrder,
+		CompactMandate,
+		MandateOutput
+	} from '../types';
+	import { submitOrder } from '$lib/utils/api';
 	import {
 		ADDRESS_ZERO,
 		COMPACT,
@@ -54,7 +61,7 @@
 	const chainMap = { sepolia, optimismSepolia, baseSepolia };
 
 	// Globals
-	let activeChain: Writable<chain> = writable('sepolia');
+	const activeChain = writable<chain>('sepolia');
 
 	// Define clients for accessing the chain.
 	const publicClient = derived(activeChain, (activeChain) => {
@@ -71,9 +78,9 @@
 	});
 
 	// Manage Deposit Variables
-	let depositAction: Readable<'deposit' | 'withdraw'> = writable('deposit');
-	let activeAsset: Writable<coin> = writable('eth');
-	let inputValue = writable(0);
+	const depositAction = writable<'deposit' | 'withdraw'>('deposit');
+	const activeAsset = writable<coin>('eth');
+	const inputValue = writable(0);
 
 	// Derive relevant wallet balances.
 	const compactAllocator = writable(DEFAULT_ALLOCATOR);
@@ -159,21 +166,21 @@
 	$: formattedAllowance = $allowance / 10 ** decimalMap[$activeAsset];
 
 	// Execute Transaction Variables
-	let buyValue = 0;
-	const buyAmount = writable(0n);
-	let destinationChain: chain = 'baseSepolia';
-	let destinationAsset: coin = 'eth';
-	let verifier: 'yes' | 'wormhole' = 'yes';
+	let buyValue = writable(0);
+	let buyAmount = writable(0n);
+	let destinationChain = writable<chain>('baseSepolia');
+	let destinationAsset = writable<coin>('eth');
+	let verifier = writable<'yes' | 'wormhole'>('yes');
 
 	// Error definition.
 	$: depositAndSwapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + chains.findIndex((c) => c == destinationChain) == -1
+			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
 				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
+					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedDeposit
 							? 100
@@ -181,11 +188,11 @@
 	$: swapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + chains.findIndex((c) => c == destinationChain) == -1
+			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
 				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
+					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedCompactDepositedBalance
 							? 100
@@ -309,43 +316,6 @@
 		});
 	}
 
-	type MandateOutput = {
-		remoteOracle: string;
-		remoteFiller: string;
-		chainId: number;
-		token: string;
-		amount: bigint;
-		recipient: string;
-		remoteCall: string;
-		fulfillmentContext: string;
-	};
-
-	type StandardOrder = {
-		user: string;
-		nonce: number;
-		originChainId: number;
-		expires: number;
-		fillDeadline: number;
-		localOracle: string;
-		inputs: [bigint, bigint][];
-		outputs: MandateOutput[];
-	};
-
-	type CompactMandate = {
-		fillDeadline: number;
-		localOracle: string;
-		outputs: MandateOutput[];
-	};
-
-	type BatchCompact = {
-		arbiter: string; // The account tasked with verifying and submitting the claim.
-		sponsor: string; // The account to source the tokens from.
-		nonce: number; // A parameter to enforce replay protection, scoped to allocator.
-		expires: number; // The time at which the claim expires.
-		idsAndAmounts: [bigint, bigint][]; // The allocated token IDs and amounts.
-		mandate: CompactMandate;
-	};
-
 	function addressToBytes32(address: `0x${string}`): `0x${string}` {
 		return `0x${address.replace('0x', '').padStart(64, '0')}`;
 	}
@@ -359,15 +329,16 @@
 		const inputs = [input];
 
 		const remoteFiller = COIN_FILLER;
-		const remoteOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[destinationChain];
-		const localOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
+		const remoteOracle =
+			$verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$destinationChain];
+		const localOracle = $verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
 
 		// Make Outputs
 		const output: MandateOutput = {
 			remoteOracle: addressToBytes32(remoteOracle),
 			remoteFiller: addressToBytes32(remoteFiller),
-			chainId: chainMap[destinationChain].id,
-			token: addressToBytes32(coinMap[destinationChain][destinationAsset]),
+			chainId: chainMap[$destinationChain].id,
+			token: addressToBytes32(coinMap[$destinationChain][$destinationAsset]),
 			amount: $buyAmount,
 			recipient: addressToBytes32(connectedAccount.address),
 			remoteCall: '',
@@ -422,9 +393,23 @@
 		});
 		const signature = await signaturePromise;
 
-		// Needs to be sent to the Catalyst order server:
 		console.log({ order, batchCompact, signature });
-		return;
+
+		const submitOrderResponse = await submitOrder({
+			orderType: 'CatalystCompactOrder',
+			order,
+			sponsorSigature: signature,
+			quote: {
+				fromAsset: $activeAsset,
+				toAsset: $destinationAsset,
+				fromPrice: '1',
+				toPrice: '1',
+				intermediary: '1',
+				discount: '1'
+			}
+		});
+
+		console.log({ submitOrderResponse });
 	}
 
 	const compact_type =
