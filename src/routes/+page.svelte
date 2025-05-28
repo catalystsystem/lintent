@@ -22,6 +22,13 @@
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { ResetPeriod, toId } from '$lib/IdLib';
 	import AwaitButton from '$lib/AwaitButton.svelte';
+	import type {
+		BatchCompact,
+		CatalystCompactOrder,
+		CompactMandate,
+		OutputDescription
+	} from '../types';
+	import { submitOrder } from '$lib/utils/api';
 
 	type MessageTypeProperty = {
 		name: string;
@@ -349,43 +356,6 @@
 		});
 	}
 
-	type OutputDescription = {
-		remoteOracle: string;
-		remoteFiller: string;
-		chainId: number;
-		token: string;
-		amount: bigint;
-		recipient: string;
-		remoteCall: string;
-		fulfillmentContext: string;
-	};
-
-	type CatalystCompactOrder = {
-		user: string;
-		nonce: number;
-		originChainId: number;
-		expires: number;
-		fillDeadline: number;
-		localOracle: string;
-		inputs: [bigint, bigint][];
-		outputs: OutputDescription[];
-	};
-
-	type CompactMandate = {
-		fillDeadline: number;
-		localOracle: string;
-		outputs: OutputDescription[];
-	};
-
-	type BatchCompact = {
-		arbiter: string; // The account tasked with verifying and submitting the claim.
-		sponsor: string; // The account to source the tokens from.
-		nonce: number; // A parameter to enforce replay protection, scoped to allocator.
-		expires: number; // The time at which the claim expires.
-		idsAndAmounts: [bigint, bigint][]; // The allocated token IDs and amounts.
-		mandate: CompactMandate;
-	};
-
 	function addressToBytes32(address: `0x${string}`): `0x${string}` {
 		return `0x${address.replace('0x', '').padStart(64, '0')}`;
 	}
@@ -463,9 +433,23 @@
 		});
 		const signature = await signaturePromise;
 
-		// Needs to be sent to the Catalyst order server:
 		console.log({ order, batchCompact, signature });
-		return;
+
+		const submitOrderResponse = await submitOrder({
+			orderType: 'CatalystCompactOrder',
+			order,
+			sponsorSigature: signature,
+			quote: {
+				fromAsset: $activeAsset,
+				toAsset: $destinationAsset,
+				fromPrice: '1',
+				toPrice: '1',
+				intermediary: '1',
+				discount: '1'
+			}
+		});
+
+		console.log({ submitOrderResponse });
 	}
 
 	const compact_type =
