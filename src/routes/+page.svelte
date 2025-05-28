@@ -16,7 +16,8 @@
 		maxInt32,
 		maxUint256,
 		toHex,
-		type PublicClient
+		type PublicClient,
+		checksumAddress
 	} from 'viem';
 	import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
 	import { derived, readable, writable, type Readable, type Writable } from 'svelte/store';
@@ -51,6 +52,12 @@
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
+	import { onDestroy, onMount } from 'svelte';
+
+	// Fix bigint so we can json serialize it:
+	(BigInt.prototype as any).toJSON = function () {
+		return this.toString();
+	};
 
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
@@ -81,8 +88,63 @@
 		});
 	});
 
+	let ordersSubscription: () => void;
+
 	// Orders
 	const orders = writable<{ order: StandardOrder; signature: `0x${string}` }[]>([]);
+	onMount(() => {
+		// Load orders from local storage.
+		const storedOrders = localStorage.getItem('catalyst-orders');
+		if (storedOrders) {
+			console.log(storedOrders);
+			try {
+				const parsedOrders = JSON.parse(storedOrders);
+				if (Array.isArray(parsedOrders)) {
+					// For each order, if a field is string ending in n, convert it to bigint.
+					parsedOrders.forEach((instance) => {
+						instance.order.nonce = BigInt(instance.order.nonce);
+						instance.order.originChainId = BigInt(instance.order.originChainId);
+						if (instance.order.inputs) {
+							instance.order.inputs = instance.order.inputs.map((input: [string, string]) => {
+								return [BigInt(input[0]), BigInt(input[1])];
+							});
+						}
+						if (instance.order.outputs) {
+							instance.order.outputs = instance.order.outputs.map((output: {
+								remoteOracle: `0x${string}`;
+								remoteFiller: `0x${string}`;
+								chainId: string;
+								token: `0x${string}`;
+								amount: string;
+								recipient: `0x${string}`;
+								remoteCall: `0x${string}`;
+								fulfillmentContext: `0x${string}`;
+							}) => {
+								return {
+									...output,
+									chainId: BigInt(output.chainId),
+									amount: BigInt(output.amount)
+								};
+							});
+						}
+					})
+					orders.set(parsedOrders);
+				}
+			} catch (e) {
+				console.error('Failed to parse stored orders:', e);
+			}
+		}
+		ordersSubscription = orders.subscribe((v) => {
+			// Set the content to local storage.
+			localStorage.setItem('catalyst-orders', JSON.stringify(v));
+		});
+	});
+	onDestroy(() => {
+		// Unsubscribe from the orders subscription.
+		if (ordersSubscription) {
+			ordersSubscription();
+		}
+	});
 
 	// Manage Deposit Variables
 	const depositAction = writable<'deposit' | 'withdraw'>('deposit');
@@ -105,7 +167,6 @@
 							blockTag: 'latest'
 						})
 						.then((v) => {
-							console.log(v);
 							set(Number(v));
 						});
 				} else {
@@ -117,7 +178,6 @@
 							args: [accountAddress]
 						})
 						.then((v) => {
-							console.log(v);
 							set(Number(v));
 						});
 				}
@@ -140,7 +200,6 @@
 						args: [accountAddress, assetId]
 					})
 					.then((v) => {
-						console.log(v);
 						set(Number(v));
 					});
 			}
@@ -161,9 +220,11 @@
 						address: asset,
 						abi: ERC20_ABI,
 						functionName: 'allowance',
-						args: [COMPACT, accountAddress]
+						args: [accountAddress, COMPACT]
 					})
-					.then((v) => set(Number(v)));
+					.then((v) => {
+						set(Number(v));
+					});
 			}
 		}
 	);
@@ -177,6 +238,8 @@
 	const destinationChain = writable<chain>('baseSepolia');
 	const destinationAsset = writable<coin>('weth');
 	const verifier = writable<'yes' | 'wormhole'>('yes');
+	const fillTimestamp = writable<number>();
+	const validateSequence = writable<number>();
 
 	// Error definition.
 	$: depositAndSwapInputError =
@@ -239,6 +302,9 @@
 	}
 
 	function setWalletToCorrectChain(chain: chain = $activeChain) {
+		if ($activeChain !== chain) {
+			$activeChain = chain;
+		}
 		return $walletClient.switchChain({ id: chainMap[chain].id });
 	}
 
@@ -501,7 +567,7 @@
 			id = `0x${id.toString(16).padStart(64, '0')}`;
 		}
 		// Remove the first 12 bytes (24 hex characters) and keep the last 20 bytes (40 hex characters).
-		return bytes32ToAddress(id);
+		return checksumAddress(bytes32ToAddress(id));
 	}
 
 	async function getOrderId(order: StandardOrder) {
@@ -575,7 +641,7 @@
 			const orderId = await getOrderId(order);
 			// Lookup timestamp on-chain
 			const encodedOutput = encodeMandateOutput(
-				connectedAccount.address,
+				addressToBytes32(connectedAccount.address),
 				orderId,
 				timestamp,
 				output
@@ -978,6 +1044,12 @@
 							</AwaitButton>
 						</td>
 						<td>
+							<input
+								type="number"
+								class="w-32 rounded border px-2 py-1"
+								placeholder="timestamp"
+								bind:value={$fillTimestamp}
+							/>
 							<AwaitButton buttonFunction={submit(order, 0)}>
 								{#snippet name()}
 									Submit
@@ -988,7 +1060,13 @@
 							</AwaitButton>
 						</td>
 						<td>
-							<AwaitButton buttonFunction={validate(order, 0)}>
+							<input
+								type="number"
+								class="w-32 rounded border px-2 py-1"
+								placeholder="sequence"
+								bind:value={$validateSequence}
+							/>
+							<AwaitButton buttonFunction={validate(order, Number($validateSequence))}>
 								{#snippet name()}
 									Validate
 								{/snippet}

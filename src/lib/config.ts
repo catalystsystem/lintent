@@ -76,6 +76,7 @@ export function getTokenKeyByAddress(chain: chain, address: string) {
             return coin;
         }
     }
+    console.log({ chain, address });
 }
 
 export function formatTokenDecmials(
