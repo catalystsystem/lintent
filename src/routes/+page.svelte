@@ -166,11 +166,11 @@
 	$: formattedAllowance = $allowance / 10 ** decimalMap[$activeAsset];
 
 	// Execute Transaction Variables
-	let buyValue = writable(0);
-	let buyAmount = writable(0n);
-	let destinationChain = writable<chain>('baseSepolia');
-	let destinationAsset = writable<coin>('eth');
-	let verifier = writable<'yes' | 'wormhole'>('yes');
+	const buyValue = writable(0);
+	const buyAmount = writable(0n);
+	const destinationChain = writable<chain>('baseSepolia');
+	const destinationAsset = writable<coin>('eth');
+	const verifier = writable<'yes' | 'wormhole'>('yes');
 
 	// Error definition.
 	$: depositAndSwapInputError =
@@ -610,13 +610,13 @@
 			<!-- Buy -->
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Buy</span>
-				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={buyValue} />
-				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={destinationChain}>
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyValue} />
+				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$destinationChain}>
 					<option value="sepolia">Sepolia</option>
 					<option value="baseSepolia" selected>Base Sepolia</option>
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
-				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={destinationAsset}>
+				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
 					<option value="eth" selected>WETH</option>
 					<option value="usdc">USDC</option>
 				</select>
@@ -625,7 +625,7 @@
 			<!-- Verified by -->
 			<div class="flex flex-wrap items-center justify-center gap-2">
 				<span class="font-medium">Verified by</span>
-				<select id="verified-by" class="rounded border px-2 py-1" bind:value={verifier}>
+				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="yes" selected> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
@@ -697,13 +697,13 @@
 			<!-- Buy -->
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Buy</span>
-				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={buyValue} />
-				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={destinationChain}>
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyValue} />
+				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$destinationChain}>
 					<option value="sepolia">Sepolia</option>
 					<option value="baseSepolia" selected>Base Sepolia</option>
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
-				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={destinationAsset}>
+				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
 					<option value="eth" selected>WETH</option>
 					<option value="usdc">USDC</option>
 				</select>
@@ -712,7 +712,7 @@
 			<!-- Verified by -->
 			<div class="flex flex-wrap items-center justify-center gap-2">
 				<span class="font-medium">Verified by</span>
-				<select id="verified-by" class="rounded border px-2 py-1" bind:value={verifier}>
+				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="yes" selected> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
