@@ -7,7 +7,7 @@ export type Quote = {
 	discount?: string;
 };
 
-export type OutputDescription = {
+export type MandateOutput = {
 	remoteOracle: string;
 	remoteFiller: string;
 	chainId: number;
@@ -18,7 +18,7 @@ export type OutputDescription = {
 	fulfillmentContext: string;
 };
 
-export type CatalystCompactOrder = {
+export type StandardOrder = {
 	user: string;
 	nonce: number;
 	originChainId: number;
@@ -26,13 +26,13 @@ export type CatalystCompactOrder = {
 	fillDeadline: number;
 	localOracle: string;
 	inputs: [bigint, bigint][];
-	outputs: OutputDescription[];
+	outputs: MandateOutput[];
 };
 
 export type CompactMandate = {
 	fillDeadline: number;
 	localOracle: string;
-	outputs: OutputDescription[];
+	outputs: MandateOutput[];
 };
 
 export type BatchCompact = {

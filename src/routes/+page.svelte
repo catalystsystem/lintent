@@ -24,9 +24,9 @@
 	import AwaitButton from '$lib/AwaitButton.svelte';
 	import type {
 		BatchCompact,
-		CatalystCompactOrder,
+		StandardOrder,
 		CompactMandate,
-		OutputDescription
+		MandateOutput
 	} from '../types';
 	import { submitOrder } from '$lib/utils/api';
 	import {
@@ -164,16 +164,6 @@
 	$: formattedDeposit = $depositBalance / 10 ** decimalMap[$activeAsset];
 	$: formattedCompactDepositedBalance = $compactDepositedBalance / 10 ** decimalMap[$activeAsset];
 	$: formattedAllowance = $allowance / 10 ** decimalMap[$activeAsset];
-
-	$: depositInputError =
-		chains.findIndex((c) => c == $activeChain) == -1
-			? 1
-			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
-				? 10
-				: 0 + $inputValue >
-					  ($depositAction === 'deposit' ? formattedDeposit : formattedCompactDepositedBalance)
-					? 100
-					: 0;
 
 	// Execute Transaction Variables
 	let buyValue = writable(0);
