@@ -91,7 +91,7 @@
 	} as const;
 
 	// Globals
-	let activeChain: Writable<chain> = writable('sepolia');
+	const activeChain = writable<chain>('sepolia');
 
 	const publicClient = derived(activeChain, (activeChain) => {
 		return createPublicClient({
@@ -108,9 +108,9 @@
 	});
 
 	// Manage Deposit Variables
-	let depositAction: Readable<'deposit' | 'withdraw'> = writable('deposit');
-	let activeAsset: Writable<coin> = writable('eth');
-	let inputValue = writable(0);
+	const depositAction = writable<'deposit' | 'withdraw'>('deposit');
+	const activeAsset = writable<coin>('eth');
+	const inputValue = writable(0);
 	const compactAllocator = writable(DEFAULT_ALLOCATOR);
 	const depositBalance: Readable<number> = derived(
 		[activeWallet, activeChain, activeAsset],
@@ -199,28 +199,29 @@
 			? 1
 			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 				? 10
-				: 0 + $inputValue > ($depositAction === "deposit" ? formattedDeposit : formattedCompactDepositedBalance)
+				: 0 + $inputValue >
+					  ($depositAction === 'deposit' ? formattedDeposit : formattedCompactDepositedBalance)
 					? 100
 					: 0;
 
 	// Execute Transaction Variables
-	let buyValue = 0;
-	const buyAmount = writable(0n);
-	let destinationChain: chain = 'baseSepolia';
-	let destinationAsset: coin = 'eth';
-	let verifier: 'yes' | 'wormhole' = 'yes';
+	let buyValue = writable(0);
+	let buyAmount = writable(0n);
+	let destinationChain = writable<chain>('baseSepolia');
+	let destinationAsset = writable<coin>('eth');
+	let verifier = writable<'yes' | 'wormhole'>('yes');
 
 	// TODO:
-	let fromChainId: number = 1;
+	const fromChainId = writable<number>(1);
 
 	$: depositAndSwapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + chains.findIndex((c) => c == destinationChain) == -1
+			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
 				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
+					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedDeposit
 							? 100
@@ -228,11 +229,11 @@
 	$: swapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + chains.findIndex((c) => c == destinationChain) == -1
+			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
 				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == destinationAsset) == -1
+					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedCompactDepositedBalance
 							? 100
@@ -398,15 +399,16 @@
 		const inputs = [input];
 
 		const remoteFiller = COIN_FILLER;
-		const remoteOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[destinationChain];
-		const localOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
+		const remoteOracle =
+			$verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$destinationChain];
+		const localOracle = $verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
 
 		// Make Outputs
 		const output: OutputDescription = {
 			remoteOracle: addressToBytes32(remoteOracle),
 			remoteFiller: addressToBytes32(remoteFiller),
-			chainId: chainMap[destinationChain].id,
-			token: addressToBytes32(coinMap[destinationChain][destinationAsset]),
+			chainId: chainMap[$destinationChain].id,
+			token: addressToBytes32(coinMap[$destinationChain][$destinationAsset]),
 			amount: $buyAmount,
 			recipient: addressToBytes32(connectedAccount.address),
 			remoteCall: '',
@@ -452,7 +454,7 @@
 			domain: {
 				name: 'The Compact',
 				version: '1',
-				chainId: fromChainId,
+				chainId: $fromChainId,
 				verifyingContract: COMPACT
 			} as const,
 			types: compactTypes,
