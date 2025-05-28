@@ -53,10 +53,10 @@ const chains = [
 ]
 
 const appMetadata = {
-  name: 'Web3-Onboard Svelte Demo',
+  name: 'Open Intents Framework Demo',
   icon: '<svg />',
   logo: '<svg />',
-  description: 'Demo using Onboard',
+  description: 'A demo website showcasing using the Open Intents Framework. Built by LIFI.',
   recommendedInjectedWallets: [
     { name: 'Coinbase', url: 'https://wallet.coinbase.com/' },
     { name: 'MetaMask', url: 'https://metamask.io' }

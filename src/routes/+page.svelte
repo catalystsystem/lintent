@@ -22,16 +22,17 @@
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { ResetPeriod, toId } from '$lib/IdLib';
 	import AwaitButton from '$lib/AwaitButton.svelte';
-
-	type MessageTypeProperty = {
-		name: string;
-		type: string;
-	};
-
-	// import {
-	//     sendTransaction,
-	//     signTypedData
-	// } from '@web3-onboard/wagmi';
+	import {
+		ADDRESS_ZERO,
+		COMPACT,
+		CATALYST_SETTLER,
+		DEFAULT_ALLOCATOR,
+		ALWAYS_YES_ORACLE,
+		COIN_FILLER,
+		WORMHOLE_ORACLE,
+		coinMap,
+		decimalMap
+	} from '$lib/config';
 
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
@@ -45,8 +46,6 @@
 	// The first wallet in the array of connected wallets
 	$: connectedAccount = $activeWallet?.accounts?.[0];
 
-	const COMPACT = '0xE7d08C4D2a8AB8512b6a920bA8E4F4F11f78d376' as const;
-
 	// Web3 account
 	const chains = ['sepolia', 'baseSepolia', 'optimismSepolia'] as const;
 	const coins = ['eth', 'usdc'] as const;
@@ -54,52 +53,16 @@
 	type coin = (typeof coins)[number];
 	const chainMap = { sepolia, optimismSepolia, baseSepolia };
 
-	const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as const;
-
-	const CATALYST_SETTLER = '0xf5D08Ca45a5C98706715F1eEed431798F0E3c5ac' as const;
-	const DEFAULT_ALLOCATOR = '22031956229997787190855790' as const;
-	const ALWAYS_YES_ORACLE = '0xabFd7B10F872356BEbe82405e3D83B3E5C8BE8c8' as const;
-	const COIN_FILLER = '0x0a8a2521325B259f531F353A55615817FC1d672d' as const;
-	const WORMHOLE_ORACLE = {
-		sepolia: '0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb',
-		baseSepolia: '0xb2477079b498594192837fa3EC4Ebc97153eaA65',
-		arbitrumSepolia: '0x46080096B5970d26634479f2F40e9e264B8D439b',
-		optimismSepolia: '0xb516aD609f9609C914F5292084398B44fBE84A0C'
-	} as const;
-
-	const coinMap = {
-		sepolia: {
-			eth: ADDRESS_ZERO,
-			usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-			weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14'
-		},
-		baseSepolia: {
-			eth: ADDRESS_ZERO,
-			usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-			weth: '0x4200000000000000000000000000000000000006'
-		},
-		optimismSepolia: {
-			eth: ADDRESS_ZERO,
-			usdc: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7',
-			weth: '0x4200000000000000000000000000000000000006'
-		}
-	} as const;
-
-	const decimalMap = {
-		eth: 18,
-		usdc: 6
-	} as const;
-
 	// Globals
 	let activeChain: Writable<chain> = writable('sepolia');
 
+	// Define clients for accessing the chain.
 	const publicClient = derived(activeChain, (activeChain) => {
 		return createPublicClient({
 			chain: chainMap[activeChain],
 			transport: http()
 		});
 	});
-
 	const walletClient = derived([activeChain, activeWallet], ([activeChain, activeWallet]) => {
 		return createWalletClient({
 			chain: chainMap[activeChain],
@@ -111,6 +74,8 @@
 	let depositAction: Readable<'deposit' | 'withdraw'> = writable('deposit');
 	let activeAsset: Writable<coin> = writable('eth');
 	let inputValue = writable(0);
+
+	// Derive relevant wallet balances.
 	const compactAllocator = writable(DEFAULT_ALLOCATOR);
 	const depositBalance: Readable<number> = derived(
 		[activeWallet, activeChain, activeAsset],
@@ -167,10 +132,6 @@
 			}
 		}
 	);
-
-	$: formattedDeposit = $depositBalance / 10 ** decimalMap[$activeAsset];
-	$: formattedCompactDepositedBalance = $compactDepositedBalance / 10 ** decimalMap[$activeAsset];
-
 	const allowance: Readable<number> = derived(
 		[activeWallet, activeChain, activeAsset],
 		([activeWallet, activeChain, activeAsset], set) => {
@@ -192,16 +153,10 @@
 			}
 		}
 	);
+	// Convert into formatted values for display
+	$: formattedDeposit = $depositBalance / 10 ** decimalMap[$activeAsset];
+	$: formattedCompactDepositedBalance = $compactDepositedBalance / 10 ** decimalMap[$activeAsset];
 	$: formattedAllowance = $allowance / 10 ** decimalMap[$activeAsset];
-
-	$: depositInputError =
-		chains.findIndex((c) => c == $activeChain) == -1
-			? 1
-			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
-				? 10
-				: 0 + $inputValue > ($depositAction === "deposit" ? formattedDeposit : formattedCompactDepositedBalance)
-					? 100
-					: 0;
 
 	// Execute Transaction Variables
 	let buyValue = 0;
@@ -210,9 +165,7 @@
 	let destinationAsset: coin = 'eth';
 	let verifier: 'yes' | 'wormhole' = 'yes';
 
-	// TODO:
-	let fromChainId: number = 1;
-
+	// Error definition.
 	$: depositAndSwapInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
@@ -237,7 +190,15 @@
 						: 0 + $inputValue > formattedCompactDepositedBalance
 							? 100
 							: 0;
-
+	$: depositInputError =
+		chains.findIndex((c) => c == $activeChain) == -1
+			? 1
+			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
+				? 10
+				: 0 + $inputValue >
+					  ($depositAction === 'deposit' ? formattedDeposit : formattedCompactDepositedBalance)
+					? 100
+					: 0;
 	async function connect() {
 		await onboard.connectWallet();
 	}
@@ -348,7 +309,7 @@
 		});
 	}
 
-	type OutputDescription = {
+	type MandateOutput = {
 		remoteOracle: string;
 		remoteFiller: string;
 		chainId: number;
@@ -359,7 +320,7 @@
 		fulfillmentContext: string;
 	};
 
-	type CatalystCompactOrder = {
+	type StandardOrder = {
 		user: string;
 		nonce: number;
 		originChainId: number;
@@ -367,13 +328,13 @@
 		fillDeadline: number;
 		localOracle: string;
 		inputs: [bigint, bigint][];
-		outputs: OutputDescription[];
+		outputs: MandateOutput[];
 	};
 
 	type CompactMandate = {
 		fillDeadline: number;
 		localOracle: string;
-		outputs: OutputDescription[];
+		outputs: MandateOutput[];
 	};
 
 	type BatchCompact = {
@@ -402,7 +363,7 @@
 		const localOracle = verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
 
 		// Make Outputs
-		const output: OutputDescription = {
+		const output: MandateOutput = {
 			remoteOracle: addressToBytes32(remoteOracle),
 			remoteFiller: addressToBytes32(remoteFiller),
 			chainId: chainMap[destinationChain].id,
@@ -415,7 +376,7 @@
 		const outputs = [output];
 
 		// Make order
-		const order: CatalystCompactOrder = {
+		const order: StandardOrder = {
 			user: connectedAccount.address,
 			nonce: 0,
 			originChainId: chainMap[$activeChain].id,
@@ -452,7 +413,7 @@
 			domain: {
 				name: 'The Compact',
 				version: '1',
-				chainId: fromChainId,
+				chainId: chainMap[$activeChain].id,
 				verifyingContract: COMPACT
 			} as const,
 			types: compactTypes,
@@ -521,41 +482,24 @@
 		console.log({ order, batchCompact, signature: '' });
 		return;
 	}
-
-	let manageCompactPromise: Promise<any> | undefined = undefined;
-	let exeucteTransactionPromise: Promise<any> | undefined = undefined;
-
-	const trunc = (address: string) =>
-		address ? address.slice(0, 6) + '...' + address.slice(-6) : null;
 </script>
 
 <main class="main">
-	<h1 class="py-1 text-center align-middle text-xl font-medium">Catalyst Intent Issuer</h1>
-	<p>
-		This small webapp showcases how to issue Catalyst Intents. This demo uses the compact settler.
-		This webapp supports two flows:
-	</p>
-	<ul>
-		<li>Swaps using existing deposits (signature)</li>
-		<li>Swaps using on-chain deposit & registration (transaction)</li>
-	</ul>
-	<p>
-		A third unsupported flow uses permit2 to do an on-chain deposit & registration with no
-		transaction.
-	</p>
-
-	<div class="mx-auto">
-		{#if connectedAccount}
-			<div class="wallet">
-				<div>{trunc(connectedAccount.address)}</div>
-				<button onclick={disconnect}>Disconnect</button>
-			</div>
-		{:else}
-			<div>
-				<button onclick={connect}>Connect</button>
-			</div>
-		{/if}
-	</div>
+	<header class="px-2">
+		<h1 class="py-1 text-center align-middle text-xl font-medium">Catalyst Intent Issuer</h1>
+		<p>
+			This small webapp showcases how to issue Catalyst Intents. This demo uses the compact settler.
+			This webapp supports two flows:
+		</p>
+		<ul class="list-disc list-inside">
+			<li>Swaps using existing deposits (signature)</li>
+			<li>Swaps using on-chain deposit & registration (transaction)</li>
+		</ul>
+		<p>
+			A third unsupported flow uses permit2 to do an on-chain deposit & registration without user
+			transactions.
+		</p>
+	</header>
 
 	<div class="flex flex-col justify-items-center align-middle">
 		<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
@@ -829,5 +773,19 @@
 				{/if}
 			</div>
 		</form>
+	</div>
+	<div class="relative inline-block w-64">
+		<select
+			class="block w-full appearance-none rounded border border-gray-300 bg-white px-4 py-2 pr-10 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+		>
+			<option>ETH</option>
+			<option>USDC</option>
+		</select>
+		<!-- Custom arrow -->
+		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+			<svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</div>
 	</div>
 </main>
