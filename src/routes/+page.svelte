@@ -22,12 +22,7 @@
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { ResetPeriod, toId } from '$lib/IdLib';
 	import AwaitButton from '$lib/AwaitButton.svelte';
-	import type {
-		BatchCompact,
-		StandardOrder,
-		CompactMandate,
-		MandateOutput
-	} from '../types';
+	import type { BatchCompact, StandardOrder, CompactMandate, MandateOutput } from '../types';
 	import { submitOrder } from '$lib/utils/api';
 	import {
 		ADDRESS_ZERO,
@@ -38,7 +33,12 @@
 		COIN_FILLER,
 		WORMHOLE_ORACLE,
 		coinMap,
-		decimalMap
+		decimalMap,
+		getCoins,
+		chainMap,
+		chains,
+		type chain,
+		type coin
 	} from '$lib/config';
 
 	// Subscribe to wallet updates
@@ -52,13 +52,6 @@
 
 	// The first wallet in the array of connected wallets
 	$: connectedAccount = $activeWallet?.accounts?.[0];
-
-	// Web3 account
-	const chains = ['sepolia', 'baseSepolia', 'optimismSepolia'] as const;
-	const coins = ['eth', 'usdc'] as const;
-	type chain = (typeof chains)[number];
-	type coin = (typeof coins)[number];
-	const chainMap = { sepolia, optimismSepolia, baseSepolia };
 
 	// Globals
 	const activeChain = writable<chain>('sepolia');
@@ -76,6 +69,9 @@
 			transport: custom(activeWallet?.provider)
 		});
 	});
+
+	// Orders
+	const orders = writable<{ order: StandardOrder; signature: `0x${string}` }[]>([]);
 
 	// Manage Deposit Variables
 	const depositAction = writable<'deposit' | 'withdraw'>('deposit');
@@ -169,7 +165,7 @@
 	const buyValue = writable(0);
 	const buyAmount = writable(0n);
 	const destinationChain = writable<chain>('baseSepolia');
-	const destinationAsset = writable<coin>('eth');
+	const destinationAsset = writable<coin>('weth');
 	const verifier = writable<'yes' | 'wormhole'>('yes');
 
 	// Error definition.
@@ -178,9 +174,9 @@
 			? 1
 			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
-				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
+				: 0 + getCoins($activeChain).findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
+					: 0 + getCoins($destinationChain).findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedDeposit
 							? 100
@@ -190,9 +186,9 @@
 			? 1
 			: 0 + chains.findIndex((c) => c == $destinationChain) == -1
 				? 2
-				: 0 + coins.findIndex((c) => c == $activeAsset) == -1
+				: 0 + getCoins($activeChain).findIndex((c) => c == $activeAsset) == -1
 					? 10
-					: 0 + coins.findIndex((c) => c == $destinationAsset) == -1
+					: 0 + getCoins($destinationChain).findIndex((c) => c == $destinationAsset) == -1
 						? 20
 						: 0 + $inputValue > formattedCompactDepositedBalance
 							? 100
@@ -200,7 +196,7 @@
 	$: depositInputError =
 		chains.findIndex((c) => c == $activeChain) == -1
 			? 1
-			: 0 + coins.findIndex((c) => c == $activeAsset) == -1
+			: 0 + getCoins($activeChain).findIndex((c) => c == $activeAsset) == -1
 				? 10
 				: 0 + $inputValue >
 					  ($depositAction === 'deposit' ? formattedDeposit : formattedCompactDepositedBalance)
@@ -394,22 +390,23 @@
 		const signature = await signaturePromise;
 
 		console.log({ order, batchCompact, signature });
+		orders.update((o) => [...o, { order, signature }]);
 
-		const submitOrderResponse = await submitOrder({
-			orderType: 'CatalystCompactOrder',
-			order,
-			sponsorSigature: signature,
-			quote: {
-				fromAsset: $activeAsset,
-				toAsset: $destinationAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
-			}
-		});
+		// const submitOrderResponse = await submitOrder({
+		// 	orderType: 'CatalystCompactOrder',
+		// 	order,
+		// 	sponsorSigature: signature,
+		// 	quote: {
+		// 		fromAsset: $activeAsset,
+		// 		toAsset: $destinationAsset,
+		// 		fromPrice: '1',
+		// 		toPrice: '1',
+		// 		intermediary: '1',
+		// 		discount: '1'
+		// 	}
+		// });
 
-		console.log({ submitOrderResponse });
+		// console.log({ submitOrderResponse });
 	}
 
 	const compact_type =
@@ -463,9 +460,15 @@
 					});
 
 		await callPromise;
+		const signature = '0x';
 		// Needs to be sent to the Catalyst order server:
-		console.log({ order, batchCompact, signature: '' });
+		console.log({ order, batchCompact, signature });
+		orders.update((o) => [...o, { order, signature }]);
 		return;
+	}
+
+	function trunc(value: `0x${string}`, length: number = 4): `0x${string}...${string}` {
+		return `0x${value.replace('0x', '').slice(0, length)}...${value.replace('0x', '').slice(-length)}`;
 	}
 </script>
 
@@ -476,7 +479,7 @@
 			This small webapp showcases how to issue Catalyst Intents. This demo uses the compact settler.
 			This webapp supports two flows:
 		</p>
-		<ul class="list-disc list-inside">
+		<ul class="list-inside list-disc">
 			<li>Swaps using existing deposits (signature)</li>
 			<li>Swaps using on-chain deposit & registration (transaction)</li>
 		</ul>
@@ -521,8 +524,9 @@
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="deposit-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
-					<option value="eth" selected>ETH</option>
-					<option value="usdc">USDC</option>
+					{#each getCoins($activeChain) as coin (coin)}
+						<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
+					{/each}
 				</select>
 			</div>
 
@@ -595,8 +599,9 @@
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="sell-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
-					<option value="eth" selected>ETH</option>
-					<option value="usdc">USDC</option>
+					{#each getCoins($activeChain) as coin (coin)}
+						<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
+					{/each}
 				</select>
 			</div>
 
@@ -617,8 +622,9 @@
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
-					<option value="eth" selected>WETH</option>
-					<option value="usdc">USDC</option>
+					{#each getCoins($destinationChain).filter((v) => v !== "eth") as coin (coin)}
+						<option value={coin} selected={coin === $destinationAsset}>{coin.toUpperCase()}</option>
+					{/each}
 				</select>
 			</div>
 
@@ -682,8 +688,9 @@
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="sell-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
-					<option value="eth" selected>ETH</option>
-					<option value="usdc">USDC</option>
+					{#each getCoins($activeChain) as coin (coin)}
+						<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
+					{/each}
 				</select>
 			</div>
 
@@ -704,8 +711,9 @@
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
-					<option value="eth" selected>WETH</option>
-					<option value="usdc">USDC</option>
+					{#each getCoins($destinationChain).filter((v) => v !== "eth") as coin (coin)}
+						<option value={coin} selected={coin === $destinationAsset}>{coin.toUpperCase()}</option>
+					{/each}
 				</select>
 			</div>
 
@@ -759,18 +767,32 @@
 			</div>
 		</form>
 	</div>
-	<div class="relative inline-block w-64">
-		<select
-			class="block w-full appearance-none rounded border border-gray-300 bg-white px-4 py-2 pr-10 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-		>
-			<option>ETH</option>
-			<option>USDC</option>
-		</select>
-		<!-- Custom arrow -->
-		<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-			<svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-			</svg>
-		</div>
+	<!-- Make a table to display orders from users -->
+	<div class="mx-auto mt-3 w-11/12 rounded-md border p-4">
+		<h1 class="text-xl font-medium">Orders</h1>
+		<table class="min-w-full table-auto overflow-hidden rounded-lg border border-gray-200">
+			<thead class="bg-gray-100 text-left">
+				<tr>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">User</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Chain</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Input</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Output</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-gray-200">
+				{#each $orders as { order } (order.user)}
+					<tr class="hover:bg-gray-50">
+						<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
+						<td class="px-4 py-2 text-sm text-gray-800">{order.originChainId}</td>
+						<td class="px-4 py-2 text-sm text-gray-800">
+							{order.inputs.map(([token, amount]) => `${token}: ${amount}`).join(', ')}
+						</td>
+						<td class="px-4 py-2 text-sm text-gray-800">
+							{order.outputs.map(({ token, amount }) => `${token}: ${amount}`).join(', ')}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	</div>
 </main>

@@ -1,3 +1,5 @@
+import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
+
 export const ADDRESS_ZERO =
     "0x0000000000000000000000000000000000000000" as const;
 export const COMPACT = "0xE7d08C4D2a8AB8512b6a920bA8E4F4F11f78d376" as const;
@@ -36,4 +38,17 @@ export const coinMap = {
 export const decimalMap = {
     eth: 18,
     usdc: 6,
+    weth: 18
 } as const;
+
+export const chainMap = { sepolia, optimismSepolia, baseSepolia } as const;
+export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
+export type chain = (typeof chains)[number];
+export type coin = keyof typeof coinMap[chain];
+
+export function getCoins(chain: chain) {
+    if (!coinMap[chain]) {
+        throw new Error(`No coins found for chain: ${chain}`);
+    }
+    return Object.keys(coinMap[chain]) as (keyof typeof coinMap[chain])[];
+}
