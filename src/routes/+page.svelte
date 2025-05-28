@@ -1,10 +1,13 @@
 <script lang="ts">
+	import axios from 'axios';
 	import onboard from '$lib/web3-onboard';
 	import { compactDomain, compactTypes } from '$lib/typedMessage';
 	import {
+		AbiConstructorNotFoundError,
 		createPublicClient,
 		createWalletClient,
 		custom,
+		encodePacked,
 		hashStruct,
 		// hashType, // This function is not exported. Implemented below.
 		hexToBigInt,
@@ -20,12 +23,14 @@
 	import type { WalletState } from '@web3-onboard/core';
 	import { ERC20_ABI } from '$lib/abi/erc20';
 	import { COMPACT_ABI } from '$lib/abi/compact';
+	import { WROMHOLE_ORACLE_ABI } from '$lib/abi/wormholeoracle';
 	import { ResetPeriod, toId } from '$lib/IdLib';
 	import AwaitButton from '$lib/AwaitButton.svelte';
 	import type { BatchCompact, StandardOrder, CompactMandate, MandateOutput } from '../types';
 	import { submitOrder } from '$lib/utils/api';
 	import {
 		ADDRESS_ZERO,
+		BYTES32_ZERO,
 		COMPACT,
 		CATALYST_SETTLER,
 		DEFAULT_ALLOCATOR,
@@ -38,8 +43,14 @@
 		chainMap,
 		chains,
 		type chain,
-		type coin
+		type coin,
+		getChainName,
+		getTokenKeyByAddress,
+		formatTokenDecmials,
+		wormholeChainIds
 	} from '$lib/config';
+	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
+	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
 
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
@@ -162,8 +173,7 @@
 	$: formattedAllowance = $allowance / 10 ** decimalMap[$activeAsset];
 
 	// Execute Transaction Variables
-	const buyValue = writable(0);
-	const buyAmount = writable(0n);
+	const buyAmount = writable(0);
 	const destinationChain = writable<chain>('baseSepolia');
 	const destinationAsset = writable<coin>('weth');
 	const verifier = writable<'yes' | 'wormhole'>('yes');
@@ -222,15 +232,14 @@
 
 		// Remove leading zeros from intPart just in case
 		const normalizedInt = intPart.replace(/^(-?)0+(?=\d)/, '$1');
-
 		// Combine parts
 		const combined = (normalizedInt + paddedDec).replace('.', '');
 
 		return BigInt(combined);
 	}
 
-	function setWalletToCorrectChain() {
-		return $walletClient.switchChain({ id: chainMap[$activeChain].id });
+	function setWalletToCorrectChain(chain: chain = $activeChain) {
+		return $walletClient.switchChain({ id: chainMap[chain].id });
 	}
 
 	async function deposit() {
@@ -313,7 +322,16 @@
 	}
 
 	function addressToBytes32(address: `0x${string}`): `0x${string}` {
+		if (address.length !== 42 && address.length !== 40) {
+			throw new Error(`Invalid address length: ${address.length}`);
+		}
 		return `0x${address.replace('0x', '').padStart(64, '0')}`;
+	}
+	function bytes32ToAddress(bytes: `0x${string}`): `0x${string}` {
+		if (bytes.length != 66 && bytes.length != 64) {
+			throw new Error(`Invalid bytes length: ${bytes.length}`);
+		}
+		return `0x${bytes.replace('0x', '').slice(24, 64)}`;
 	}
 
 	function createOrder() {
@@ -329,24 +347,25 @@
 			$verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$destinationChain];
 		const localOracle = $verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
 
+		const bigintBuyAmount = toBigIntWithDecimals($buyAmount, decimalMap[$destinationAsset]);
 		// Make Outputs
 		const output: MandateOutput = {
 			remoteOracle: addressToBytes32(remoteOracle),
 			remoteFiller: addressToBytes32(remoteFiller),
-			chainId: chainMap[$destinationChain].id,
+			chainId: BigInt(chainMap[$destinationChain].id),
 			token: addressToBytes32(coinMap[$destinationChain][$destinationAsset]),
-			amount: $buyAmount,
+			amount: bigintBuyAmount,
 			recipient: addressToBytes32(connectedAccount.address),
-			remoteCall: '',
-			fulfillmentContext: ''
+			remoteCall: '0x',
+			fulfillmentContext: '0x'
 		};
 		const outputs = [output];
 
 		// Make order
 		const order: StandardOrder = {
 			user: connectedAccount.address,
-			nonce: 0,
-			originChainId: chainMap[$activeChain].id,
+			nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
+			originChainId: BigInt(chainMap[$activeChain].id),
 			fillDeadline: Number(maxInt32), // TODO:
 			expires: Number(maxInt32), //  TODO:
 			localOracle: localOracle,
@@ -439,7 +458,12 @@
 		)
 			.replace('0x', '')
 			.slice(0, 24)}`;
-		const amount = toBigIntWithDecimals($inputValue, decimalMap[$activeAsset]);
+		// Remember to subtract existing deposited value
+		const trueInputValue = $inputValue - formattedCompactDepositedBalance;
+		const amount = toBigIntWithDecimals(
+			trueInputValue > 0 ? trueInputValue : 0,
+			decimalMap[$activeAsset]
+		);
 
 		const callPromise =
 			asset === ADDRESS_ZERO
@@ -467,8 +491,141 @@
 		return;
 	}
 
-	function trunc(value: `0x${string}`, length: number = 4): `0x${string}...${string}` {
+	function trunc(value: `0x${string}`, length: number = 8): `0x${string}...${string}` {
 		return `0x${value.replace('0x', '').slice(0, length)}...${value.replace('0x', '').slice(-length)}`;
+	}
+
+	function idToToken(id: `0x${string}` | bigint): `0x${string}` {
+		if (typeof id === 'bigint') {
+			// Convert bigint to hex string and pad it to 64 characters.
+			id = `0x${id.toString(16).padStart(64, '0')}`;
+		}
+		// Remove the first 12 bytes (24 hex characters) and keep the last 20 bytes (40 hex characters).
+		return bytes32ToAddress(id);
+	}
+
+	async function getOrderId(order: StandardOrder) {
+		const view_orderId = $publicClient.readContract({
+			address: CATALYST_SETTLER,
+			abi: SETTLER_COMPACT_ABI,
+			functionName: 'orderIdentifier',
+			args: [order]
+		});
+		return view_orderId;
+	}
+
+	function encodeMandateOutput(
+		solver: `0x${string}`,
+		orderId: `0x${string}`,
+		timestamp: number,
+		output: MandateOutput
+	) {
+		return encodePacked(
+			['bytes32', 'bytes32', 'uint32', 'bytes32', 'uint256', 'bytes32', 'bytes', 'bytes'],
+			[
+				solver,
+				orderId,
+				timestamp,
+				output.token,
+				output.amount,
+				output.recipient,
+				output.remoteCall,
+				output.fulfillmentContext
+			]
+		);
+	}
+
+	function fill(order: StandardOrder) {
+		return async () => {
+			const orderId = await getOrderId(order);
+			//Check that only 1 output exists.
+			if (order.outputs.length !== 1) {
+				throw new Error('Order must have exactly one output');
+			}
+			// The destination asset cannot be ETH.
+			const output = order.outputs[0];
+			if (output.token === BYTES32_ZERO) {
+				throw new Error('Output token cannot be ETH');
+			}
+			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
+
+			return $walletClient.writeContract({
+				account: connectedAccount.address,
+				address: bytes32ToAddress(output.remoteFiller),
+				abi: COIN_FILLER_ABI,
+				functionName: 'fill',
+				args: [order.fillDeadline, orderId, output, addressToBytes32(connectedAccount.address)]
+			});
+		};
+	}
+
+	function submit(order: StandardOrder, timestamp: number) {
+		return async () => {
+			//Check that only 1 output exists.
+			if (order.outputs.length !== 1) {
+				throw new Error('Order must have exactly one output');
+			}
+			// The destination asset cannot be ETH.
+			const output = order.outputs[0];
+			const remoteOracle = bytes32ToAddress(output.remoteOracle);
+			if (remoteOracle === ALWAYS_YES_ORACLE) return;
+
+			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
+
+			const orderId = await getOrderId(order);
+			// Lookup timestamp on-chain
+			const encodedOutput = encodeMandateOutput(
+				connectedAccount.address,
+				orderId,
+				timestamp,
+				output
+			);
+			const payload: `0x${string}`[] = [encodedOutput];
+			if (remoteOracle === WORMHOLE_ORACLE[getChainName(Number(output.chainId))!]) {
+				return $walletClient.writeContract({
+					account: connectedAccount.address,
+					address: remoteOracle,
+					abi: WROMHOLE_ORACLE_ABI,
+					functionName: 'submit',
+					args: [bytes32ToAddress(output.remoteOracle), payload]
+				});
+			}
+			throw new Error('Remote oracle is not supported');
+		};
+	}
+
+	function validate(order: StandardOrder, sequence: number) {
+		return async () => {
+			if (order.localOracle === ALWAYS_YES_ORACLE) return;
+			const sourceChain = getChainName(Number(order.originChainId))!;
+			await setWalletToCorrectChain(sourceChain);
+			if (order.outputs.length !== 1) {
+				throw new Error('Order must have exactly one output');
+			}
+			// The destination asset cannot be ETH.
+			const output = order.outputs[0];
+
+			if (order.localOracle === WORMHOLE_ORACLE[sourceChain]) {
+				// Get VAA
+				const wormholeChainId = wormholeChainIds[sourceChain];
+				const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.remoteOracle.replace('0x', '')}/${sequence}?network=Testnet`;
+				const response = await axios.get(requestUrl);
+				console.log(response.data);
+				// return $walletClient.writeContract({
+				// 	account: connectedAccount.address,
+				// 	address: order.localOracle,
+				// 	abi: WROMHOLE_ORACLE_ABI,
+				// 	functionName: 'receiveMessage',
+				// 	args: [encodedOutput]
+				// });
+			}
+		};
+	}
+
+	function claim(order: StandardOrder, signature: `0x${string}`) {
+		return async () => {
+			await setWalletToCorrectChain(getChainName(Number(order.originChainId)!));
+		};
 	}
 </script>
 
@@ -615,14 +772,14 @@
 			<!-- Buy -->
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Buy</span>
-				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyValue} />
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyAmount} />
 				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$destinationChain}>
 					<option value="sepolia">Sepolia</option>
 					<option value="baseSepolia" selected>Base Sepolia</option>
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
-					{#each getCoins($destinationChain).filter((v) => v !== "eth") as coin (coin)}
+					{#each getCoins($destinationChain).filter((v) => v !== 'eth') as coin (coin)}
 						<option value={coin} selected={coin === $destinationAsset}>{coin.toUpperCase()}</option>
 					{/each}
 				</select>
@@ -704,14 +861,14 @@
 			<!-- Buy -->
 			<div class="flex flex-wrap items-center justify-start gap-2">
 				<span class="font-medium">Buy</span>
-				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyValue} />
+				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$buyAmount} />
 				<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$destinationChain}>
 					<option value="sepolia">Sepolia</option>
 					<option value="baseSepolia" selected>Base Sepolia</option>
 					<option value="optimismSepolia">Optimism Sepolia</option>
 				</select>
 				<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$destinationAsset}>
-					{#each getCoins($destinationChain).filter((v) => v !== "eth") as coin (coin)}
+					{#each getCoins($destinationChain).filter((v) => v !== 'eth') as coin (coin)}
 						<option value={coin} selected={coin === $destinationAsset}>{coin.toUpperCase()}</option>
 					{/each}
 				</select>
@@ -774,21 +931,81 @@
 			<thead class="bg-gray-100 text-left">
 				<tr>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">User</th>
-					<th class="px-4 py-2 text-sm font-medium text-gray-700">Chain</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">From</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">To</th>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">Input</th>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">Output</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Fill</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Submit</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Validate</th>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">Claim</th>
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200">
-				{#each $orders as { order } (order.user)}
+				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature } (order.user)}
 					<tr class="hover:bg-gray-50">
 						<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
-						<td class="px-4 py-2 text-sm text-gray-800">{order.originChainId}</td>
+						<td class="px-4 py-2 text-sm text-gray-800"
+							>{getChainName(Number(order.originChainId))}</td
+						>
+						<td class="px-4 py-2 text-sm text-gray-800"
+							>{getChainName(Number(order.outputs[0].chainId))}</td
+						>
 						<td class="px-4 py-2 text-sm text-gray-800">
-							{order.inputs.map(([token, amount]) => `${token}: ${amount}`).join(', ')}
+							{order.inputs
+								.map(
+									([token, amount]) =>
+										`${getTokenKeyByAddress(getChainName(Number(order.originChainId))!, idToToken(token))}: ${formatTokenDecmials(amount, getTokenKeyByAddress(getChainName(Number(order.originChainId))!, idToToken(token))!)}`
+								)
+								.join(', ')}
 						</td>
 						<td class="px-4 py-2 text-sm text-gray-800">
-							{order.outputs.map(({ token, amount }) => `${token}: ${amount}`).join(', ')}
+							{order.outputs
+								.map(
+									({ token, amount }) =>
+										`${getTokenKeyByAddress(getChainName(Number(order.outputs[0].chainId))!, idToToken(token as `0x${string}`))}: ${formatTokenDecmials(amount, getTokenKeyByAddress(getChainName(Number(order.outputs[0].chainId))!, idToToken(token as `0x${string}`))!)}`
+								)
+								.join(', ')}
+						</td>
+						<td>
+							<AwaitButton buttonFunction={fill(order)}>
+								{#snippet name()}
+									Fill
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						</td>
+						<td>
+							<AwaitButton buttonFunction={submit(order, 0)}>
+								{#snippet name()}
+									Submit
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						</td>
+						<td>
+							<AwaitButton buttonFunction={validate(order, 0)}>
+								{#snippet name()}
+									Validate
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						</td>
+						<td>
+							<AwaitButton buttonFunction={claim(order, signature)}>
+								{#snippet name()}
+									Claim
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
 						</td>
 					</tr>
 				{/each}

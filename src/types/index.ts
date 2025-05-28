@@ -8,37 +8,37 @@ export type Quote = {
 };
 
 export type MandateOutput = {
-	remoteOracle: string;
-	remoteFiller: string;
-	chainId: number;
-	token: string;
+	remoteOracle: `0x${string}`;
+	remoteFiller: `0x${string}`;
+	chainId: bigint;
+	token: `0x${string}`;
 	amount: bigint;
-	recipient: string;
-	remoteCall: string;
-	fulfillmentContext: string;
+	recipient: `0x${string}`;
+	remoteCall: `0x${string}`;
+	fulfillmentContext: `0x${string}`;
 };
 
 export type StandardOrder = {
-	user: string;
-	nonce: number;
-	originChainId: number;
+	user: `0x${string}`;
+	nonce: bigint;
+	originChainId: bigint;
 	expires: number;
 	fillDeadline: number;
-	localOracle: string;
+	localOracle: `0x${string}`;
 	inputs: [bigint, bigint][];
 	outputs: MandateOutput[];
 };
 
 export type CompactMandate = {
 	fillDeadline: number;
-	localOracle: string;
+	localOracle: `0x${string}`;
 	outputs: MandateOutput[];
 };
 
 export type BatchCompact = {
-	arbiter: string; // The account tasked with verifying and submitting the claim.
-	sponsor: string; // The account to source the tokens from.
-	nonce: number; // A parameter to enforce replay protection, scoped to allocator.
+	arbiter: `0x${string}`; // The account tasked with verifying and submitting the claim.
+	sponsor: `0x${string}`; // The account to source the tokens from.
+	nonce: bigint; // A parameter to enforce replay protection, scoped to allocator.
 	expires: number; // The time at which the claim expires.
 	idsAndAmounts: [bigint, bigint][]; // The allocated token IDs and amounts.
 	mandate: CompactMandate;

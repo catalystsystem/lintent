@@ -2,6 +2,7 @@ import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
 
 export const ADDRESS_ZERO =
     "0x0000000000000000000000000000000000000000" as const;
+export const BYTES32_ZERO = "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 export const COMPACT = "0xE7d08C4D2a8AB8512b6a920bA8E4F4F11f78d376" as const;
 export const CATALYST_SETTLER =
     "0xf5D08Ca45a5C98706715F1eEed431798F0E3c5ac" as const;
@@ -35,6 +36,13 @@ export const coinMap = {
     },
 } as const;
 
+export const wormholeChainIds = {
+    sepolia: 10002,
+    arbitrumSepolia: 10003,
+    baseSepolia: 10004,
+    optimismSepolia: 10005
+} as const;
+
 export const decimalMap = {
     eth: 18,
     usdc: 6,
@@ -51,4 +59,29 @@ export function getCoins(chain: chain) {
         throw new Error(`No coins found for chain: ${chain}`);
     }
     return Object.keys(coinMap[chain]) as (keyof typeof coinMap[chain])[];
+}
+
+export function getChainName(chainId: number) {
+    for (const key of chains) {
+        if (chainMap[key].id === chainId) {
+            return key;
+        }
+    }
+}
+
+export function getTokenKeyByAddress(chain: chain, address: string) {
+    const coins = getCoins(chain);
+    for (const coin of coins) {
+        if (coinMap[chain][coin] === address) {
+            return coin;
+        }
+    }
+}
+
+export function formatTokenDecmials(
+    value: bigint | number,
+    coin: coin,
+): string {
+    const decimals = decimalMap[coin];
+    return (Number(value) / 10 ** decimals).toString();
 }
