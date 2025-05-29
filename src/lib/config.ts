@@ -1,4 +1,4 @@
-import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
+import { sepolia, optimismSepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 
 export const ADDRESS_ZERO =
     "0x0000000000000000000000000000000000000000" as const;
@@ -16,6 +16,12 @@ export const WORMHOLE_ORACLE = {
     baseSepolia: "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
     arbitrumSepolia: "0x46080096B5970d26634479f2F40e9e264B8D439b",
     optimismSepolia: "0xb516aD609f9609C914F5292084398B44fBE84A0C",
+} as const;
+export const POLYMER_ORACLE = {
+    sepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
+    baseSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
+    arbitrumSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
+    optimismSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
 } as const;
 
 export const coinMap = {
@@ -41,6 +47,12 @@ export const wormholeChainIds = {
     arbitrumSepolia: 10003,
     baseSepolia: 10004,
     optimismSepolia: 10005
+} as const;
+export const polymerChainIds = {
+    sepolia: sepolia.id,
+    arbitrumSepolia: arbitrumSepolia.id,
+    baseSepolia: baseSepolia.id,
+    optimismSepolia: optimismSepolia.id
 } as const;
 
 export const decimalMap = {
@@ -85,4 +97,10 @@ export function formatTokenDecmials(
 ): string {
     const decimals = decimalMap[coin];
     return (Number(value) / 10 ** decimals).toString();
+}
+
+export function getOracle(verifier: 'yes' | 'wormhole' | 'polymer', chain: chain) {
+    if (verifier === 'yes') return ALWAYS_YES_ORACLE;
+    if (verifier === 'wormhole') return WORMHOLE_ORACLE[chain];
+    if (verifier === 'polymer') return POLYMER_ORACLE[chain];
 }

@@ -17,7 +17,9 @@
 		maxUint256,
 		toHex,
 		type PublicClient,
-		checksumAddress
+		checksumAddress,
+		parseAbiParameters,
+		encodeAbiParameters
 	} from 'viem';
 	import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
 	import { derived, readable, writable, type Readable, type Writable } from 'svelte/store';
@@ -48,10 +50,12 @@
 		getChainName,
 		getTokenKeyByAddress,
 		formatTokenDecmials,
-		wormholeChainIds
+		wormholeChainIds,
+		getOracle
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
+	import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
 	import { onDestroy, onMount } from 'svelte';
 
 	// Fix bigint so we can json serialize it:
@@ -110,24 +114,26 @@
 							});
 						}
 						if (instance.order.outputs) {
-							instance.order.outputs = instance.order.outputs.map((output: {
-								remoteOracle: `0x${string}`;
-								remoteFiller: `0x${string}`;
-								chainId: string;
-								token: `0x${string}`;
-								amount: string;
-								recipient: `0x${string}`;
-								remoteCall: `0x${string}`;
-								fulfillmentContext: `0x${string}`;
-							}) => {
-								return {
-									...output,
-									chainId: BigInt(output.chainId),
-									amount: BigInt(output.amount)
-								};
-							});
+							instance.order.outputs = instance.order.outputs.map(
+								(output: {
+									remoteOracle: `0x${string}`;
+									remoteFiller: `0x${string}`;
+									chainId: string;
+									token: `0x${string}`;
+									amount: string;
+									recipient: `0x${string}`;
+									remoteCall: `0x${string}`;
+									fulfillmentContext: `0x${string}`;
+								}) => {
+									return {
+										...output,
+										chainId: BigInt(output.chainId),
+										amount: BigInt(output.amount)
+									};
+								}
+							);
 						}
-					})
+					});
 					orders.set(parsedOrders);
 				}
 			} catch (e) {
@@ -237,9 +243,9 @@
 	const buyAmount = writable(0);
 	const destinationChain = writable<chain>('baseSepolia');
 	const destinationAsset = writable<coin>('weth');
-	const verifier = writable<'yes' | 'wormhole'>('yes');
+	const verifier = writable<'yes' | 'wormhole' | 'polymer'>('polymer');
 	const fillTimestamp = writable<number>();
-	const validateSequence = writable<number>();
+	const validateContext = writable<string>();
 
 	// Error definition.
 	$: depositAndSwapInputError =
@@ -409,9 +415,8 @@
 		const inputs = [input];
 
 		const remoteFiller = COIN_FILLER;
-		const remoteOracle =
-			$verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$destinationChain];
-		const localOracle = $verifier === 'yes' ? ALWAYS_YES_ORACLE : WORMHOLE_ORACLE[$activeChain];
+		const remoteOracle = getOracle($verifier, $destinationChain)!;
+		const localOracle = getOracle($verifier, $activeChain)!;
 
 		const bigintBuyAmount = toBigIntWithDecimals($buyAmount, decimalMap[$destinationAsset]);
 		// Make Outputs
@@ -570,14 +575,38 @@
 		return checksumAddress(bytes32ToAddress(id));
 	}
 
-	async function getOrderId(order: StandardOrder) {
-		const view_orderId = $publicClient.readContract({
-			address: CATALYST_SETTLER,
-			abi: SETTLER_COMPACT_ABI,
-			functionName: 'orderIdentifier',
-			args: [order]
-		});
-		return view_orderId;
+	function getOrderId(order: StandardOrder) {
+		return keccak256(
+			encodePacked(
+				[
+					'uint256',
+					'address',
+					'address',
+					'uint256',
+					'uint32',
+					'uint32',
+					'address',
+					'uint256[2][]',
+					'bytes'
+				],
+				[
+					order.originChainId,
+					CATALYST_SETTLER,
+					order.user,
+					order.nonce,
+					order.expires,
+					order.fillDeadline,
+					order.localOracle,
+					order.inputs,
+					encodeAbiParameters(
+						parseAbiParameters(
+							'(bytes32 remoteOracle, bytes32 remoteFiller, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes remoteCall, bytes fulfillmentContext)[]'
+						),
+						[order.outputs]
+					)
+				]
+			)
+		);
 	}
 
 	function encodeMandateOutput(
@@ -587,7 +616,18 @@
 		output: MandateOutput
 	) {
 		return encodePacked(
-			['bytes32', 'bytes32', 'uint32', 'bytes32', 'uint256', 'bytes32', 'bytes', 'bytes'],
+			[
+				'bytes32',
+				'bytes32',
+				'uint32',
+				'bytes32',
+				'uint256',
+				'bytes32',
+				'uint16',
+				'bytes',
+				'uint16',
+				'bytes'
+			],
 			[
 				solver,
 				orderId,
@@ -595,7 +635,9 @@
 				output.token,
 				output.amount,
 				output.recipient,
+				output.remoteCall.replace('0x', '').length / 2,
 				output.remoteCall,
+				output.fulfillmentContext.replace('0x', '').length / 2,
 				output.fulfillmentContext
 			]
 		);
@@ -603,7 +645,7 @@
 
 	function fill(order: StandardOrder) {
 		return async () => {
-			const orderId = await getOrderId(order);
+			const orderId = getOrderId(order);
 			//Check that only 1 output exists.
 			if (order.outputs.length !== 1) {
 				throw new Error('Order must have exactly one output');
@@ -614,6 +656,24 @@
 				throw new Error('Output token cannot be ETH');
 			}
 			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
+
+			// Check allowance & set allowance if needed
+			const assetAddress = bytes32ToAddress(output.token);
+			const allowance = await $publicClient.readContract({
+				address: assetAddress,
+				abi: ERC20_ABI,
+				functionName: 'allowance',
+				args: [connectedAccount.address, bytes32ToAddress(output.remoteFiller)]
+			});
+			if (BigInt(allowance) < output.amount) {
+				await $walletClient.writeContract({
+					account: connectedAccount.address,
+					address: assetAddress,
+					abi: ERC20_ABI,
+					functionName: 'approve',
+					args: [bytes32ToAddress(output.remoteFiller), maxUint256]
+				});
+			}
 
 			return $walletClient.writeContract({
 				account: connectedAccount.address,
@@ -638,7 +698,7 @@
 
 			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
 
-			const orderId = await getOrderId(order);
+			const orderId = getOrderId(order);
 			// Lookup timestamp on-chain
 			const encodedOutput = encodeMandateOutput(
 				addressToBytes32(connectedAccount.address),
@@ -647,33 +707,78 @@
 				output
 			);
 			const payload: `0x${string}`[] = [encodedOutput];
+			console.log({ payload });
 			if (remoteOracle === WORMHOLE_ORACLE[getChainName(Number(output.chainId))!]) {
 				return $walletClient.writeContract({
 					account: connectedAccount.address,
 					address: remoteOracle,
 					abi: WROMHOLE_ORACLE_ABI,
 					functionName: 'submit',
-					args: [bytes32ToAddress(output.remoteOracle), payload]
+					args: [bytes32ToAddress(output.remoteFiller), payload]
 				});
 			}
 			throw new Error('Remote oracle is not supported');
 		};
 	}
 
-	function validate(order: StandardOrder, sequence: number) {
+	function validate(order: StandardOrder, transactionHash: string) {
 		return async () => {
 			if (order.localOracle === ALWAYS_YES_ORACLE) return;
 			const sourceChain = getChainName(Number(order.originChainId))!;
-			await setWalletToCorrectChain(sourceChain);
+			const destinationChain = getChainName(Number(order.outputs[0].chainId))!;
 			if (order.outputs.length !== 1) {
 				throw new Error('Order must have exactly one output');
 			}
 			// The destination asset cannot be ETH.
 			const output = order.outputs[0];
 
-			if (order.localOracle === WORMHOLE_ORACLE[sourceChain]) {
+			if (order.localOracle === getOracle('polymer', sourceChain)) {
+				await setWalletToCorrectChain(destinationChain);
+				const transactionReceipt = await $publicClient.getTransactionReceipt({
+					hash: transactionHash as `0x${string}`
+				});
+				
+				const numlogs = transactionReceipt.logs.length;
+				if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
+				const fillLog = transactionReceipt.logs[1]; // The first log is transfer, next is fill.
+
+				const requestUrl = `/polymer`;
+
+				let proof: string | undefined;
+				for (let i = 0; i < 5; ++i) {
+					const response = await axios.post(
+						requestUrl,
+						{
+							srcChainId: Number(order.outputs[0].chainId),
+							srcBlockNumber: Number(transactionReceipt.blockNumber),
+							globalLogIndex: Number(fillLog.logIndex),
+						}
+					)
+					const dat = response.data as {proof: undefined | string}
+					console.log(dat);
+					if (dat.proof) {proof = dat.proof; break};
+					// wait i*1 seconds before requesting again.
+					await new Promise(r => setTimeout(r, i*5000 + 1000));
+				}
+				console.log({proof});
+				if (proof) {
+					await setWalletToCorrectChain(sourceChain);
+
+					return $walletClient.writeContract({
+						account: connectedAccount.address,
+						address: order.localOracle,
+						abi: POLYMER_ORACLE_ABI,
+						functionName: 'receiveMessage',
+						args: [`0x${proof.replace("0x", "")}`]
+					});
+				}
+			}
+
+			if (order.localOracle === getOracle('wormhole', sourceChain)) {
+				// TODO: get sequence from event.
+				const sequence = 0;
 				// Get VAA
-				const wormholeChainId = wormholeChainIds[sourceChain];
+				const wormholeChainId = wormholeChainIds[destinationChain];
 				const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.remoteOracle.replace('0x', '')}/${sequence}?network=Testnet`;
 				const response = await axios.get(requestUrl);
 				console.log(response.data);
@@ -684,6 +789,7 @@
 				// 	functionName: 'receiveMessage',
 				// 	args: [encodedOutput]
 				// });
+				return;
 			}
 		};
 	}
@@ -855,7 +961,8 @@
 			<div class="flex flex-wrap items-center justify-center gap-2">
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
-					<option value="yes" selected> AlwaysYesOracle </option>
+					<option value="polymer" selected> Polymer </option>
+					<option value="yes"> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
 			</div>
@@ -944,7 +1051,8 @@
 			<div class="flex flex-wrap items-center justify-center gap-2">
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
-					<option value="yes" selected> AlwaysYesOracle </option>
+					<option value="polymer" selected> Polymer </option>
+					<option value="yes"> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
 			</div>
@@ -1008,7 +1116,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200">
-				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature } (order.user)}
+				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature } (getOrderId(order))}
 					<tr class="hover:bg-gray-50">
 						<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
 						<td class="px-4 py-2 text-sm text-gray-800"
@@ -1047,10 +1155,10 @@
 							<input
 								type="number"
 								class="w-32 rounded border px-2 py-1"
-								placeholder="timestamp"
+								placeholder="transactionHash"
 								bind:value={$fillTimestamp}
 							/>
-							<AwaitButton buttonFunction={submit(order, 0)}>
+							<AwaitButton buttonFunction={submit(order, $fillTimestamp)}>
 								{#snippet name()}
 									Submit
 								{/snippet}
@@ -1061,12 +1169,12 @@
 						</td>
 						<td>
 							<input
-								type="number"
+								type="text"
 								class="w-32 rounded border px-2 py-1"
-								placeholder="sequence"
-								bind:value={$validateSequence}
+								placeholder="validateContext"
+								bind:value={$validateContext}
 							/>
-							<AwaitButton buttonFunction={validate(order, Number($validateSequence))}>
+							<AwaitButton buttonFunction={validate(order, $validateContext)}>
 								{#snippet name()}
 									Validate
 								{/snippet}
