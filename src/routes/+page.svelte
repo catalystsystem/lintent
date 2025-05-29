@@ -51,7 +51,8 @@
 		getTokenKeyByAddress,
 		formatTokenDecmials,
 		wormholeChainIds,
-		getOracle
+		getOracle,
+		POLYMER_ORACLE
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
@@ -244,8 +245,6 @@
 	const destinationChain = writable<chain>('baseSepolia');
 	const destinationAsset = writable<coin>('weth');
 	const verifier = writable<'yes' | 'wormhole' | 'polymer'>('polymer');
-	const fillTimestamp = writable<number>();
-	const validateContext = writable<string>();
 
 	// Error definition.
 	$: depositAndSwapInputError =
@@ -737,7 +736,7 @@
 				const transactionReceipt = await $publicClient.getTransactionReceipt({
 					hash: transactionHash as `0x${string}`
 				});
-				
+
 				const numlogs = transactionReceipt.logs.length;
 				if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
 				const fillLog = transactionReceipt.logs[1]; // The first log is transfer, next is fill.
@@ -745,22 +744,25 @@
 				const requestUrl = `/polymer`;
 
 				let proof: string | undefined;
+				let polymerIndex;
 				for (let i = 0; i < 5; ++i) {
-					const response = await axios.post(
-						requestUrl,
-						{
-							srcChainId: Number(order.outputs[0].chainId),
-							srcBlockNumber: Number(transactionReceipt.blockNumber),
-							globalLogIndex: Number(fillLog.logIndex),
-						}
-					)
-					const dat = response.data as {proof: undefined | string}
+					const response = await axios.post(requestUrl, {
+						srcChainId: Number(order.outputs[0].chainId),
+						srcBlockNumber: Number(transactionReceipt.blockNumber),
+						globalLogIndex: Number(fillLog.logIndex),
+						polymerIndex
+					});
+					const dat = response.data as { proof: undefined | string; polymerIndex: number };
+					polymerIndex = dat.polymerIndex;
 					console.log(dat);
-					if (dat.proof) {proof = dat.proof; break};
+					if (dat.proof) {
+						proof = dat.proof;
+						break;
+					}
 					// wait i*1 seconds before requesting again.
-					await new Promise(r => setTimeout(r, i*5000 + 1000));
+					await new Promise((r) => setTimeout(r, i * 5000 + 1000));
 				}
-				console.log({proof});
+				console.log({ proof });
 				if (proof) {
 					await setWalletToCorrectChain(sourceChain);
 
@@ -769,7 +771,7 @@
 						address: order.localOracle,
 						abi: POLYMER_ORACLE_ABI,
 						functionName: 'receiveMessage',
-						args: [`0x${proof.replace("0x", "")}`]
+						args: [`0x${proof.replace('0x', '')}`]
 					});
 				}
 			}
@@ -799,6 +801,8 @@
 			await setWalletToCorrectChain(getChainName(Number(order.originChainId)!));
 		};
 	}
+
+	const orderInputs: { submit: number[]; validate: string[] } = { submit: [], validate: [] };
 </script>
 
 <main class="main">
@@ -1116,7 +1120,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200">
-				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature } (getOrderId(order))}
+				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature }, index (getOrderId(order))}
 					<tr class="hover:bg-gray-50">
 						<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
 						<td class="px-4 py-2 text-sm text-gray-800"
@@ -1152,29 +1156,33 @@
 							</AwaitButton>
 						</td>
 						<td>
-							<input
-								type="number"
-								class="w-32 rounded border px-2 py-1"
-								placeholder="transactionHash"
-								bind:value={$fillTimestamp}
-							/>
-							<AwaitButton buttonFunction={submit(order, $fillTimestamp)}>
-								{#snippet name()}
-									Submit
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
+							{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.localOracle)}
+								<div class="text-center"> - </div>
+							{:else}
+								<input
+									type="number"
+									class="w-32 rounded border px-2 py-1"
+									placeholder="transactionHash"
+									bind:value={orderInputs.submit[index]}
+								/>
+								<AwaitButton buttonFunction={submit(order, orderInputs.submit[index])}>
+									{#snippet name()}
+										Submit
+									{/snippet}
+									{#snippet awaiting()}
+										Waiting for transaction...
+									{/snippet}
+								</AwaitButton>
+							{/if}
 						</td>
 						<td>
 							<input
 								type="text"
 								class="w-32 rounded border px-2 py-1"
 								placeholder="validateContext"
-								bind:value={$validateContext}
+								bind:value={orderInputs.validate[index]}
 							/>
-							<AwaitButton buttonFunction={validate(order, $validateContext)}>
+							<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
 								{#snippet name()}
 									Validate
 								{/snippet}
