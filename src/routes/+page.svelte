@@ -702,6 +702,24 @@
 			args: [output.chainId, output.remoteOracle, output.remoteFiller, outputHash]
 		});
 	}
+
+	async function checkIfClaimed(order: StandardOrder, _: any) {
+		const sourceChain = getChainName(Number(order.originChainId))!;
+		// Get the allocator address:
+		const [token, allocator, resetPeriod, scope] = await clients[sourceChain].readContract({
+			address: COMPACT,
+			abi: COMPACT_ABI,
+			functionName: 'getLockDetails',
+			args: [order.inputs[0][0]]
+		});
+		return await clients[sourceChain].readContract({
+			address: COMPACT,
+			abi: COMPACT_ABI,
+			functionName: 'hasConsumedAllocatorNonce',
+			args: [order.nonce, allocator]
+		});
+	}
+
 	function fill(order: StandardOrder, index: number) {
 		return async () => {
 			const orderId = getOrderId(order);
@@ -748,6 +766,9 @@
 					order.outputs,
 					addressToBytes32(connectedAccount.address)
 				]
+			});
+			await clients[getChainName(Number(output.chainId))!].waitForTransactionReceipt({
+				hash: transcationHash
 			});
 			orderInputs.validate[index] = transcationHash;
 			forceUpdate();
@@ -832,13 +853,19 @@
 				if (proof) {
 					await setWalletToCorrectChain(sourceChain);
 
-					return $walletClient.writeContract({
+					const transcationHash = await $walletClient.writeContract({
 						account: connectedAccount.address,
 						address: order.localOracle,
 						abi: POLYMER_ORACLE_ABI,
 						functionName: 'receiveMessage',
 						args: [`0x${proof.replace('0x', '')}`]
 					});
+
+					const result = await clients[sourceChain].waitForTransactionReceipt({
+						hash: transcationHash
+					});
+					forceUpdate();
+					return result;
 				}
 			}
 
@@ -878,14 +905,15 @@
 			});
 			const fillTimestamp = block.timestamp;
 
-			await setWalletToCorrectChain(getChainName(Number(order.originChainId)!));
+			const sourceChain = getChainName(Number(order.originChainId))!;
+			await setWalletToCorrectChain(sourceChain);
 
 			const combinedSignatures = encodeAbiParameters(
 				parseAbiParameters(['bytes', 'bytes']),
 				[signature, '0x' as `0x${string}`] // TODO: allocator signature
 			);
 
-			return $walletClient.writeContract({
+			const transcationHash = await $walletClient.writeContract({
 				account: connectedAccount.address,
 				address: CATALYST_SETTLER,
 				abi: SETTLER_COMPACT_ABI,
@@ -897,6 +925,11 @@
 					addressToBytes32(connectedAccount.address)
 				]
 			});
+			const result = await clients[sourceChain].waitForTransactionReceipt({
+				hash: transcationHash
+			});
+			forceUpdate();
+			return result;
 		};
 	}
 
@@ -1209,7 +1242,7 @@
 								placeholder="validateContext"
 								bind:value={orderInputs.validate[index]}
 							/>
-							{#await checkIfValidated(order, 0, orderInputs.validate[index] as `0x${string}`)}
+							{#await checkIfValidated(order, $updatedDerived * 0, orderInputs.validate[index] as `0x${string}`)}
 								<button
 									type="button"
 									class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -1254,14 +1287,45 @@
 							{/await}
 						</td>
 						<td>
-							<AwaitButton buttonFunction={claim(order, signature, orderInputs.validate[index])}>
-								{#snippet name()}
-									Claim
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
+							{#await checkIfClaimed(order, $updatedDerived)}
+								<button
+									type="button"
+									class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
+									disabled
+								>
+									Fetching...
+								</button>
+							{:then isValidated}
+								{#if isValidated}
+									<button
+										type="button"
+										class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
+										disabled
+									>
+										Claimed
+									</button>
+								{:else}
+									<AwaitButton
+										buttonFunction={claim(order, signature, orderInputs.validate[index])}
+									>
+										{#snippet name()}
+											Claim
+										{/snippet}
+										{#snippet awaiting()}
+											Waiting for transaction...
+										{/snippet}
+									</AwaitButton>
+								{/if}
+							{:catch}
+								<AwaitButton buttonFunction={claim(order, signature, orderInputs.validate[index])}>
+									{#snippet name()}
+										Claim
+									{/snippet}
+									{#snippet awaiting()}
+										Waiting for transaction...
+									{/snippet}
+								</AwaitButton>
+							{/await}
 						</td>
 					</tr>
 				{/each}
