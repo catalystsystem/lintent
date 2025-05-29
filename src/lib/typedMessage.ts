@@ -1,15 +1,5 @@
-
-export function compactDomain(chainId: number) {
-    return {
-        name: 'Ether Mail',
-        version: '1',
-        chainId,
-        verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
-    } as const;
-};
-
 const BatchCompact = [
-    { name: 'arbiter', type: 'string' },
+    { name: 'arbiter', type: 'address' },
     { name: 'sponsor', type: 'address' },
     { name: 'nonce', type: 'uint256' },
     { name: 'expires', type: 'uint256' },

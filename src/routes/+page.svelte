@@ -1,7 +1,7 @@
 <script lang="ts">
 	import axios from 'axios';
 	import onboard from '$lib/web3-onboard';
-	import { compactDomain, compactTypes } from '$lib/typedMessage';
+	import { compactTypes } from '$lib/typedMessage';
 	import {
 		AbiConstructorNotFoundError,
 		createPublicClient,
@@ -62,6 +62,64 @@
 	(BigInt.prototype as any).toJSON = function () {
 		return this.toString();
 	};
+
+	type MessageTypeProperty = {
+		name: string;
+		type: string;
+	};
+
+	function hashType({
+		primaryType,
+		types
+	}: {
+		primaryType: string;
+		types: Record<string, readonly MessageTypeProperty[]>;
+	}) {
+		const encodedHashType = toHex(encodeType({ primaryType, types }));
+		return keccak256(encodedHashType);
+	}
+	export function encodeType({
+		primaryType,
+		types
+	}: {
+		primaryType: string;
+		types: Record<string, readonly MessageTypeProperty[]>;
+	}) {
+		let result = '';
+		const unsortedDeps = findTypeDependencies({ primaryType, types });
+		unsortedDeps.delete(primaryType);
+
+		const deps = [primaryType, ...Array.from(unsortedDeps).sort()];
+		for (const type of deps) {
+			result += `${type}(${types[type].map(({ name, type: t }) => `${t} ${name}`).join(',')})`;
+		}
+
+		return result;
+	}
+
+	function findTypeDependencies(
+		{
+			primaryType: primaryType_,
+			types
+		}: {
+			primaryType: string;
+			types: Record<string, readonly MessageTypeProperty[]>;
+		},
+		results: Set<string> = new Set()
+	): Set<string> {
+		const match = primaryType_.match(/^\w*/u);
+		const primaryType = match?.[0]!;
+		if (results.has(primaryType) || types[primaryType] === undefined) {
+			return results;
+		}
+
+		results.add(primaryType);
+
+		for (const field of types[primaryType]) {
+			findTypeDependencies({ primaryType: field.type, types }, results);
+		}
+		return results;
+	}
 
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
@@ -433,7 +491,7 @@
 		// Make order
 		const order: StandardOrder = {
 			user: connectedAccount.address,
-			nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
+			nonce: 0n, // BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
 			originChainId: BigInt(chainMap[$activeChain].id),
 			fillDeadline: Number(maxInt32), // TODO:
 			expires: Number(maxInt32), //  TODO:
@@ -795,7 +853,7 @@
 
 	function claim(order: StandardOrder, signature: `0x${string}`, fillTransactionHash: string) {
 		return async () => {
-			console.log({signature});
+			console.log({ signature });
 			const destinationChain = getChainName(Number(order.outputs[0].chainId))!;
 			if (order.outputs.length !== 1) {
 				throw new Error('Order must have exactly one output');
