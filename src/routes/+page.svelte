@@ -904,160 +904,222 @@
 </script>
 
 <main class="main">
-	<header class="px-2">
-		<h1 class="py-1 text-center align-middle text-xl font-medium">Catalyst Intent Issuer</h1>
-		<p>
-			This small webapp showcases how to issue Catalyst Intents. This demo uses the compact settler.
-			This webapp supports two flows:
-		</p>
-		<ul class="list-inside list-disc">
-			<li>Swaps using existing deposits (signature)</li>
-			<li>Swaps using on-chain deposit & registration (transaction)</li>
-		</ul>
-		<p>
-			A third unsupported flow uses permit2 to do an on-chain deposit & registration without user
-			transactions.
-		</p>
-	</header>
+	<h1 class="pt-3 text-center align-middle text-xl font-medium">Resource lock intents using OIF</h1>
+	<div class="mx-auto flex flex-col px-4 pt-2 md:max-w-10/12 md:flex-row md:px-8 md:pt-3">
+		<div class="px-2">
+			<p>
+				This webapp demonstrates an
+				<a
+					class="font-bold text-blue-700 hover:text-blue-500"
+					href="https://github.com/openintentsframework/oif-contracts">Open Intents Framework</a
+				>
+				implementation using
+				<a
+					class="font-bold text-blue-700 hover:text-blue-500"
+					href="https://github.com/Uniswap/the-compact/tree/v1">The Compact</a
+				>
+				Resource Locks. This app currently supports two flows:
+			</p>
 
-	<div class="flex flex-col justify-items-center align-middle">
-		<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
-			<h1 class="text-xl font-medium">Manage Compact</h1>
-			<div class="flex flex-row space-x-2">
-				<h1 class="text-md font-medium">Allocator</h1>
-				<input type="text" class="w-96 rounded border px-2 py-1" bind:value={$compactAllocator} />
-			</div>
-			<div class="flex flex-wrap items-center justify-start gap-2">
-				<select id="in-asset" class="rounded border px-2 py-1" bind:value={$depositAction}>
-					<option value="deposit" selected>Deposit</option>
-					<option value="withdraw">Withdraw</option>
-				</select>
-				<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$inputValue} />
-				<span>of</span>
-				{#if $depositAction === 'withdraw'}
-					<input
-						type="text"
-						class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
-						disabled
-						value={formattedCompactDepositedBalance}
-					/>
-				{:else}
-					<input
-						type="text"
-						class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
-						disabled
-						value={formattedDeposit}
-					/>
-				{/if}
-				<select id="deposit-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
-					<option value="sepolia" selected>Sepolia</option>
-					<option value="baseSepolia">Base Sepolia</option>
-					<option value="optimismSepolia">Optimism Sepolia</option>
-				</select>
-				<select id="deposit-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
-					{#each getCoins($activeChain) as coin (coin)}
-						<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
-					{/each}
-				</select>
-			</div>
+			<ul class="list-inside list-disc">
+				<li>Swaps using existing deposits (off-chain signature-based settlement)</li>
+				<li>Swaps with on-chain deposit and registration (transaction-based resource locking)</li>
+			</ul>
 
-			<!-- Action Button -->
-			<div class="flex flex-col justify-center">
-				{#if !connectedAccount}
-					<AwaitButton buttonFunction={() => onboard.connectWallet()}>
-						{#snippet name()}
-							Connect Wallet
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for wallet...
-						{/snippet}
-					</AwaitButton>
-				{:else if depositInputError}
-					<button
-						type="button"
-						class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
-						disabled
-					>
-						Input not valid {depositInputError}
-					</button>
-				{:else if formattedAllowance < $inputValue}
-					<AwaitButton buttonFunction={approve}>
-						{#snippet name()}
-							Set allowance
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{:else if $depositAction === 'withdraw'}
-					<AwaitButton buttonFunction={withdraw}>
-						{#snippet name()}
-							Withdraw
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{:else}
-					<AwaitButton buttonFunction={deposit}>
-						{#snippet name()}
-							Execute Transaction
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{/if}
-			</div>
-		</form>
-		<SwapForm
-			{activeChain}
-			outputChain={destinationChain}
-			{activeAsset}
-			outputAsset={destinationAsset}
-			{inputValue}
-			outputValue={buyAmount}
-			{verifier}
-			executeFunction={swap}
-			approveFunction={approve}
-			showApprove={false}
-			showError={swapInputError}
-			showConnect={!connectedAccount}
-			balance={formattedCompactDepositedBalance}
-		>
-			{#snippet title()}
-				Sign Intent with Deposit
-			{/snippet}
-			{#snippet executeName()}
-				Sign Swap
-			{/snippet}
-		</SwapForm>
-		<SwapForm
-			{activeChain}
-			outputChain={destinationChain}
-			{activeAsset}
-			outputAsset={destinationAsset}
-			{inputValue}
-			outputValue={buyAmount}
-			{verifier}
-			executeFunction={depositAndSwap}
-			approveFunction={approve}
-			showApprove={formattedAllowance < $inputValue}
-			showError={depositAndSwapInputError}
-			showConnect={!connectedAccount}
-			balance={formattedDeposit + formattedCompactDepositedBalance}
-		>
-			{#snippet title()}
-				Execute Deposit and Register Intent
-			{/snippet}
-			{#snippet executeName()}
-				Execute depositAndSwap
-			{/snippet}
-		</SwapForm>
+			<p>
+				A third, currently unimplemented, flow leverages
+				<a class="text-blue-700 hover:text-blue-500" href="https://github.com/Uniswap/permit2"
+					>permit2</a
+				>
+				to enable gasless on-chain deposits and registration—providing a smooth user experience without
+				requiring user-initiated transactions.
+			</p>
+
+			<br />
+
+			<h3 class="font-semibold">Why Resource Locks?</h3>
+			<p>
+				Resource Locks improve asset availability guarantees in cross-chain and asynchronous
+				environments, offering several key advantages:
+			</p>
+
+			<ul class="list-inside list-disc">
+				<li>Funds are only debited after successful delivery is validated.</li>
+				<li>
+					Supports short-lived interactions—intents can expire within seconds without consequence.
+				</li>
+				<li>No upfront deposit or initiation transactions are required.</li>
+				<li>Fully composable with other protocols and settlement layers.</li>
+			</ul>
+
+			<p>
+				Learn more about
+				<a
+					class="text-blue-700 hover:text-blue-500"
+					href="https://docs.catalyst.exchange/knowledge/resource-locks/">Resource Locks here</a
+				>.
+			</p>
+
+			<br />
+
+			<h3 class="font-semibold">Why the Open Intents Framework?</h3>
+			<p>
+				The Open Intents Framework (OIF) is an open coordination layer for standardizing and scaling
+				intent-based workflows across chains. The goal is to:
+			</p>
+
+			<ul class="list-inside list-disc">
+				<li>Standardise cross-chain interactions.</li>
+				<li>Define a permissionless intent implementation that can scale across all chains.</li>
+				<li>Create a reference implementation for cross-chain solvers & searchers.</li>
+				<li>Provide tooling for wallet and app developers.</li>
+			</ul>
+			<p>
+				Learn more about the
+				<a class="text-blue-700 hover:text-blue-500" href="https://openintents.xyz"
+					>Open Intents Framework here</a
+				>.
+			</p>
+		</div>
+
+		<div class="flex w-[128rem] flex-col justify-items-center align-middle">
+			<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+				<h1 class="text-xl font-medium">Manage Compact</h1>
+				<div class="flex flex-row space-x-2">
+					<h1 class="text-md font-medium">Allocator</h1>
+					<input type="text" class="w-96 rounded border px-2 py-1" bind:value={$compactAllocator} />
+				</div>
+				<div class="flex flex-wrap items-center justify-start gap-2">
+					<select id="in-asset" class="rounded border px-2 py-1" bind:value={$depositAction}>
+						<option value="deposit" selected>Deposit</option>
+						<option value="withdraw">Withdraw</option>
+					</select>
+					<input type="number" class="w-20 rounded border px-2 py-1" bind:value={$inputValue} />
+					<span>of</span>
+					{#if $depositAction === 'withdraw'}
+						<input
+							type="text"
+							class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+							disabled
+							value={formattedCompactDepositedBalance}
+						/>
+					{:else}
+						<input
+							type="text"
+							class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+							disabled
+							value={formattedDeposit}
+						/>
+					{/if}
+					<select id="deposit-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
+						<option value="sepolia" selected>Sepolia</option>
+						<option value="baseSepolia">Base Sepolia</option>
+						<option value="optimismSepolia">Optimism Sepolia</option>
+					</select>
+					<select id="deposit-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
+						{#each getCoins($activeChain) as coin (coin)}
+							<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Action Button -->
+				<div class="flex flex-col justify-center">
+					{#if !connectedAccount}
+						<AwaitButton buttonFunction={() => onboard.connectWallet()}>
+							{#snippet name()}
+								Connect Wallet
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for wallet...
+							{/snippet}
+						</AwaitButton>
+					{:else if depositInputError}
+						<button
+							type="button"
+							class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
+							disabled
+						>
+							Input not valid {depositInputError}
+						</button>
+					{:else if formattedAllowance < $inputValue}
+						<AwaitButton buttonFunction={approve}>
+							{#snippet name()}
+								Set allowance
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
+					{:else if $depositAction === 'withdraw'}
+						<AwaitButton buttonFunction={withdraw}>
+							{#snippet name()}
+								Withdraw
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
+					{:else}
+						<AwaitButton buttonFunction={deposit}>
+							{#snippet name()}
+								Execute deposit
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
+					{/if}
+				</div>
+			</form>
+			<SwapForm
+				{activeChain}
+				outputChain={destinationChain}
+				{activeAsset}
+				outputAsset={destinationAsset}
+				{inputValue}
+				outputValue={buyAmount}
+				{verifier}
+				executeFunction={swap}
+				approveFunction={approve}
+				showApprove={false}
+				showError={swapInputError}
+				showConnect={!connectedAccount}
+				balance={formattedCompactDepositedBalance}
+			>
+				{#snippet title()}
+					Sign Intent with Deposit
+				{/snippet}
+				{#snippet executeName()}
+					Sign BatchCompact
+				{/snippet}
+			</SwapForm>
+			<SwapForm
+				{activeChain}
+				outputChain={destinationChain}
+				{activeAsset}
+				outputAsset={destinationAsset}
+				{inputValue}
+				outputValue={buyAmount}
+				{verifier}
+				executeFunction={depositAndSwap}
+				approveFunction={approve}
+				showApprove={formattedAllowance < $inputValue}
+				showError={depositAndSwapInputError}
+				showConnect={!connectedAccount}
+				balance={formattedDeposit + formattedCompactDepositedBalance}
+			>
+				{#snippet title()}
+					Execute Deposit and Register Intent
+				{/snippet}
+				{#snippet executeName()}
+					Execute depositAndRegister
+				{/snippet}
+			</SwapForm>
+		</div>
 	</div>
 	<!-- Make a table to display orders from users -->
-	<div class="mx-auto mt-3 w-11/12 rounded-md border p-4">
-		<h1 class="text-xl font-medium">Orders</h1>
+	<div class="mx-auto mt-3 w-11/12 rounded-md p-4">
 		<table class="min-w-full table-auto overflow-hidden rounded-lg border border-gray-200">
 			<thead class="bg-gray-100 text-left">
 				<tr>
@@ -1100,7 +1162,7 @@
 								)
 								.join(', ')}
 						</td>
-						<td>
+						<td class="flex">
 							{#if $fillStatus?.length >= index && $fillStatus[index]}
 								<AwaitButton buttonFunction={fill(order, index)}>
 									{#snippet name()}
@@ -1140,17 +1202,17 @@
 								</AwaitButton>
 							{/if}
 						</td>
-						<td>
+						<td class="flex pt-0.5">
 							<input
 								type="text"
-								class="w-32 rounded border px-2 py-1"
+								class="h-8 w-28 rounded-l border-y border-l px-2"
 								placeholder="validateContext"
 								bind:value={orderInputs.validate[index]}
 							/>
 							{#await checkIfValidated(order, 0, orderInputs.validate[index] as `0x${string}`)}
 								<button
 									type="button"
-									class="rounded border px-4 text-xl font-bold text-gray-300"
+									class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
 									disabled
 								>
 									Fetching...
@@ -1159,13 +1221,16 @@
 								{#if isValidated}
 									<button
 										type="button"
-										class="rounded border px-4 text-xl font-bold text-gray-300"
+										class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
 										disabled
 									>
 										Validated
 									</button>
 								{:else}
-									<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
+									<AwaitButton
+										baseClass="rounded-r border px-4 h-8 text-xl font-bold"
+										buttonFunction={validate(order, orderInputs.validate[index])}
+									>
 										{#snippet name()}
 											Validate
 										{/snippet}
@@ -1175,7 +1240,10 @@
 									</AwaitButton>
 								{/if}
 							{:catch}
-								<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
+								<AwaitButton
+									baseClass="rounded-r border px-4 h-8 text-xl font-bold"
+									buttonFunction={validate(order, orderInputs.validate[index])}
+								>
 									{#snippet name()}
 										Validate
 									{/snippet}

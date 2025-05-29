@@ -42,18 +42,22 @@
 		showConnect: boolean;
         balance: number;
 	} = $props();
+
+	function swap() {
+		[$activeChain, $outputChain, $activeAsset, $outputAsset, $inputValue, $outputValue] = [$outputChain, $activeChain, $outputAsset, $activeAsset, $outputValue, $inputValue]
+	}
 </script>
 
-<form class="mx-auto mt-3 space-y-4 rounded-md border p-4">
-	<h1 class="text-xl font-medium">{@render title()}</h1>
+<form class="w-full mt-3 space-y-4 rounded-md bg-gray-50 border border-gray-200 p-4">
+	<h1 class="text-xl font-medium ">{@render title()}</h1>
 	<!-- Sell -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Sell</span>
-		<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$inputValue} />
+		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={$inputValue} />
 		<span>of</span>
 		<input
 			type="text"
-			class="w-24 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+			class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
 			disabled
 			value={balance}
 		/>
@@ -71,7 +75,7 @@
 
 	<!-- Swap button -->
 	<div class="flex justify-center">
-		<button type="button" class="px-4 text-xl font-bold text-gray-600 hover:text-blue-600">
+		<button type="button" class="px-4 text-xl font-bold text-gray-600 hover:text-blue-600" onclick={swap}>
 			⇅
 		</button>
 	</div>
@@ -79,7 +83,7 @@
 	<!-- Buy -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Buy</span>
-		<input type="number" class="w-24 rounded border px-2 py-1" bind:value={$outputValue} />
+		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={$outputValue} />
 		<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$outputChain}>
 			<option value="sepolia">Sepolia</option>
 			<option value="baseSepolia" selected>Base Sepolia</option>

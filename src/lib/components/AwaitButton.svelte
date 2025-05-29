@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from "svelte";
 
-    let { name, awaiting, buttonFunction }: {name: Snippet, awaiting: Snippet, buttonFunction: () => Promise<any>} = $props();
+    let { name, awaiting, buttonFunction, baseClass = "rounded border px-4 h-8 text-xl font-bold" }: {name: Snippet, awaiting: Snippet, buttonFunction: () => Promise<any>, baseClass?: string} = $props();
     let buttonPromise: Promise<any> | undefined = $state();
 </script>
 
 {#await buttonPromise}
     <button
         type="button"
-        class="rounded border px-4 text-xl font-bold text-gray-300"
+        class="{baseClass} text-gray-300"
     disabled>
         {@render awaiting()}
     </button>
@@ -16,7 +16,7 @@
     <button
         onclick={() => buttonPromise = buttonFunction()}
         type="button"
-        class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
+        class="{baseClass} text-gray-600 hover:text-blue-600 bg-gray"
     >
         {@render name()}
     </button>
@@ -24,7 +24,7 @@
     <button
         onclick={() => buttonPromise = buttonFunction()}
         type="button"
-        class="rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
+        class="{baseClass} text-gray-600 hover:text-blue-600"
     >
         {@render name()}
     </button>
