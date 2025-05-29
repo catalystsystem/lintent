@@ -491,7 +491,7 @@
 		// Make order
 		const order: StandardOrder = {
 			user: connectedAccount.address,
-			nonce: 0n, // BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
+			nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
 			originChainId: BigInt(chainMap[$activeChain].id),
 			fillDeadline: Number(maxInt32), // TODO:
 			expires: Number(maxInt32), //  TODO:
