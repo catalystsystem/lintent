@@ -81,6 +81,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		proof = Array.from(proofBytes).map((byte) =>
 			byte.toString(16).padStart(2, "0")
 		).join("");
+	} else {
+		console.log(dat);
 	}
 	// create a JSON Response using a header we received
 	return json({

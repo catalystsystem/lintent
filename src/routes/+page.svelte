@@ -37,7 +37,6 @@
 		COMPACT,
 		CATALYST_SETTLER,
 		DEFAULT_ALLOCATOR,
-		ALWAYS_YES_ORACLE,
 		COIN_FILLER,
 		WORMHOLE_ORACLE,
 		coinMap,
@@ -244,7 +243,7 @@
 	const buyAmount = writable(0);
 	const destinationChain = writable<chain>('baseSepolia');
 	const destinationAsset = writable<coin>('weth');
-	const verifier = writable<'yes' | 'wormhole' | 'polymer'>('polymer');
+	const verifier = writable<'wormhole' | 'polymer'>('polymer');
 
 	// Error definition.
 	$: depositAndSwapInputError =
@@ -693,7 +692,6 @@
 			// The destination asset cannot be ETH.
 			const output = order.outputs[0];
 			const remoteOracle = bytes32ToAddress(output.remoteOracle);
-			if (remoteOracle === ALWAYS_YES_ORACLE) return;
 
 			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
 
@@ -720,9 +718,8 @@
 		};
 	}
 
-	function validate(order: StandardOrder, transactionHash: string) {
+	function validate(order: StandardOrder, fillTransactionHash: string) {
 		return async () => {
-			if (order.localOracle === ALWAYS_YES_ORACLE) return;
 			const sourceChain = getChainName(Number(order.originChainId))!;
 			const destinationChain = getChainName(Number(order.outputs[0].chainId))!;
 			if (order.outputs.length !== 1) {
@@ -734,7 +731,7 @@
 			if (order.localOracle === getOracle('polymer', sourceChain)) {
 				await setWalletToCorrectChain(destinationChain);
 				const transactionReceipt = await $publicClient.getTransactionReceipt({
-					hash: transactionHash as `0x${string}`
+					hash: fillTransactionHash as `0x${string}`
 				});
 
 				const numlogs = transactionReceipt.logs.length;
@@ -796,9 +793,42 @@
 		};
 	}
 
-	function claim(order: StandardOrder, signature: `0x${string}`) {
+	function claim(order: StandardOrder, signature: `0x${string}`, fillTransactionHash: string) {
 		return async () => {
+			console.log({signature});
+			const destinationChain = getChainName(Number(order.outputs[0].chainId))!;
+			if (order.outputs.length !== 1) {
+				throw new Error('Order must have exactly one output');
+			}
+			await setWalletToCorrectChain(destinationChain);
+			const transactionReceipt = await $publicClient.getTransactionReceipt({
+				hash: fillTransactionHash as `0x${string}`
+			});
+			const blockHashOfFill = transactionReceipt.blockHash;
+			const block = await $publicClient.getBlock({
+				blockHash: blockHashOfFill
+			});
+			const fillTimestamp = block.timestamp;
+
 			await setWalletToCorrectChain(getChainName(Number(order.originChainId)!));
+
+			const combinedSignatures = encodeAbiParameters(
+				parseAbiParameters(['bytes', 'bytes']),
+				[signature, '0x' as `0x${string}`] // TODO: allocator signature
+			);
+
+			return $walletClient.writeContract({
+				account: connectedAccount.address,
+				address: CATALYST_SETTLER,
+				abi: SETTLER_COMPACT_ABI,
+				functionName: 'finaliseSelf',
+				args: [
+					order,
+					combinedSignatures,
+					[Number(fillTimestamp)],
+					addressToBytes32(connectedAccount.address)
+				]
+			});
 		};
 	}
 
@@ -966,7 +996,6 @@
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="polymer" selected> Polymer </option>
-					<option value="yes"> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
 			</div>
@@ -1056,7 +1085,6 @@
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="polymer" selected> Polymer </option>
-					<option value="yes"> AlwaysYesOracle </option>
 					<option value="wormhole"> Wormhole </option>
 				</select>
 			</div>
@@ -1157,12 +1185,12 @@
 						</td>
 						<td>
 							{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.localOracle)}
-								<div class="text-center"> - </div>
+								<div class="text-center">-</div>
 							{:else}
 								<input
 									type="number"
 									class="w-32 rounded border px-2 py-1"
-									placeholder="transactionHash"
+									placeholder="fillTransactionHash"
 									bind:value={orderInputs.submit[index]}
 								/>
 								<AwaitButton buttonFunction={submit(order, orderInputs.submit[index])}>
@@ -1192,7 +1220,7 @@
 							</AwaitButton>
 						</td>
 						<td>
-							<AwaitButton buttonFunction={claim(order, signature)}>
+							<AwaitButton buttonFunction={claim(order, signature, orderInputs.validate[index])}>
 								{#snippet name()}
 									Claim
 								{/snippet}

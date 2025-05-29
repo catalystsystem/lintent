@@ -3,14 +3,12 @@ import { sepolia, optimismSepolia, baseSepolia, arbitrumSepolia } from 'viem/cha
 export const ADDRESS_ZERO =
     "0x0000000000000000000000000000000000000000" as const;
 export const BYTES32_ZERO = "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
-export const COMPACT = "0xE7d08C4D2a8AB8512b6a920bA8E4F4F11f78d376" as const;
+export const COMPACT = "0x70EEFf73E540C8F68477510F096c0d903D31594a" as const;
 export const CATALYST_SETTLER =
-    "0xf5D08Ca45a5C98706715F1eEed431798F0E3c5ac" as const;
-export const DEFAULT_ALLOCATOR = "22031956229997787190855790" as const;
-export const ALWAYS_YES_ORACLE =
-    "0xabFd7B10F872356BEbe82405e3D83B3E5C8BE8c8" as const;
+    "0x0ebD1a4EE74A98291B3E1A6c84016b54A134B68a" as const;
+export const DEFAULT_ALLOCATOR = "208895859788420342859855417" as const;
 export const COIN_FILLER =
-    "0x0a8a2521325B259f531F353A55615817FC1d672d" as const;
+    "0x86Fc8163D03D61822CA0AA1a5394d7B98f695B6D" as const;
 export const WORMHOLE_ORACLE = {
     sepolia: "0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb",
     baseSepolia: "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
@@ -99,8 +97,7 @@ export function formatTokenDecmials(
     return (Number(value) / 10 ** decimals).toString();
 }
 
-export function getOracle(verifier: 'yes' | 'wormhole' | 'polymer', chain: chain) {
-    if (verifier === 'yes') return ALWAYS_YES_ORACLE;
+export function getOracle(verifier: 'wormhole' | 'polymer', chain: chain) {
     if (verifier === 'wormhole') return WORMHOLE_ORACLE[chain];
     if (verifier === 'polymer') return POLYMER_ORACLE[chain];
 }
