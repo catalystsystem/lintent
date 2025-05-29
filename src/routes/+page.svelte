@@ -583,7 +583,7 @@
 		);
 	}
 
-	function fill(order: StandardOrder) {
+	function fill(order: StandardOrder, index: number) {
 		return async () => {
 			const orderId = getOrderId(order);
 			//Check that only 1 output exists.
@@ -615,13 +615,15 @@
 				});
 			}
 
-			return $walletClient.writeContract({
+			const transcationHash = await $walletClient.writeContract({
 				account: connectedAccount.address,
 				address: bytes32ToAddress(output.remoteFiller),
 				abi: COIN_FILLER_ABI,
-				functionName: 'fill',
-				args: [order.fillDeadline, orderId, output, addressToBytes32(connectedAccount.address)]
+				functionName: 'fillBatch',
+				args: [order.fillDeadline, orderId, order.outputs, addressToBytes32(connectedAccount.address)]
 			});
+			orderInputs.validate[index] = transcationHash;
+			return transcationHash
 		};
 	}
 
@@ -679,12 +681,10 @@
 				if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
 				const fillLog = transactionReceipt.logs[1]; // The first log is transfer, next is fill.
 
-				const requestUrl = `/polymer`;
-
 				let proof: string | undefined;
-				let polymerIndex;
+				let polymerIndex: number | undefined;
 				for (let i = 0; i < 5; ++i) {
-					const response = await axios.post(requestUrl, {
+					const response = await axios.post(`/polymer`, {
 						srcChainId: Number(order.outputs[0].chainId),
 						srcBlockNumber: Number(transactionReceipt.blockNumber),
 						globalLogIndex: Number(fillLog.logIndex),
@@ -697,8 +697,8 @@
 						proof = dat.proof;
 						break;
 					}
-					// wait i*1 seconds before requesting again.
-					await new Promise((r) => setTimeout(r, i * 5000 + 1000));
+					// Wait while backing off before requesting again.
+					await new Promise((r) => setTimeout(r, i * 2 + 1000));
 				}
 				console.log({ proof });
 				if (proof) {
@@ -945,7 +945,7 @@
 								.join(', ')}
 						</td>
 						<td>
-							<AwaitButton buttonFunction={fill(order)}>
+							<AwaitButton buttonFunction={fill(order, index)}>
 								{#snippet name()}
 									Fill
 								{/snippet}
