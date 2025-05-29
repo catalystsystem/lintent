@@ -45,9 +45,7 @@
 		getOracle,
 		POLYMER_ORACLE,
 		clients,
-
 		type verifiers
-
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
@@ -152,14 +150,44 @@
 
 	// Manage Deposit Variables
 	const depositAction = writable<'deposit' | 'withdraw'>('deposit');
-	const activeAsset = writable<coin>('eth');
+	const activeAsset = writable<coin>('usdc');
 	const inputValue = writable(0);
+
+	let forceUpdate: () => void;
+	const updatedDerived = readable(0, (set) => {
+		let value = 0;
+		forceUpdate = () => set((value += 1));
+		setInterval(() => {
+			set((value += 1));
+		}, 10000);
+	});
+
+	const fillStatus: Readable<boolean[]> = derived([orders, updatedDerived], ([orders, _], set) => {
+		const largePromise = Promise.all(
+			orders.map(({ order }) => {
+				const orderId = getOrderId(order);
+				const outputs = order.outputs;
+				return Promise.all(
+					outputs.map((output) => {
+						return checkIfFilled(orderId, output);
+					})
+				);
+			})
+		);
+		largePromise.then((orderFillStatuses) => {
+			set(
+				orderFillStatuses.map((order) => {
+					return order.every((v) => v === BYTES32_ZERO);
+				})
+			);
+		});
+	});
 
 	// Derive relevant wallet balances.
 	const compactAllocator = writable(DEFAULT_ALLOCATOR);
 	const depositBalance: Readable<number> = derived(
-		[activeWallet, activeChain, activeAsset],
-		([activeWallet, activeChain, activeAsset], set) => {
+		[activeWallet, activeChain, activeAsset, updatedDerived],
+		([activeWallet, activeChain, activeAsset, _], set) => {
 			if (!activeWallet) set(0);
 			if (activeWallet) {
 				const asset = coinMap[activeChain][activeAsset];
@@ -189,8 +217,8 @@
 		}
 	);
 	const compactDepositedBalance: Readable<number> = derived(
-		[activeWallet, activeChain, activeAsset, compactAllocator],
-		([activeWallet, activeChain, activeAsset, compactAllocator], set) => {
+		[activeWallet, activeChain, activeAsset, compactAllocator, updatedDerived],
+		([activeWallet, activeChain, activeAsset, compactAllocator, _], set) => {
 			if (!activeWallet) set(0);
 			if (activeWallet) {
 				const asset = coinMap[activeChain][activeAsset];
@@ -210,8 +238,8 @@
 		}
 	);
 	const allowance: Readable<number> = derived(
-		[activeWallet, activeChain, activeAsset],
-		([activeWallet, activeChain, activeAsset], set) => {
+		[activeWallet, activeChain, activeAsset, updatedDerived],
+		([activeWallet, activeChain, activeAsset, _], set) => {
 			if (!activeWallet) set(0);
 			if (activeWallet) {
 				const asset = coinMap[activeChain][activeAsset];
@@ -240,7 +268,7 @@
 	// Execute Transaction Variables
 	const buyAmount = writable(0);
 	const destinationChain = writable<chain>('baseSepolia');
-	const destinationAsset = writable<coin>('weth');
+	const destinationAsset = writable<coin>('usdc');
 	const verifier = writable<verifiers>('polymer');
 
 	// Error definition.
@@ -277,7 +305,6 @@
 					  ($depositAction === 'deposit' ? formattedDeposit : formattedCompactDepositedBalance)
 					? 100
 					: 0;
-
 
 	function setWalletToCorrectChain(chain: chain = $activeChain) {
 		if ($activeChain !== chain) {
@@ -358,13 +385,19 @@
 	async function approve() {
 		await setWalletToCorrectChain();
 		const asset = coinMap[$activeChain][$activeAsset];
-		return $walletClient.writeContract({
+		const transactionHash = $walletClient.writeContract({
 			account: connectedAccount.address,
 			address: asset,
 			abi: ERC20_ABI,
 			functionName: 'approve',
 			args: [COMPACT, maxUint256]
 		});
+
+		await clients[$activeChain].waitForTransactionReceipt({
+			hash: await transactionHash
+		});
+		forceUpdate();
+		return transactionHash;
 	}
 
 	// --- Catalyst Orders --- //
@@ -483,35 +516,47 @@
 			.replace('0x', '')
 			.slice(0, 24)}`;
 		// Remember to subtract existing deposited value
+		let transactionHash;
 		const trueInputValue = $inputValue - formattedCompactDepositedBalance;
-		const amount = toBigIntWithDecimals(
-			trueInputValue > 0 ? trueInputValue : 0,
-			decimalMap[$activeAsset]
-		);
+		if (trueInputValue <= 0) {
+			transactionHash = $walletClient.writeContract({
+				account: connectedAccount.address,
+				address: COMPACT,
+				abi: COMPACT_ABI,
+				functionName: 'register',
+				args: [claimHash, typeHash]
+			});
+		} else {
+			const amount = toBigIntWithDecimals(trueInputValue, decimalMap[$activeAsset]);
+			transactionHash =
+				asset === ADDRESS_ZERO
+					? $walletClient.writeContract({
+							account: connectedAccount.address,
+							address: COMPACT,
+							abi: COMPACT_ABI,
+							functionName: 'depositNativeAndRegister',
+							value: amount,
+							args: [lockTag, claimHash, typeHash]
+						})
+					: $walletClient.writeContract({
+							account: connectedAccount.address,
+							address: COMPACT,
+							abi: COMPACT_ABI,
+							functionName: 'depositERC20AndRegister',
+							args: [asset, lockTag, amount, claimHash, typeHash]
+						});
+		}
 
-		const callPromise =
-			asset === ADDRESS_ZERO
-				? $walletClient.writeContract({
-						account: connectedAccount.address,
-						address: COMPACT,
-						abi: COMPACT_ABI,
-						functionName: 'depositNativeAndRegister',
-						value: amount,
-						args: [lockTag, claimHash, typeHash]
-					})
-				: $walletClient.writeContract({
-						account: connectedAccount.address,
-						address: COMPACT,
-						abi: COMPACT_ABI,
-						functionName: 'depositERC20AndRegister',
-						args: [asset, lockTag, amount, claimHash, typeHash]
-					});
+		await clients[$activeChain].waitForTransactionReceipt({
+			hash: await transactionHash
+		});
 
-		await callPromise;
 		const signature = '0x';
 		// Needs to be sent to the Catalyst order server:
 		console.log({ order, batchCompact, signature });
 		orders.update((o) => [...o, { order, signature }]);
+
+		forceUpdate();
 		return;
 	}
 
@@ -544,6 +589,36 @@
 						),
 						[order.outputs]
 					)
+				]
+			)
+		);
+	}
+	function getOutputHash(output: MandateOutput) {
+		return keccak256(
+			encodePacked(
+				[
+					'bytes32',
+					'bytes32',
+					'uint256',
+					'bytes32',
+					'uint256',
+					'bytes32',
+					'uint16',
+					'bytes',
+					'uint16',
+					'bytes'
+				],
+				[
+					output.remoteOracle,
+					output.remoteFiller,
+					output.chainId,
+					output.token,
+					output.amount,
+					output.recipient,
+					output.remoteCall.replace('0x', '').length / 2,
+					output.remoteCall,
+					output.fulfillmentContext.replace('0x', '').length / 2,
+					output.fulfillmentContext
 				]
 			)
 		);
@@ -583,6 +658,50 @@
 		);
 	}
 
+	async function checkIfFilled(orderId: `0x${string}`, output: MandateOutput) {
+		const outputHash = getOutputHash(output);
+		const destinationChain = getChainName(Number(output.chainId))!;
+		return await clients[destinationChain].readContract({
+			address: bytes32ToAddress(output.remoteFiller),
+			abi: COIN_FILLER_ABI,
+			functionName: 'filledOutputs',
+			args: [orderId, outputHash]
+		});
+	}
+
+	async function checkIfValidated(
+		order: StandardOrder,
+		outputIndex: number = 1,
+		transactionHash: `0x${string}`
+	) {
+		if (!transactionHash || !transactionHash.startsWith('0x') || transactionHash.length != 66)
+			return false;
+		const output = order.outputs[outputIndex]; // TODO: check all outputs at the same time.
+		const destinationChain = getChainName(Number(output.chainId))!;
+		const transactionReceipt = await clients[destinationChain].getTransactionReceipt({
+			hash: transactionHash
+		});
+		const blockHashOfFill = transactionReceipt.blockHash;
+		const block = await clients[destinationChain].getBlock({
+			blockHash: blockHashOfFill
+		});
+		const fillTimestamp = block.timestamp;
+		const orderId = getOrderId(order);
+		const encodedOutput = encodeMandateOutput(
+			addressToBytes32(connectedAccount.address),
+			orderId,
+			Number(fillTimestamp),
+			output
+		);
+		const sourceChain = getChainName(Number(order.originChainId))!;
+		const outputHash = keccak256(encodedOutput);
+		return await clients[sourceChain].readContract({
+			address: order.localOracle,
+			abi: POLYMER_ORACLE_ABI,
+			functionName: 'isProven',
+			args: [output.chainId, output.remoteOracle, output.remoteFiller, outputHash]
+		});
+	}
 	function fill(order: StandardOrder, index: number) {
 		return async () => {
 			const orderId = getOrderId(order);
@@ -606,12 +725,15 @@
 				args: [connectedAccount.address, bytes32ToAddress(output.remoteFiller)]
 			});
 			if (BigInt(allowance) < output.amount) {
-				await $walletClient.writeContract({
+				const approveTransaction = await $walletClient.writeContract({
 					account: connectedAccount.address,
 					address: assetAddress,
 					abi: ERC20_ABI,
 					functionName: 'approve',
 					args: [bytes32ToAddress(output.remoteFiller), maxUint256]
+				});
+				await clients[getChainName(Number(output.chainId))!].waitForTransactionReceipt({
+					hash: approveTransaction
 				});
 			}
 
@@ -620,10 +742,16 @@
 				address: bytes32ToAddress(output.remoteFiller),
 				abi: COIN_FILLER_ABI,
 				functionName: 'fillBatch',
-				args: [order.fillDeadline, orderId, order.outputs, addressToBytes32(connectedAccount.address)]
+				args: [
+					order.fillDeadline,
+					orderId,
+					order.outputs,
+					addressToBytes32(connectedAccount.address)
+				]
 			});
 			orderInputs.validate[index] = transcationHash;
-			return transcationHash
+			forceUpdate();
+			return transcationHash;
 		};
 	}
 
@@ -882,7 +1010,21 @@
 				{/if}
 			</div>
 		</form>
-		<SwapForm {activeChain} outputChain={destinationChain} {activeAsset} outputAsset={destinationAsset} {inputValue} outputValue={buyAmount} {verifier} executeFunction={swap} approveFunction={approve} showApprove={false} showError={swapInputError} showConnect={!connectedAccount} balance={formattedCompactDepositedBalance}>
+		<SwapForm
+			{activeChain}
+			outputChain={destinationChain}
+			{activeAsset}
+			outputAsset={destinationAsset}
+			{inputValue}
+			outputValue={buyAmount}
+			{verifier}
+			executeFunction={swap}
+			approveFunction={approve}
+			showApprove={false}
+			showError={swapInputError}
+			showConnect={!connectedAccount}
+			balance={formattedCompactDepositedBalance}
+		>
 			{#snippet title()}
 				Sign Intent with Deposit
 			{/snippet}
@@ -890,7 +1032,21 @@
 				Sign Swap
 			{/snippet}
 		</SwapForm>
-		<SwapForm {activeChain} outputChain={destinationChain} {activeAsset} outputAsset={destinationAsset} {inputValue} outputValue={buyAmount} {verifier} executeFunction={depositAndSwap} approveFunction={approve} showApprove={formattedAllowance < $inputValue} showError={depositAndSwapInputError} showConnect={!connectedAccount} balance={formattedDeposit + formattedCompactDepositedBalance}>
+		<SwapForm
+			{activeChain}
+			outputChain={destinationChain}
+			{activeAsset}
+			outputAsset={destinationAsset}
+			{inputValue}
+			outputValue={buyAmount}
+			{verifier}
+			executeFunction={depositAndSwap}
+			approveFunction={approve}
+			showApprove={formattedAllowance < $inputValue}
+			showError={depositAndSwapInputError}
+			showConnect={!connectedAccount}
+			balance={formattedDeposit + formattedCompactDepositedBalance}
+		>
 			{#snippet title()}
 				Execute Deposit and Register Intent
 			{/snippet}
@@ -945,14 +1101,24 @@
 								.join(', ')}
 						</td>
 						<td>
-							<AwaitButton buttonFunction={fill(order, index)}>
-								{#snippet name()}
-									Fill
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
+							{#if $fillStatus?.length >= index && $fillStatus[index]}
+								<AwaitButton buttonFunction={fill(order, index)}>
+									{#snippet name()}
+										Fill
+									{/snippet}
+									{#snippet awaiting()}
+										Waiting for transaction...
+									{/snippet}
+								</AwaitButton>
+							{:else}
+								<button
+									type="button"
+									class="rounded border px-4 text-xl font-bold text-gray-300"
+									disabled
+								>
+									Filled
+								</button>
+							{/if}
 						</td>
 						<td>
 							{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.localOracle)}
@@ -981,14 +1147,43 @@
 								placeholder="validateContext"
 								bind:value={orderInputs.validate[index]}
 							/>
-							<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
-								{#snippet name()}
-									Validate
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
+							{#await checkIfValidated(order, 0, orderInputs.validate[index] as `0x${string}`)}
+								<button
+									type="button"
+									class="rounded border px-4 text-xl font-bold text-gray-300"
+									disabled
+								>
+									Fetching...
+								</button>
+							{:then isValidated}
+								{#if isValidated}
+									<button
+										type="button"
+										class="rounded border px-4 text-xl font-bold text-gray-300"
+										disabled
+									>
+										Validated
+									</button>
+								{:else}
+									<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
+										{#snippet name()}
+											Validate
+										{/snippet}
+										{#snippet awaiting()}
+											Waiting for transaction...
+										{/snippet}
+									</AwaitButton>
+								{/if}
+							{:catch}
+								<AwaitButton buttonFunction={validate(order, orderInputs.validate[index])}>
+									{#snippet name()}
+										Validate
+									{/snippet}
+									{#snippet awaiting()}
+										Waiting for transaction...
+									{/snippet}
+								</AwaitButton>
+							{/await}
 						</td>
 						<td>
 							<AwaitButton buttonFunction={claim(order, signature, orderInputs.validate[index])}>
