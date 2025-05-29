@@ -139,3 +139,5 @@ export const clients = {
         ]),
     }),
 } as const;
+
+export type verifiers = 'wormhole' | 'polymer';
