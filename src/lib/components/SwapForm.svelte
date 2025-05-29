@@ -48,7 +48,7 @@
 	}
 </script>
 
-<form class="w-full mt-3 space-y-4 rounded-md bg-gray-50 border border-gray-200 p-4">
+<form class="w-full mt-3 space-y-3 rounded-md bg-gray-50 border border-gray-200 p-4">
 	<h1 class="text-xl font-medium ">{@render title()}</h1>
 	<!-- Sell -->
 	<div class="flex flex-wrap items-center justify-start gap-2">

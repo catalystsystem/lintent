@@ -972,16 +972,16 @@
 
 			<h3 class="font-semibold">Why Resource Locks?</h3>
 			<p>
-				Resource Locks improve asset availability guarantees in cross-chain and asynchronous
+				Resource Locks improve asset availability guarantees in cross-chain contexts and asynchronous
 				environments, offering several key advantages:
 			</p>
 
 			<ul class="list-inside list-disc">
-				<li>Funds are only debited after successful delivery is validated.</li>
+				<li>Funds are only debited after successful delivery has been proven.</li>
 				<li>
-					Supports short-lived interactions—intents can expire within seconds without consequence.
+					Enables efficient short-lived interactions—intents can expire within seconds without consequence.
 				</li>
-				<li>No upfront deposit or initiation transactions are required.</li>
+				<li>No upfront deposit or initiation transaction are required.</li>
 				<li>Fully composable with other protocols and settlement layers.</li>
 			</ul>
 
@@ -989,7 +989,7 @@
 				Learn more about
 				<a
 					class="text-blue-700 hover:text-blue-500"
-					href="https://docs.catalyst.exchange/knowledge/resource-locks/">Resource Locks here</a
+					href="https://docs.catalyst.exchange/knowledge/resource-locks/">Resource Locks</a
 				>.
 			</p>
 
@@ -1008,9 +1008,9 @@
 				<li>Provide tooling for wallet and app developers.</li>
 			</ul>
 			<p>
-				Learn more about the
+				Learn more about
 				<a class="text-blue-700 hover:text-blue-500" href="https://openintents.xyz"
-					>Open Intents Framework here</a
+					>Open Intents Framework</a
 				>.
 			</p>
 		</div>
@@ -1057,7 +1057,7 @@
 				</div>
 
 				<!-- Action Button -->
-				<div class="flex flex-col justify-center">
+				<div class="flex justify-center">
 					{#if !connectedAccount}
 						<AwaitButton buttonFunction={() => onboard.connectWallet()}>
 							{#snippet name()}
