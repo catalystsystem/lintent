@@ -3,32 +3,25 @@
 	import onboard from '$lib/web3-onboard';
 	import { compact_type_hash, compactTypes } from '$lib/typedMessage';
 	import {
-		AbiConstructorNotFoundError,
-		createPublicClient,
 		createWalletClient,
 		custom,
 		encodePacked,
 		hashStruct,
-		// hashType, // This function is not exported. Implemented below.
-		hexToBigInt,
-		http,
 		keccak256,
 		maxInt32,
 		maxUint256,
 		toHex,
-		type PublicClient,
 		checksumAddress,
 		parseAbiParameters,
 		encodeAbiParameters
 	} from 'viem';
-	import { sepolia, optimismSepolia, baseSepolia } from 'viem/chains';
-	import { derived, readable, writable, type Readable, type Writable } from 'svelte/store';
+	import { derived, readable, writable, type Readable } from 'svelte/store';
 	import type { WalletState } from '@web3-onboard/core';
 	import { ERC20_ABI } from '$lib/abi/erc20';
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import { WROMHOLE_ORACLE_ABI } from '$lib/abi/wormholeoracle';
 	import { ResetPeriod, toId } from '$lib/IdLib';
-	import AwaitButton from '$lib/AwaitButton.svelte';
+	import AwaitButton from '$lib/components/AwaitButton.svelte';
 	import type { BatchCompact, StandardOrder, CompactMandate, MandateOutput } from '../types';
 	import { submitOrder } from '$lib/utils/api';
 	import {
@@ -52,20 +45,25 @@
 		wormholeChainIds,
 		getOracle,
 		POLYMER_ORACLE,
-
 		clients
-
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
 	import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
 	import { onDestroy, onMount } from 'svelte';
+	import {
+		addressToBytes32,
+		bytes32ToAddress,
+		idToToken,
+		toBigIntWithDecimals,
+		trunc
+	} from '$lib/utils/convert';
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
 		return this.toString();
 	};
-	
+
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
 	let initialWalletValue: WalletState | undefined;
@@ -280,34 +278,14 @@
 		await onboard.connectWallet();
 	}
 
-	async function disconnect() {
-		onboard.disconnectWallet({ label: $wallets?.[0]?.label });
-	}
-
-	function toBigIntWithDecimals(value: number, decimals: number): bigint {
-		// Convert number to string in full precision
-		const [intPart, decPart = ''] = value.toString().split('.');
-
-		// Take up to `decimals` digits of the decimal part
-		const truncatedDec = decPart.slice(0, decimals);
-
-		// Pad the decimal part to ensure we have exactly `decimals` digits
-		const paddedDec = truncatedDec.padEnd(decimals, '0');
-
-		// Remove leading zeros from intPart just in case
-		const normalizedInt = intPart.replace(/^(-?)0+(?=\d)/, '$1');
-		// Combine parts
-		const combined = (normalizedInt + paddedDec).replace('.', '');
-
-		return BigInt(combined);
-	}
-
 	function setWalletToCorrectChain(chain: chain = $activeChain) {
 		if ($activeChain !== chain) {
 			$activeChain = chain;
 		}
 		return $walletClient.switchChain({ id: chainMap[chain].id });
 	}
+
+	/// -- Compact -- ///
 
 	async function deposit() {
 		await setWalletToCorrectChain();
@@ -388,18 +366,7 @@
 		});
 	}
 
-	function addressToBytes32(address: `0x${string}`): `0x${string}` {
-		if (address.length !== 42 && address.length !== 40) {
-			throw new Error(`Invalid address length: ${address.length}`);
-		}
-		return `0x${address.replace('0x', '').padStart(64, '0')}`;
-	}
-	function bytes32ToAddress(bytes: `0x${string}`): `0x${string}` {
-		if (bytes.length != 66 && bytes.length != 64) {
-			throw new Error(`Invalid bytes length: ${bytes.length}`);
-		}
-		return `0x${bytes.replace('0x', '').slice(24, 64)}`;
-	}
+	// --- Catalyst Orders --- //
 
 	function createOrder() {
 		const inputAsset = coinMap[$activeChain][$activeAsset];
@@ -545,19 +512,6 @@
 		console.log({ order, batchCompact, signature });
 		orders.update((o) => [...o, { order, signature }]);
 		return;
-	}
-
-	function trunc(value: `0x${string}`, length: number = 8): `0x${string}...${string}` {
-		return `0x${value.replace('0x', '').slice(0, length)}...${value.replace('0x', '').slice(-length)}`;
-	}
-
-	function idToToken(id: `0x${string}` | bigint): `0x${string}` {
-		if (typeof id === 'bigint') {
-			// Convert bigint to hex string and pad it to 64 characters.
-			id = `0x${id.toString(16).padStart(64, '0')}`;
-		}
-		// Remove the first 12 bytes (24 hex characters) and keep the last 20 bytes (40 hex characters).
-		return checksumAddress(bytes32ToAddress(id));
 	}
 
 	function getOrderId(order: StandardOrder) {
@@ -981,7 +935,7 @@
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="polymer" selected> Polymer </option>
-					<option value="wormhole"> Wormhole </option>
+					<option value="wormhole" disabled> Wormhole </option>
 				</select>
 			</div>
 
@@ -1070,7 +1024,7 @@
 				<span class="font-medium">Verified by</span>
 				<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
 					<option value="polymer" selected> Polymer </option>
-					<option value="wormhole"> Wormhole </option>
+					<option value="wormhole" disabled> Wormhole </option>
 				</select>
 			</div>
 
@@ -1121,6 +1075,7 @@
 		<table class="min-w-full table-auto overflow-hidden rounded-lg border border-gray-200">
 			<thead class="bg-gray-100 text-left">
 				<tr>
+					<th class="px-4 py-2 text-sm font-medium text-gray-700">OrderId</th>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">User</th>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">From</th>
 					<th class="px-4 py-2 text-sm font-medium text-gray-700">To</th>
@@ -1135,6 +1090,7 @@
 			<tbody class="divide-y divide-gray-200">
 				{#each $orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature }, index (getOrderId(order))}
 					<tr class="hover:bg-gray-50">
+						<td class="px-4 py-2 text-sm text-gray-800">{getOrderId(order).slice(2, 8)}...</td>
 						<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
 						<td class="px-4 py-2 text-sm text-gray-800"
 							>{getChainName(Number(order.originChainId))}</td
