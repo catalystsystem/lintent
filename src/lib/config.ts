@@ -1,8 +1,15 @@
-import { sepolia, optimismSepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
+import { createPublicClient, fallback, http } from "viem";
+import {
+    arbitrumSepolia,
+    baseSepolia,
+    optimismSepolia,
+    sepolia,
+} from "viem/chains";
 
 export const ADDRESS_ZERO =
     "0x0000000000000000000000000000000000000000" as const;
-export const BYTES32_ZERO = "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+export const BYTES32_ZERO =
+    "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 export const COMPACT = "0x70EEFf73E540C8F68477510F096c0d903D31594a" as const;
 export const CATALYST_SETTLER =
     "0x0ebD1a4EE74A98291B3E1A6c84016b54A134B68a" as const;
@@ -44,19 +51,19 @@ export const wormholeChainIds = {
     sepolia: 10002,
     arbitrumSepolia: 10003,
     baseSepolia: 10004,
-    optimismSepolia: 10005
+    optimismSepolia: 10005,
 } as const;
 export const polymerChainIds = {
     sepolia: sepolia.id,
     arbitrumSepolia: arbitrumSepolia.id,
     baseSepolia: baseSepolia.id,
-    optimismSepolia: optimismSepolia.id
+    optimismSepolia: optimismSepolia.id,
 } as const;
 
 export const decimalMap = {
     eth: 18,
     usdc: 6,
-    weth: 18
+    weth: 18,
 } as const;
 
 export const chainMap = { sepolia, optimismSepolia, baseSepolia } as const;
@@ -97,7 +104,38 @@ export function formatTokenDecmials(
     return (Number(value) / 10 ** decimals).toString();
 }
 
-export function getOracle(verifier: 'wormhole' | 'polymer', chain: chain) {
-    if (verifier === 'wormhole') return WORMHOLE_ORACLE[chain];
-    if (verifier === 'polymer') return POLYMER_ORACLE[chain];
+export function getOracle(verifier: "wormhole" | "polymer", chain: chain) {
+    if (verifier === "wormhole") return WORMHOLE_ORACLE[chain];
+    if (verifier === "polymer") return POLYMER_ORACLE[chain];
 }
+
+export const clients = {
+    sepolia: createPublicClient({
+        chain: sepolia,
+        transport: fallback([
+            http("https://ethereum-sepolia-rpc.publicnode.com"),
+            ...sepolia.rpcUrls.default.http.map((v) => http(v)),
+        ]),
+    }),
+    arbitrumSepolia: createPublicClient({
+        chain: arbitrumSepolia,
+        transport: fallback([
+            http("https://arbitrum-sepolia-rpc.publicnode.com"),
+            ...arbitrumSepolia.rpcUrls.default.http.map((v) => http(v)),
+        ]),
+    }),
+    baseSepolia: createPublicClient({
+        chain: baseSepolia,
+        transport: fallback([
+            http("https://base-sepolia-rpc.publicnode.com"),
+            ...baseSepolia.rpcUrls.default.http.map((v) => http(v)),
+        ]),
+    }),
+    optimismSepolia: createPublicClient({
+        chain: optimismSepolia,
+        transport: fallback([
+            http("https://optimism-sepolia-rpc.publicnode.com"),
+            ...optimismSepolia.rpcUrls.default.http.map((v) => http(v)),
+        ]),
+    }),
+} as const;

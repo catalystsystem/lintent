@@ -1,7 +1,7 @@
 <script lang="ts">
 	import axios from 'axios';
 	import onboard from '$lib/web3-onboard';
-	import { compactTypes } from '$lib/typedMessage';
+	import { compact_type_hash, compactTypes } from '$lib/typedMessage';
 	import {
 		AbiConstructorNotFoundError,
 		createPublicClient,
@@ -51,7 +51,10 @@
 		formatTokenDecmials,
 		wormholeChainIds,
 		getOracle,
-		POLYMER_ORACLE
+		POLYMER_ORACLE,
+
+		clients
+
 	} from '$lib/config';
 	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
 	import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
@@ -62,65 +65,7 @@
 	(BigInt.prototype as any).toJSON = function () {
 		return this.toString();
 	};
-
-	type MessageTypeProperty = {
-		name: string;
-		type: string;
-	};
-
-	function hashType({
-		primaryType,
-		types
-	}: {
-		primaryType: string;
-		types: Record<string, readonly MessageTypeProperty[]>;
-	}) {
-		const encodedHashType = toHex(encodeType({ primaryType, types }));
-		return keccak256(encodedHashType);
-	}
-	export function encodeType({
-		primaryType,
-		types
-	}: {
-		primaryType: string;
-		types: Record<string, readonly MessageTypeProperty[]>;
-	}) {
-		let result = '';
-		const unsortedDeps = findTypeDependencies({ primaryType, types });
-		unsortedDeps.delete(primaryType);
-
-		const deps = [primaryType, ...Array.from(unsortedDeps).sort()];
-		for (const type of deps) {
-			result += `${type}(${types[type].map(({ name, type: t }) => `${t} ${name}`).join(',')})`;
-		}
-
-		return result;
-	}
-
-	function findTypeDependencies(
-		{
-			primaryType: primaryType_,
-			types
-		}: {
-			primaryType: string;
-			types: Record<string, readonly MessageTypeProperty[]>;
-		},
-		results: Set<string> = new Set()
-	): Set<string> {
-		const match = primaryType_.match(/^\w*/u);
-		const primaryType = match?.[0]!;
-		if (results.has(primaryType) || types[primaryType] === undefined) {
-			return results;
-		}
-
-		results.add(primaryType);
-
-		for (const field of types[primaryType]) {
-			findTypeDependencies({ primaryType: field.type, types }, results);
-		}
-		return results;
-	}
-
+	
 	// Subscribe to wallet updates
 	const wallets = onboard.state.select('wallets');
 	let initialWalletValue: WalletState | undefined;
@@ -137,12 +82,6 @@
 	const activeChain = writable<chain>('sepolia');
 
 	// Define clients for accessing the chain.
-	const publicClient = derived(activeChain, (activeChain) => {
-		return createPublicClient({
-			chain: chainMap[activeChain],
-			transport: http()
-		});
-	});
 	const walletClient = derived([activeChain, activeWallet], ([activeChain, activeWallet]) => {
 		return createWalletClient({
 			chain: chainMap[activeChain],
@@ -225,7 +164,7 @@
 				const asset = coinMap[activeChain][activeAsset];
 				const accountAddress = activeWallet.accounts[0].address;
 				if (asset === ADDRESS_ZERO) {
-					$publicClient
+					clients[activeChain]
 						.getBalance({
 							address: accountAddress,
 							blockTag: 'latest'
@@ -234,7 +173,7 @@
 							set(Number(v));
 						});
 				} else {
-					$publicClient
+					clients[activeChain]
 						?.readContract({
 							address: asset,
 							abi: ERC20_ABI,
@@ -256,7 +195,7 @@
 				const asset = coinMap[activeChain][activeAsset];
 				const assetId = toId(true, ResetPeriod.OneDay, compactAllocator, asset);
 				const accountAddress = activeWallet.accounts[0].address;
-				$publicClient
+				clients[activeChain]
 					?.readContract({
 						address: COMPACT,
 						abi: COMPACT_ABI,
@@ -279,7 +218,7 @@
 					return set(Number(maxUint256));
 				}
 				const accountAddress = activeWallet.accounts[0].address;
-				$publicClient
+				clients[activeChain]
 					?.readContract({
 						address: asset,
 						abi: ERC20_ABI,
@@ -555,16 +494,6 @@
 		// console.log({ submitOrderResponse });
 	}
 
-	const compact_type =
-		'BatchCompact(address arbiter,address sponsor,uint256 nonce,uint256 expires,uint256[2][] idsAndAmounts,Mandate mandate)Mandate(uint32 fillDeadline,address localOracle,MandateOutput[] outputs)MandateOutput(bytes32 remoteOracle,bytes32 remoteFiller,uint256 chainId,bytes32 token,uint256 amount,bytes32 recipient,bytes remoteCall,bytes fulfillmentContext)' as const;
-	const compact_type_hash = keccak256(toHex(compact_type));
-	const compact_type_hash_contract =
-		'0x3df4b6efdfbd05bc0129a40c10b9e80a519127db6100fb77877a4ac4ac191af7';
-	if (compact_type_hash != compact_type_hash_contract)
-		throw Error(
-			`Computed typehash ${compact_type_hash} does not match expected ${compact_type_hash_contract}`
-		);
-
 	async function depositAndSwap() {
 		await setWalletToCorrectChain();
 		const { order, batchCompact } = createOrder();
@@ -715,7 +644,7 @@
 
 			// Check allowance & set allowance if needed
 			const assetAddress = bytes32ToAddress(output.token);
-			const allowance = await $publicClient.readContract({
+			const allowance = await clients[$activeChain].readContract({
 				address: assetAddress,
 				abi: ERC20_ABI,
 				functionName: 'allowance',
@@ -787,8 +716,7 @@
 			const output = order.outputs[0];
 
 			if (order.localOracle === getOracle('polymer', sourceChain)) {
-				await setWalletToCorrectChain(destinationChain);
-				const transactionReceipt = await $publicClient.getTransactionReceipt({
+				const transactionReceipt = await clients[destinationChain].getTransactionReceipt({
 					hash: fillTransactionHash as `0x${string}`
 				});
 
@@ -858,12 +786,11 @@
 			if (order.outputs.length !== 1) {
 				throw new Error('Order must have exactly one output');
 			}
-			await setWalletToCorrectChain(destinationChain);
-			const transactionReceipt = await $publicClient.getTransactionReceipt({
+			const transactionReceipt = await clients[destinationChain].getTransactionReceipt({
 				hash: fillTransactionHash as `0x${string}`
 			});
 			const blockHashOfFill = transactionReceipt.blockHash;
-			const block = await $publicClient.getBlock({
+			const block = await clients[destinationChain].getBlock({
 				blockHash: blockHashOfFill
 			});
 			const fillTimestamp = block.timestamp;
