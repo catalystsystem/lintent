@@ -69,7 +69,10 @@ if (!onboard) {
     // wagmi,
     wallets,
     chains,
-    appMetadata
+    appMetadata,
+    connect: {
+      autoConnectLastWallet: true
+    }
   });
 }
 
