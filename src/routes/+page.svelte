@@ -732,17 +732,22 @@
 			if (output.token === BYTES32_ZERO) {
 				throw new Error('Output token cannot be ETH');
 			}
+			console.log("Awaitng wallet switch")
 			await setWalletToCorrectChain(getChainName(Number(output.chainId))!);
+			console.log("Switched wallet switch")
 
 			// Check allowance & set allowance if needed
 			const assetAddress = bytes32ToAddress(output.token);
+			console.log("Reading allowance")
 			const allowance = await clients[$activeChain].readContract({
 				address: assetAddress,
 				abi: ERC20_ABI,
 				functionName: 'allowance',
 				args: [connectedAccount.address, bytes32ToAddress(output.remoteFiller)]
 			});
+			console.log({allowance})
 			if (BigInt(allowance) < output.amount) {
+				console.log("Writing allowancce")
 				const approveTransaction = await $walletClient.writeContract({
 					account: connectedAccount.address,
 					address: assetAddress,
@@ -755,6 +760,7 @@
 				});
 			}
 
+			console.log("Writing tx") 
 			const transcationHash = await $walletClient.writeContract({
 				account: connectedAccount.address,
 				address: bytes32ToAddress(output.remoteFiller),
@@ -767,6 +773,7 @@
 					addressToBytes32(connectedAccount.address)
 				]
 			});
+			console.log("await tx") 
 			await clients[getChainName(Number(output.chainId))!].waitForTransactionReceipt({
 				hash: transcationHash
 			});
