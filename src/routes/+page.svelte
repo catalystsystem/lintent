@@ -306,8 +306,8 @@
 					? 100
 					: 0;
 
-	function setWalletToCorrectChain(chain: chain = $activeChain) {
-		const walletPromise = $walletClient.switchChain({ id: chainMap[chain].id });
+	async function setWalletToCorrectChain(chain: chain = $activeChain) {
+		const walletPromise = await $walletClient.switchChain({ id: chainMap[chain].id });
 		if ($activeChain !== chain) {
 			$activeChain = chain;
 		}
