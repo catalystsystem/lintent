@@ -307,10 +307,11 @@
 					: 0;
 
 	function setWalletToCorrectChain(chain: chain = $activeChain) {
+		const walletPromise = $walletClient.switchChain({ id: chainMap[chain].id });
 		if ($activeChain !== chain) {
 			$activeChain = chain;
 		}
-		return $walletClient.switchChain({ id: chainMap[chain].id });
+		return walletPromise;
 	}
 
 	/// -- Compact -- ///
