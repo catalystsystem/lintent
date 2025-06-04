@@ -49,6 +49,10 @@
 	function updateInputAmount(input: number) {
 		opts.inputAmount = toBigIntWithDecimals(input, decimalMap[opts.inputAsset]);
 	}
+	let outputNumber = $derived(Number(opts.outputAmount) / 10 ** decimalMap[opts.outputAsset]);
+	function updateOutputAmount(output: number) {
+		opts.outputAmount = toBigIntWithDecimals(output, decimalMap[opts.outputAsset]);
+	}
 </script>
 
 <form class="mt-3 w-full space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
@@ -96,7 +100,7 @@
 	<!-- Buy -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Buy</span>
-		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={opts.outputAmount} />
+		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={() => outputNumber, updateOutputAmount} />
 		<select id="buy-chain" class="rounded border px-2 py-1" bind:value={opts.outputChain}>
 			<option value="sepolia">Sepolia</option>
 			<option value="baseSepolia" selected>Base Sepolia</option>
