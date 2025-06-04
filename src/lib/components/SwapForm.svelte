@@ -1,81 +1,94 @@
 <script lang="ts">
-	import onboard from '$lib/web3-onboard';
-	import type { Writable } from 'svelte/store';
 	import AwaitButton from './AwaitButton.svelte';
-	import { getCoins, type chain, type coin, type verifiers } from '$lib/config';
+	import { coinMap, decimalMap, getCoins, type chain, type coin, type verifier } from '$lib/config';
 	import type { Snippet } from 'svelte';
-
-	async function connect() {
-		await onboard.connectWallet();
-	}
+	import { toBigIntWithDecimals } from '$lib/utils/convert';
+	import BalanceField from './BalanceField.svelte';
 
 	const {
 		title,
 		executeName,
-		activeChain,
-		outputChain,
-		activeAsset,
-		outputAsset,
-		inputValue,
-		outputValue,
-        verifier,
+		swapInputOutput,
 		executeFunction,
 		approveFunction,
-		showApprove,
-		showError,
-        showConnect,
-        balance
+		showConnect,
+		connectFunction,
+		opts = $bindable(),
+		balances,
+		allowances
 	}: {
+		balances: {
+			-readonly [K in keyof typeof coinMap]: {
+				-readonly [V in keyof (typeof coinMap)[K]]: Promise<bigint>;
+			};
+		};
+		allowances: {
+			-readonly [K in keyof typeof coinMap]: {
+				-readonly [V in keyof (typeof coinMap)[K]]: Promise<bigint>;
+			};
+		};
 		title: Snippet;
 		executeName: Snippet;
-		activeChain: Writable<chain>;
-		outputChain: Writable<chain>;
-		activeAsset: Writable<coin>;
-		outputAsset: Writable<coin>;
-		inputValue: Writable<number>;
-		outputValue: Writable<number>;
-		verifier: Writable<verifiers>;
+		swapInputOutput: () => void;
 		executeFunction: () => Promise<any>;
 		approveFunction: () => Promise<any>;
-		showApprove: boolean;
-		showError: number;
+		connectFunction: () => Promise<any>;
 		showConnect: boolean;
-        balance: number;
+		opts: {
+			inputAsset: coin;
+			inputAmount: bigint;
+			inputChain: chain;
+			outputAsset: coin;
+			outputAmount: bigint;
+			outputChain: chain;
+			verifier: verifier;
+		};
 	} = $props();
 
-	function swap() {
-		[$activeChain, $outputChain, $activeAsset, $outputAsset, $inputValue, $outputValue] = [$outputChain, $activeChain, $outputAsset, $activeAsset, $outputValue, $inputValue]
+	let inputNumber = $derived(Number(opts.inputAmount) / 10 ** decimalMap[opts.inputAsset]);
+	function updateInputAmount(input: number) {
+		opts.inputAmount = toBigIntWithDecimals(input, decimalMap[opts.inputAsset]);
 	}
 </script>
 
-<form class="w-full mt-3 space-y-3 rounded-md bg-gray-50 border border-gray-200 p-4">
-	<h1 class="text-xl font-medium ">{@render title()}</h1>
+<form class="mt-3 w-full space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
+	<h1 class="text-xl font-medium">{@render title()}</h1>
 	<!-- Sell -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Sell</span>
-		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={$inputValue} />
-		<span>of</span>
 		<input
-			type="text"
-			class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
-			disabled
-			value={balance}
+			type="number"
+			class="w-20 rounded border px-2 py-1"
+			bind:value={() => inputNumber, updateInputAmount}
 		/>
-		<select id="sell-chain" class="rounded border px-2 py-1" bind:value={$activeChain}>
+		<span>of</span>
+		<BalanceField
+			value={balances[opts.inputChain][
+				opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]
+			]}
+			decimals={decimalMap[opts.inputAsset]}
+		/>
+		<select id="sell-chain" class="rounded border px-2 py-1" bind:value={opts.inputChain}>
 			<option value="sepolia" selected>Sepolia</option>
 			<option value="baseSepolia">Base Sepolia</option>
 			<option value="optimismSepolia">Optimism Sepolia</option>
 		</select>
-		<select id="sell-asset" class="rounded border px-2 py-1" bind:value={$activeAsset}>
-			{#each getCoins($activeChain) as coin (coin)}
-				<option value={coin} selected={coin === $activeAsset}>{coin.toUpperCase()}</option>
+		<select id="deposit-asset" class="rounded border px-2 py-1" bind:value={opts.inputAsset}>
+			{#each getCoins(opts.inputChain) as coin (coin)}
+				<option value={coin} selected={coin === opts.inputAsset}
+					>{coinMap[opts.inputChain][coin].toUpperCase()}</option
+				>
 			{/each}
 		</select>
 	</div>
 
 	<!-- Swap button -->
 	<div class="flex justify-center">
-		<button type="button" class="px-4 text-xl font-bold text-gray-600 hover:text-blue-600" onclick={swap}>
+		<button
+			type="button"
+			class="px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
+			onclick={swapInputOutput}
+		>
 			⇅
 		</button>
 	</div>
@@ -83,15 +96,17 @@
 	<!-- Buy -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Buy</span>
-		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={$outputValue} />
-		<select id="buy-chain" class="rounded border px-2 py-1" bind:value={$outputChain}>
+		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={opts.outputAmount} />
+		<select id="buy-chain" class="rounded border px-2 py-1" bind:value={opts.outputChain}>
 			<option value="sepolia">Sepolia</option>
 			<option value="baseSepolia" selected>Base Sepolia</option>
 			<option value="optimismSepolia">Optimism Sepolia</option>
 		</select>
-		<select id="buy-asset" class="rounded border px-2 py-1" bind:value={$outputAsset}>
-			{#each getCoins($outputChain).filter((v) => v !== 'eth') as coin (coin)}
-				<option value={coin} selected={coin === $outputAsset}>{coin.toUpperCase()}</option>
+		<select id="deposit-asset" class="rounded border px-2 py-1" bind:value={opts.outputAsset}>
+			{#each getCoins(opts.outputChain) as coin (coin)}
+				<option value={coin} selected={coin === opts.outputAsset}
+					>{coinMap[opts.outputChain][coin].toUpperCase()}</option
+				>
 			{/each}
 		</select>
 	</div>
@@ -99,7 +114,7 @@
 	<!-- Verified by -->
 	<div class="flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
-		<select id="verified-by" class="rounded border px-2 py-1" bind:value={$verifier}>
+		<select id="verified-by" class="rounded border px-2 py-1" bind:value={opts.verifier}>
 			<option value="polymer" selected> Polymer </option>
 			<option value="wormhole" disabled> Wormhole </option>
 		</select>
@@ -108,7 +123,7 @@
 	<!-- Action Button -->
 	<div class="flex justify-center">
 		{#if showConnect}
-			<AwaitButton buttonFunction={connect}>
+			<AwaitButton buttonFunction={connectFunction}>
 				{#snippet name()}
 					Connect Wallet
 				{/snippet}
@@ -116,28 +131,56 @@
 					Waiting for wallet...
 				{/snippet}
 			</AwaitButton>
-		{:else if showError}
-			<button type="button" class="rounded border bg-red-100 px-4 text-xl text-gray-600" disabled>
-				Input not valid {showError}
-			</button>
-		{:else if showApprove}
-			<AwaitButton buttonFunction={approveFunction}>
-				{#snippet name()}
-					Set allowance
-				{/snippet}
-				{#snippet awaiting()}
-					Waiting for transaction...
-				{/snippet}
-			</AwaitButton>
 		{:else}
-			<AwaitButton buttonFunction={executeFunction}>
-				{#snippet name()}
-					{@render executeName()}
-				{/snippet}
-				{#snippet awaiting()}
-					Waiting for transaction...
-				{/snippet}
-			</AwaitButton>
+			{#await allowances[opts.inputChain][opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]]}
+				<button
+					type="button"
+					class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+					disabled
+				>
+					...
+				</button>
+			{:then allowance}
+				{#if allowance < opts.inputAmount}
+					<AwaitButton buttonFunction={approveFunction}>
+						{#snippet name()}
+							Set allowance
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
+				{:else}
+					{#await balances[opts.inputChain][opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]]}
+						<button
+							type="button"
+							class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+							disabled
+						>
+							...
+						</button>
+					{:then balances}
+						{#if balances < opts.inputAmount}
+							<button
+								type="button"
+								class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+								disabled
+							>
+								Low Balance
+							</button>
+						{:else}
+							<AwaitButton buttonFunction={executeFunction}>
+								{#snippet name()}
+									{@render executeName()}
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{/if}
+					{/await}
+				{/if}
+			{/await}
 		{/if}
 	</div>
 </form>

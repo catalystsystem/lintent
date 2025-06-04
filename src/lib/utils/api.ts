@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { CatalystCompactOrder, Quote } from '../../types';
+import type { StandardOrder, Quote } from '../../types';
 
 const ORDER_SERVER_URL = 'http://localhost:3333';
 
@@ -9,7 +9,7 @@ const api = axios.create({
 
 type SubmitOrderDto = {
 	orderType: 'CatalystCompactOrder';
-	order: CatalystCompactOrder;
+	order: StandardOrder;
 	quote: Quote;
 	sponsorSigature: string;
 	allocatorSignature?: string;

@@ -57,22 +57,6 @@ export function toId(
   const resetPeriodBits = BigInt(resetPeriod) << 252n;
   const allocatorBits = allocatorBigInt << 160n;
 
-  console.log('Lock ID calculation components:', {
-    input: {
-      isMultichain,
-      resetPeriod,
-      allocatorId,
-      token: normalizedToken,
-    },
-    intermediate: {
-      scope: scope.toString(),
-      scopeBits: '0x' + scopeBits.toString(16),
-      resetPeriodBits: '0x' + resetPeriodBits.toString(16),
-      allocatorBits: '0x' + allocatorBits.toString(16),
-      tokenBits: '0x' + tokenBigInt.toString(16),
-    },
-  });
-
   // Combine all bits using bitwise OR
   const id = scopeBits | resetPeriodBits | allocatorBits | tokenBigInt;
 
