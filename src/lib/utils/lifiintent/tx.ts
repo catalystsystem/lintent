@@ -132,7 +132,7 @@ export function swap(walletClient: WC, opts: {
 	outputChain: chain;
 	verifier: verifier;
 	account: () => `0x${string}`;
-}) {
+}, orders: { order: StandardOrder; signature: `0x${string}` }[]) {
 	return async () => {
 		const { preHook, postHook, account, inputChain } = opts;
 		if (preHook) await preHook(inputChain);
@@ -153,8 +153,7 @@ export function swap(walletClient: WC, opts: {
 		const signature = await signaturePromise;
 
 		console.log({ order, batchCompact, signature });
-		// TODO:
-		// orders.update((o) => [...o, { order, signature }]);
+		orders.push({ order, signature });
 
 		// const submitOrderResponse = await submitOrder({
 		// 	orderType: 'CatalystCompactOrder',
@@ -187,7 +186,7 @@ export function depositAndSwap(walletClient: WC, opts: {
 	outputChain: chain;
 	verifier: verifier;
 	account: () => `0x${string}`;
-}) {
+}, orders: { order: StandardOrder; signature: `0x${string}` }[]) {
 	return async () => {
 		const {
 			preHook,
@@ -265,8 +264,7 @@ export function depositAndSwap(walletClient: WC, opts: {
 		const signature = "0x";
 		// Needs to be sent to the Catalyst order server:
 		console.log({ order, batchCompact, signature });
-		// TODO:
-		//orders.update((o) => [...o, { order, signature }]);
+		orders.push({ order, signature });
 
 		if (postHook) await postHook();
 	};
@@ -280,14 +278,14 @@ export function fill(walletClient: WC, args: {
 }, opts: {
 	preHook?: (chain?: chain) => Promise<any>;
 	postHook?: () => Promise<any>;
-	inputChain: chain;
+	outputChain: chain;
 	account: () => `0x${string}`;
 }) {
 	return async () => {
 		const {
 			preHook,
 			postHook,
-			inputChain,
+			outputChain,
 			account,
 		} = opts;
 		const {
@@ -308,7 +306,7 @@ export function fill(walletClient: WC, args: {
 
 		// Check allowance & set allowance if needed
 		const assetAddress = bytes32ToAddress(output.token);
-		const allowance = await publicClients[inputChain].readContract({
+		const allowance = await publicClients[outputChain].readContract({
 			address: assetAddress,
 			abi: ERC20_ABI,
 			functionName: "allowance",
@@ -317,11 +315,11 @@ export function fill(walletClient: WC, args: {
 				bytes32ToAddress(output.remoteFiller),
 			],
 		});
-		if (preHook) await preHook(inputChain);
+		if (preHook) await preHook(outputChain);
 		if (BigInt(allowance) < output.amount) {
 			const approveTransaction = await walletClient
 				.writeContract({
-					chain: chainMap[inputChain],
+					chain: chainMap[outputChain],
 					account: account(),
 					address: assetAddress,
 					abi: ERC20_ABI,
@@ -335,7 +333,7 @@ export function fill(walletClient: WC, args: {
 		}
 
 		const transcationHash = await walletClient.writeContract({
-			chain: chainMap[inputChain],
+			chain: chainMap[outputChain],
 			account: account(),
 			address: bytes32ToAddress(output.remoteFiller),
 			abi: COIN_FILLER_ABI,
@@ -467,11 +465,11 @@ export function validate(
 			}
 			console.log({ proof });
 			if (proof) {
-				if (preHook) await preHook(outputChain);
+				if (preHook) await preHook(sourceChain);
 
 				const transcationHash = await walletClient
 					.writeContract({
-						chain: chainMap[outputChain],
+						chain: chainMap[sourceChain],
 						account: account(),
 						address: order.localOracle,
 						abi: POLYMER_ORACLE_ABI,
@@ -551,7 +549,7 @@ export function claim(
 		const fillTimestamp = block.timestamp;
 
 		const sourceChain = getChainName(Number(order.originChainId))!;
-		if (preHook) await preHook(outputChain);
+		if (preHook) await preHook(sourceChain);
 
 		const combinedSignatures = encodeAbiParameters(
 			parseAbiParameters(["bytes", "bytes"]),
@@ -559,7 +557,7 @@ export function claim(
 		);
 
 		const transcationHash = await walletClient.writeContract({
-			chain: chainMap[outputChain],
+			chain: chainMap[sourceChain],
 			account: account(),
 			address: CATALYST_SETTLER,
 			abi: SETTLER_COMPACT_ABI,

@@ -23,7 +23,7 @@
 	import AwaitButton from './AwaitButton.svelte';
 	import { claim, fill, validate } from '$lib/utils/lifiintent/tx';
 
-	const orderInputs: { submit: number[]; validate: string[] } = { submit: [], validate: [] };
+	const orderInputs: { submit: number[]; validate: string[] } = $state({ submit: [], validate: [] });
 	const {
 		orders,
 		walletClient,
@@ -139,7 +139,7 @@
 						{order.inputs
 							.map(
 								([token, amount]) =>
-									`${getTokenKeyByAddress(getChainName(Number(order.originChainId))!, idToToken(token))}: ${formatTokenDecimals(amount, getTokenKeyByAddress(getChainName(Number(order.originChainId))!, idToToken(token))!)}`
+									`${getTokenKeyByAddress(getChainName(Number(order.originChainId))!, idToToken(token))}: ${formatTokenDecimals(amount, idToToken(token) as coin)}`
 							)
 							.join(', ')}
 					</td>
@@ -147,7 +147,7 @@
 						{order.outputs
 							.map(
 								({ token, amount }) =>
-									`${getTokenKeyByAddress(getChainName(Number(order.outputs[0].chainId))!, idToToken(token as `0x${string}`))}: ${formatTokenDecimals(amount, getTokenKeyByAddress(getChainName(Number(order.outputs[0].chainId))!, idToToken(token as `0x${string}`))!)}`
+									`${getTokenKeyByAddress(getChainName(Number(order.outputs[0].chainId))!, idToToken(token as `0x${string}`))}: ${formatTokenDecimals(amount, idToToken(token) as coin)}`
 							)
 							.join(', ')}
 					</td>
@@ -162,7 +162,12 @@
 							</button>
 						{:then isFilled}
 							{#if isFilled}
-								<AwaitButton buttonFunction={fill(walletClient, { order, index: 0 }, opts)}>
+								<AwaitButton
+									buttonFunction={async () => {
+										const txHash = await fill(walletClient, { order, index: 0 }, opts)();
+										orderInputs.validate[index] = txHash;
+									}}
+								>
 									{#snippet name()}
 										Fill
 									{/snippet}

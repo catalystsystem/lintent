@@ -14,9 +14,7 @@
 		type coin,
 		clients,
 		type verifier,
-
 		decimalMap
-
 	} from '$lib/config';
 	import { onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
@@ -127,14 +125,20 @@
 	});
 	$effect(() => {
 		const tokensForOutputChain = coinMap[swapState.outputChain];
-		const usdcAddressforOutputChain = Object.keys(tokensForOutputChain)[Object.values(tokensForOutputChain).indexOf("usdc")];
-		swapState.outputAsset = Object.keys(tokensForOutputChain).includes(swapState.outputAsset) ? swapState.outputAsset : usdcAddressforOutputChain as coin;
+		const usdcAddressforOutputChain =
+			Object.keys(tokensForOutputChain)[Object.values(tokensForOutputChain).indexOf('usdc')];
+		swapState.outputAsset = Object.keys(tokensForOutputChain).includes(swapState.outputAsset)
+			? swapState.outputAsset
+			: (usdcAddressforOutputChain as coin);
 	});
 	$effect(() => {
 		const tokensForInputChain = coinMap[swapState.inputChain];
-		const usdcAddressforInputChain = Object.keys(tokensForInputChain)[Object.values(tokensForInputChain).indexOf("usdc")];
-		swapState.inputAsset = Object.keys(tokensForInputChain).includes(swapState.inputAsset) ? swapState.inputAsset : usdcAddressforInputChain as coin;
-	})
+		const usdcAddressforInputChain =
+			Object.keys(tokensForInputChain)[Object.values(tokensForInputChain).indexOf('usdc')];
+		swapState.inputAsset = Object.keys(tokensForInputChain).includes(swapState.inputAsset)
+			? swapState.inputAsset
+			: (usdcAddressforInputChain as coin);
+	});
 
 	function swapInputOutput() {
 		[
@@ -165,7 +169,8 @@
 			user: `0x${string}` | undefined,
 			asset: `0x${string}`,
 			client: (typeof clients)[keyof typeof clients]
-		) => T
+		) => T,
+		_: any
 	) {
 		const resolved: {
 			-readonly [K in keyof typeof coinMap]: {
@@ -191,11 +196,11 @@
 	}
 
 	const balances = $derived.by(() => {
-		return mapOverCoins(getBalance);
+		return mapOverCoins(getBalance, updatedDerived);
 	});
 
 	const allowances = $derived.by(() => {
-		return mapOverCoins(getCompactAllowance);
+		return mapOverCoins(getCompactAllowance, updatedDerived);
 	});
 
 	const compactBalances = $derived.by(() => {
@@ -204,13 +209,16 @@
 				user: `0x${string}` | undefined,
 				asset: `0x${string}`,
 				client: (typeof clients)[keyof typeof clients]
-			) => getCompactBalance(user, asset, client, swapState.allocatorId)
+			) => getCompactBalance(user, asset, client, swapState.allocatorId),
+			updatedDerived
 		);
 	});
 
-	const maxAllowances = mapOverCoins(async () => maxUint256);
+	const maxAllowances = mapOverCoins(async () => maxUint256, '');
 
-	let inputNumber = $derived(Number(swapState.inputAmount) / 10 ** decimalMap[swapState.inputAsset]);
+	let inputNumber = $derived(
+		Number(swapState.inputAmount) / 10 ** decimalMap[swapState.inputAsset]
+	);
 	function updateInputAmount(input: number) {
 		swapState.inputAmount = toBigIntWithDecimals(input, decimalMap[swapState.inputAsset]);
 	}
@@ -338,7 +346,7 @@
 				{swapInputOutput}
 				bind:opts={swapState}
 				connectFunction={connect}
-				executeFunction={swap(walletClient!, swapState)}
+				executeFunction={swap(walletClient!, swapState, orders)}
 				approveFunction={async () => {}}
 				showConnect={!connectedAccount}
 			>
@@ -355,7 +363,7 @@
 				{swapInputOutput}
 				bind:opts={swapState}
 				connectFunction={connect}
-				executeFunction={depositAndSwap(walletClient!, swapState)}
+				executeFunction={depositAndSwap(walletClient!, swapState, orders)}
 				approveFunction={compactApprove(walletClient!, swapState)}
 				showConnect={!connectedAccount}
 			>

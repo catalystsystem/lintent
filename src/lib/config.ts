@@ -114,11 +114,10 @@ export function getChainName(chainId: number) {
 export function getTokenKeyByAddress(chain: chain, address: string) {
     const coins = getCoins(chain);
     for (const coin of coins) {
-        if (coinMap[chain][coin] === address) {
-            return coin;
+        if (coin === address) {
+            return coinMap[chain][coin];
         }
     }
-    console.log({ chain, address });
 }
 
 export function formatTokenDecimals(
