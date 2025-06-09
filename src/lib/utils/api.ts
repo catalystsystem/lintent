@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { StandardOrder, Quote } from '../../types';
 
-const ORDER_SERVER_URL = 'http://order-dev.li.fi';
+const ORDER_SERVER_URL = 'https://order-dev.li.fi';
 
 const api = axios.create({
 	baseURL: ORDER_SERVER_URL
