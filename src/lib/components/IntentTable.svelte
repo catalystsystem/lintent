@@ -23,13 +23,16 @@
 	import AwaitButton from './AwaitButton.svelte';
 	import { claim, fill, validate } from '$lib/utils/lifiintent/tx';
 
-	const orderInputs: { submit: number[]; validate: string[] } = $state({ submit: [], validate: [] });
+	const orderInputs: { submit: number[]; validate: string[] } = $state({
+		submit: [],
+		validate: []
+	});
 	const {
 		orders,
 		walletClient,
 		opts = $bindable()
 	}: {
-		orders: { order: StandardOrder; signature: `0x${string}` }[];
+		orders: { order: StandardOrder; signature: `0x${string}`; allocatorSignature: `0x${string}` }[];
 		walletClient: WC;
 		opts: {
 			preHook?: (chain?: chain) => Promise<any>;
@@ -125,7 +128,7 @@
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-gray-200">
-			{#each orders.filter(({ order }) => order.inputs.length === 1 && order.outputs.length === 1) as { order, signature }, index (getOrderId(order))}
+			{#each orders as { order, signature, allocatorSignature }, index (getOrderId(order))}
 				<tr class="hover:bg-gray-50">
 					<td class="px-4 py-2 text-sm text-gray-800">{getOrderId(order).slice(2, 8)}...</td>
 					<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
@@ -287,7 +290,12 @@
 								<AwaitButton
 									buttonFunction={claim(
 										walletClient,
-										{ order, signature, fillTransactionHash: orderInputs.validate[index] },
+										{
+											order,
+											signature,
+											allocatorSignature,
+											fillTransactionHash: orderInputs.validate[index]
+										},
 										opts
 									)}
 								>
@@ -303,7 +311,12 @@
 							<AwaitButton
 								buttonFunction={claim(
 									walletClient,
-									{ order, signature, fillTransactionHash: orderInputs.validate[index] },
+									{
+										order,
+										signature,
+										allocatorSignature,
+										fillTransactionHash: orderInputs.validate[index]
+									},
 									opts
 								)}
 							>

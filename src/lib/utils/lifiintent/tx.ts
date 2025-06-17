@@ -9,8 +9,10 @@ import {
 	clients,
 	COIN_FILLER,
 	COMPACT,
+	DEFAULT_ALLOCATOR,
 	getChainName,
 	getOracle,
+	POLYMER_ALLOCATOR,
 	type verifier,
 	type WC,
 	wormholeChainIds,
@@ -22,6 +24,7 @@ import {
 	maxUint256,
 	parseAbiParameters,
 	toHex,
+	verifyTypedData,
 } from "viem";
 import type {
 	BatchCompact,
@@ -92,23 +95,27 @@ export function createOrder(
 	};
 	const outputs = [output];
 
+	// Get the current epoch timestamp:
+	const currentTime = Math.floor(Date.now() / 1000);
+	const ONE_MINUTE = 60;
+
 	// Make order
 	const order: StandardOrder = {
 		user: account(),
 		nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
 		originChainId: BigInt(chainMap[inputChain].id),
-		fillDeadline: Number(maxInt32), // TODO:
-		expires: Number(maxInt32), //  TODO:
+		fillDeadline: currentTime + ONE_MINUTE * 1,
+		expires: Number(maxInt32) + ONE_MINUTE * 1,
 		localOracle: localOracle,
 		inputs: inputs,
 		outputs: outputs,
 	};
+
 	const mandate: CompactMandate = {
 		fillDeadline: order.fillDeadline,
 		localOracle: order.localOracle,
 		outputs: order.outputs,
 	};
-
 	const batchCompact: BatchCompact = {
 		arbiter: CATALYST_SETTLER,
 		sponsor: order.user,
@@ -156,38 +163,46 @@ export function swap(walletClient: WC, opts: {
 		console.log({ order, batchCompact, signature });
 		orders.push({ order, signature });
 
-		const submitOrderResponse = await submitOrder({
-			orderType: 'CatalystCompactOrder',
-			order,
-			sponsorSigature: signature,
-			quote: {
-				fromAsset: opts.inputAsset,
-				toAsset: opts.outputAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
-			}
-		});
+		// const submitOrderResponse = await submitOrder({
+		// 	orderType: 'CatalystCompactOrder',
+		// 	order,
+		// 	sponsorSigature: signature,
+		// 	quote: {
+		// 		fromAsset: opts.inputAsset,
+		// 		toAsset: opts.outputAsset,
+		// 		fromPrice: '1',
+		// 		toPrice: '1',
+		// 		intermediary: '1',
+		// 		discount: '1'
+		// 	}
+		// });
 
-		console.log({ submitOrderResponse });
+		// console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
 
-export function depositAndSwap(walletClient: WC, opts: {
-	preHook?: (chain?: chain) => Promise<any>;
-	postHook?: () => Promise<any>;
-	allocatorId: string;
-	inputAsset: `0x${string}`;
-	inputAmount: bigint;
-	inputChain: chain;
-	outputAsset: `0x${string}`;
-	outputAmount: bigint;
-	outputChain: chain;
-	verifier: verifier;
-	account: () => `0x${string}`;
-}, orders: { order: StandardOrder; signature: `0x${string}` }[]) {
+export function depositAndSwap(
+	walletClient: WC,
+	opts: {
+		preHook?: (chain?: chain) => Promise<any>;
+		postHook?: () => Promise<any>;
+		allocatorId: string;
+		inputAsset: `0x${string}`;
+		inputAmount: bigint;
+		inputChain: chain;
+		outputAsset: `0x${string}`;
+		outputAmount: bigint;
+		outputChain: chain;
+		verifier: verifier;
+		account: () => `0x${string}`;
+	},
+	orders: {
+		order: StandardOrder;
+		signature: `0x${string}`;
+		allocatorSignature: `0x${string}`;
+	}[],
+) {
 	return async () => {
 		const {
 			preHook,
@@ -200,6 +215,7 @@ export function depositAndSwap(walletClient: WC, opts: {
 		} = opts;
 		const publicClients = clients;
 		const { order, batchCompact } = createOrder(opts);
+
 		const claimHash = hashStruct({
 			data: batchCompact,
 			types: compactTypes,
@@ -259,29 +275,71 @@ export function depositAndSwap(walletClient: WC, opts: {
 				});
 		}
 
-		await publicClients[inputChain].waitForTransactionReceipt({
-			hash: await transactionHash,
-		});
+		const recepit = await publicClients[inputChain]
+			.waitForTransactionReceipt({
+				hash: await transactionHash,
+			});
+
 		const signature = "0x";
+		let allocatorSignature: `0x${string}` = "0x";
 		// Needs to be sent to the Catalyst order server:
-		console.log({ order, batchCompact, signature });
-		orders.push({ order, signature });
+		// Check the allocator:
+		if (allocatorId == POLYMER_ALLOCATOR) {
+			// Get allocation
+			const response = await axios.post(`/allocator`, {
+				chainId: Number(order.originChainId),
+				blockNumber: Number(recepit.blockNumber),
+				claimHash: claimHash,
+				order: order,
+			});
+			const dat = response.data as {
+				allocatorSignature: `0x${string}`;
+				allocatorAddress: `0x${string}`;
+			};
+			allocatorSignature = dat.allocatorSignature;
 
-		const submitOrderResponse = await submitOrder({
-			orderType: 'CatalystCompactOrder',
+			// Check Polymer's signature.
+			const valid = await verifyTypedData({
+				address: dat.allocatorAddress,
+				domain: {
+					name: "The Compact",
+					version: "1",
+					chainId: chainMap[opts.inputChain].id,
+					verifyingContract: COMPACT,
+				} as const,
+				types: compactTypes,
+				primaryType: "BatchCompact",
+				message: batchCompact,
+				signature: allocatorSignature,
+			});
+			console.log({
+				valid,
+				allocatorSignature,
+				allocatorAddress: dat.allocatorAddress,
+			});
+		}
+		console.log({ order, batchCompact, signature, allocatorSignature });
+		orders.push({
 			order,
-			sponsorSigature: signature,
-			quote: {
-				fromAsset: opts.inputAsset,
-				toAsset: opts.outputAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
-			}
+			signature,
+			allocatorSignature,
 		});
 
-		console.log({ submitOrderResponse });
+		// const submitOrderResponse = await submitOrder({
+		// 	orderType: 'CatalystCompactOrder',
+		// 	order,
+		// 	sponsorSigature: signature,
+		// 	quote: {
+		// 		fromAsset: opts.inputAsset,
+		// 		toAsset: opts.outputAsset,
+		// 		fromPrice: '1',
+		// 		toPrice: '1',
+		// 		intermediary: '1',
+		// 		discount: '1'
+		// 	}
+		// });
+
+		// console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
@@ -531,6 +589,7 @@ export function claim(
 		order: StandardOrder;
 		fillTransactionHash: string;
 		signature: `0x${string}`;
+		allocatorSignature: `0x${string}`;
 	},
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
@@ -548,6 +607,7 @@ export function claim(
 			order,
 			fillTransactionHash,
 			signature,
+			allocatorSignature,
 		} = args;
 		console.log({ signature });
 		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
@@ -569,7 +629,7 @@ export function claim(
 
 		const combinedSignatures = encodeAbiParameters(
 			parseAbiParameters(["bytes", "bytes"]),
-			[signature, "0x" as `0x${string}`], // TODO: allocator signature
+			[signature, allocatorSignature],
 		);
 
 		const transcationHash = await walletClient.writeContract({

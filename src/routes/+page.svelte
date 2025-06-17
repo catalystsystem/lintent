@@ -7,6 +7,7 @@
 	import type { StandardOrder } from '../types';
 	import {
 		DEFAULT_ALLOCATOR,
+		POLYMER_ALLOCATOR,
 		coinMap,
 		getCoins,
 		chainMap,
@@ -30,7 +31,7 @@
 		return this.toString();
 	};
 
-	let orders = $state<{ order: StandardOrder; signature: `0x${string}` }[]>([]);
+	let orders = $state<{ order: StandardOrder; signature: `0x${string}`, allocatorSignature: `0x${string}` }[]>([]);
 	onMount(() => {
 		// Load orders from local storage.
 		const storedOrders = localStorage.getItem('catalyst-orders');
@@ -120,7 +121,7 @@
 		outputAmount: 0n,
 		outputChain: 'baseSepolia' as chain,
 		verifier: 'polymer' as verifier,
-		allocatorId: DEFAULT_ALLOCATOR as string,
+		allocatorId: POLYMER_ALLOCATOR as string,
 		action: 'deposit' as 'deposit' | 'withdraw'
 	});
 	$effect(() => {
@@ -232,13 +233,14 @@
 		<div class="flex w-[128rem] flex-col justify-items-center align-middle">
 			<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
 				<h1 class="text-xl font-medium">Manage Compact</h1>
-				<div class="flex flex-row space-x-2">
-					<h1 class="text-md font-medium">Allocator</h1>
-					<input
-						type="text"
-						class="w-96 rounded border px-2 py-1"
-						bind:value={swapState.allocatorId}
-					/>
+				<div class="flex flex-row">
+					<h1 class="text-md font-medium mr-4">Allocator</h1>
+					<button class="rounded-l border px-4 h-8" class:hover:bg-gray-100={swapState.allocatorId != DEFAULT_ALLOCATOR} class:font-bold={swapState.allocatorId == DEFAULT_ALLOCATOR} onclick={() => (swapState.allocatorId = DEFAULT_ALLOCATOR)}>
+						AlwaysYesAllocator
+					</button>
+					<button class=" rounded-r border border-l-0 px-4 h-8" class:hover:bg-gray-100={swapState.allocatorId != POLYMER_ALLOCATOR} class:font-bold={swapState.allocatorId == POLYMER_ALLOCATOR} onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}>
+						Polymer
+					</button>
 				</div>
 				<div class="flex flex-wrap items-center justify-start gap-2">
 					<select id="in-asset" class="rounded border px-2 py-1" bind:value={swapState.action}>
