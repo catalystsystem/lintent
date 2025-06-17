@@ -53,6 +53,23 @@
 	function updateOutputAmount(output: number) {
 		opts.outputAmount = toBigIntWithDecimals(output, decimalMap[opts.outputAsset]);
 	}
+
+	let allowance = $state(0n);
+	let balance = $state(0n);
+	const needsApproval = $derived(allowance < opts.inputAmount);
+	const lowBalance = $derived(balance < opts.inputAmount);
+	$effect(() => {
+		allowances[opts.inputChain][
+			opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]
+		].then((a) => {
+			allowance = a
+		});
+		balances[opts.inputChain][
+			opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]
+		].then((b) => {
+			balance = b 
+		});
+	});
 </script>
 
 <form class="mt-3 w-full space-y-3 rounded-md border border-gray-200 bg-gray-50 p-4">
@@ -100,7 +117,11 @@
 	<!-- Buy -->
 	<div class="flex flex-wrap items-center justify-start gap-2">
 		<span class="font-medium">Buy</span>
-		<input type="number" class="w-20 rounded border px-2 py-1" bind:value={() => outputNumber, updateOutputAmount} />
+		<input
+			type="number"
+			class="w-20 rounded border px-2 py-1"
+			bind:value={() => outputNumber, updateOutputAmount}
+		/>
 		<select id="buy-chain" class="rounded border px-2 py-1" bind:value={opts.outputChain}>
 			<option value="sepolia">Sepolia</option>
 			<option value="baseSepolia" selected>Base Sepolia</option>
@@ -136,55 +157,33 @@
 				{/snippet}
 			</AwaitButton>
 		{:else}
-			{#await allowances[opts.inputChain][opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]]}
+			{#if needsApproval}
+				<AwaitButton buttonFunction={approveFunction}>
+					{#snippet name()}
+						Set allowance
+					{/snippet}
+					{#snippet awaiting()}
+						Waiting for transaction...
+					{/snippet}
+				</AwaitButton>
+			{:else if lowBalance}
 				<button
 					type="button"
 					class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
 					disabled
 				>
-					...
+					Low Balance
 				</button>
-			{:then allowance}
-				{#if allowance < opts.inputAmount}
-					<AwaitButton buttonFunction={approveFunction}>
-						{#snippet name()}
-							Set allowance
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{:else}
-					{#await balances[opts.inputChain][opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]]}
-						<button
-							type="button"
-							class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-							disabled
-						>
-							...
-						</button>
-					{:then balances}
-						{#if balances < opts.inputAmount}
-							<button
-								type="button"
-								class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-								disabled
-							>
-								Low Balance
-							</button>
-						{:else}
-							<AwaitButton buttonFunction={executeFunction}>
-								{#snippet name()}
-									{@render executeName()}
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{/if}
-					{/await}
-				{/if}
-			{/await}
+			{:else}
+				<AwaitButton buttonFunction={executeFunction}>
+					{#snippet name()}
+						{@render executeName()}
+					{/snippet}
+					{#snippet awaiting()}
+						Waiting for transaction...
+					{/snippet}
+				</AwaitButton>
+			{/if}
 		{/if}
 	</div>
 </form>

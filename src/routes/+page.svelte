@@ -223,6 +223,13 @@
 	function updateInputAmount(input: number) {
 		swapState.inputAmount = toBigIntWithDecimals(input, decimalMap[swapState.inputAsset]);
 	}
+	let allowance = $state(0n);
+	const needsApproval = $derived(allowance < swapState.inputAmount);
+	$effect(() => {
+		allowances[swapState.inputChain][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]].then((a) => {
+			allowance = a;
+		})
+	});
 </script>
 
 <main class="main">
@@ -310,35 +317,25 @@
 							{/snippet}
 						</AwaitButton>
 					{:else}
-						{#await allowances[swapState.inputChain][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]]}
-							<button
-								type="button"
-								class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-								disabled
-							>
-								...
-							</button>
-						{:then allowance}
-							{#if allowance < swapState.inputAmount}
-								<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
-									{#snippet name()}
-										Set allowance
-									{/snippet}
-									{#snippet awaiting()}
-										Waiting for transaction...
-									{/snippet}
-								</AwaitButton>
-							{:else}
-								<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
-									{#snippet name()}
-										Execute deposit
-									{/snippet}
-									{#snippet awaiting()}
-										Waiting for transaction...
-									{/snippet}
-								</AwaitButton>
-							{/if}
-						{/await}
+						{#if needsApproval}
+							<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
+								{#snippet name()}
+									Set allowance
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{:else}
+							<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
+								{#snippet name()}
+									Execute deposit
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{/if}
 					{/if}
 				</div>
 			</form>
