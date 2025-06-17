@@ -1,4 +1,10 @@
-import { createPublicClient, fallback, http } from "viem";
+import {
+    createPublicClient,
+    createWalletClient,
+    custom,
+    fallback,
+    http,
+} from "viem";
 import {
     arbitrumSepolia,
     baseSepolia,
@@ -14,6 +20,7 @@ export const COMPACT = "0x70EEFf73E540C8F68477510F096c0d903D31594a" as const;
 export const CATALYST_SETTLER =
     "0x0ebD1a4EE74A98291B3E1A6c84016b54A134B68a" as const;
 export const DEFAULT_ALLOCATOR = "208895859788420342859855417" as const;
+export const POLYMER_ALLOCATOR = "251297797067135556989005973" as const; // simple allocator at 0xd3F80d7F468870948DCFdE60e044d84b3714b095 signing by 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
 export const COIN_FILLER =
     "0xd83a1a16822680D0a7666B9d2744B05D6aec7c2e" as const;
 export const WORMHOLE_ORACLE = {
@@ -31,21 +38,27 @@ export const POLYMER_ORACLE = {
 
 export const coinMap = {
     sepolia: {
-        eth: ADDRESS_ZERO,
-        usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-        weth: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+        [ADDRESS_ZERO]: "eth",
+        "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": "usdc",
+        "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": "weth",
     },
     baseSepolia: {
-        eth: ADDRESS_ZERO,
-        usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-        weth: "0x4200000000000000000000000000000000000006",
+        [ADDRESS_ZERO]: "eth",
+        "0x036CbD53842c5426634e7929541eC2318f3dCF7e": "usdc",
+        "0x4200000000000000000000000000000000000006": "weth",
     },
     optimismSepolia: {
-        eth: ADDRESS_ZERO,
-        usdc: "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
-        weth: "0x4200000000000000000000000000000000000006",
+        [ADDRESS_ZERO]: "eth",
+        "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": "usdc",
+        "0x4200000000000000000000000000000000000006": "weth",
     },
 } as const;
+
+// Automatically infer the union of all coin address keys across all chains
+export type coin = {
+    [K in keyof typeof coinMap]: keyof (typeof coinMap)[K];
+}[keyof typeof coinMap];
+//export type coin = keyof typeof coinMap[chain];
 
 export const wormholeChainIds = {
     sepolia: 10002,
@@ -60,22 +73,35 @@ export const polymerChainIds = {
     optimismSepolia: optimismSepolia.id,
 } as const;
 
+export type verifier = "wormhole" | "polymer";
+
 export const decimalMap = {
-    eth: 18,
-    usdc: 6,
-    weth: 18,
+    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": 6,
+    "0x036CbD53842c5426634e7929541eC2318f3dCF7e": 6,
+    "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": 6,
+    "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": 18,
+    "0x4200000000000000000000000000000000000006": 18,
+    [ADDRESS_ZERO]: 18,
 } as const;
 
 export const chainMap = { sepolia, optimismSepolia, baseSepolia } as const;
 export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
-export type coin = keyof typeof coinMap[chain];
 
 export function getCoins(chain: chain) {
     if (!coinMap[chain]) {
         throw new Error(`No coins found for chain: ${chain}`);
     }
     return Object.keys(coinMap[chain]) as (keyof typeof coinMap[chain])[];
+}
+
+export function getCoinAddresses(chain: chain) {
+    if (!coinMap[chain]) {
+        throw new Error(`No coins found for chain: ${chain}`);
+    }
+    return Object.values(
+        coinMap[chain],
+    ) as (typeof coinMap[chain][keyof typeof coinMap[chain]])[];
 }
 
 export function getChainName(chainId: number) {
@@ -89,22 +115,23 @@ export function getChainName(chainId: number) {
 export function getTokenKeyByAddress(chain: chain, address: string) {
     const coins = getCoins(chain);
     for (const coin of coins) {
-        if (coinMap[chain][coin] === address) {
-            return coin;
+        if (coin === address) {
+            return coinMap[chain][coin];
         }
     }
-    console.log({ chain, address });
 }
 
-export function formatTokenDecmials(
+export function formatTokenDecimals(
     value: bigint | number,
     coin: coin,
-): string {
+    as: "number" | "string" = "string",
+) {
     const decimals = decimalMap[coin];
-    return (Number(value) / 10 ** decimals).toString();
+    const result = Number(value) / 10 ** decimals;
+    return as === "string" ? result.toString() : result;
 }
 
-export function getOracle(verifier: "wormhole" | "polymer", chain: chain) {
+export function getOracle(verifier: verifier, chain: chain) {
     if (verifier === "wormhole") return WORMHOLE_ORACLE[chain];
     if (verifier === "polymer") return POLYMER_ORACLE[chain];
 }
@@ -140,4 +167,11 @@ export const clients = {
     }),
 } as const;
 
-export type verifiers = 'wormhole' | 'polymer';
+export type WC = ReturnType<
+    typeof createWalletClient<
+        ReturnType<typeof custom>,
+        undefined,
+        undefined,
+        undefined
+    >
+>;
