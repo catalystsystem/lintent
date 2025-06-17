@@ -25,60 +25,50 @@
 	import { depositAndSwap, swap } from '$lib/utils/lifiintent/tx';
 	import IntentTable from '$lib/components/IntentTable.svelte';
 	import { toBigIntWithDecimals } from '$lib/utils/convert';
+	import { getOrders } from '$lib/utils/api';
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
 		return this.toString();
 	};
 
-	let orders = $state<{ order: StandardOrder; signature: `0x${string}`, allocatorSignature: `0x${string}` }[]>([]);
+	let orders = $state<
+		{
+			order: StandardOrder;
+			sponsorSignature: `0x${string}`;
+			allocatorSignature: `0x${string}`;
+		}[]
+	>([]);
 	onMount(() => {
-		// Load orders from local storage.
-		const storedOrders = localStorage.getItem('catalyst-orders');
-		if (storedOrders) {
-			console.log(storedOrders);
-			try {
-				const parsedOrders = JSON.parse(storedOrders);
+		getOrders().then((response) => {
+			const parsedOrders = response.data;
+			if (parsedOrders) {
+				console.log(parsedOrders);
 				if (Array.isArray(parsedOrders)) {
 					// For each order, if a field is string ending in n, convert it to bigint.
-					parsedOrders.forEach((instance) => {
+					orders = parsedOrders.map((instance) => {
 						instance.order.nonce = BigInt(instance.order.nonce);
 						instance.order.originChainId = BigInt(instance.order.originChainId);
 						if (instance.order.inputs) {
-							instance.order.inputs = instance.order.inputs.map((input: [string, string]) => {
+							instance.order.inputs = instance.order.inputs.map((input) => {
 								return [BigInt(input[0]), BigInt(input[1])];
 							});
 						}
 						if (instance.order.outputs) {
-							instance.order.outputs = instance.order.outputs.map(
-								(output: {
-									remoteOracle: `0x${string}`;
-									remoteFiller: `0x${string}`;
-									chainId: string;
-									token: `0x${string}`;
-									amount: string;
-									recipient: `0x${string}`;
-									remoteCall: `0x${string}`;
-									fulfillmentContext: `0x${string}`;
-								}) => {
-									return {
-										...output,
-										chainId: BigInt(output.chainId),
-										amount: BigInt(output.amount)
-									};
-								}
-							);
+							instance.order.outputs = instance.order.outputs.map((output) => {
+								return {
+									...output,
+									chainId: BigInt(output.chainId),
+									amount: BigInt(output.amount)
+								};
+							});
 						}
+						const allocatorSignature = instance.allocatorSignature ?? '0x';
+						const sponsorSignature = instance.sponsorSignature ?? '0x';
+						return { ...instance, allocatorSignature, sponsorSignature };
 					});
-					orders = parsedOrders;
 				}
-			} catch (e) {
-				console.error('Failed to parse stored orders:', e);
 			}
-		}
-		$effect(() => {
-			// Set the content to local storage.
-			localStorage.setItem('catalyst-orders', JSON.stringify(orders));
 		});
 	});
 
@@ -226,9 +216,11 @@
 	let allowance = $state(0n);
 	const needsApproval = $derived(allowance < swapState.inputAmount);
 	$effect(() => {
-		allowances[swapState.inputChain][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]].then((a) => {
+		allowances[swapState.inputChain][
+			swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]
+		].then((a) => {
 			allowance = a;
-		})
+		});
 	});
 </script>
 
@@ -241,11 +233,21 @@
 			<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
 				<h1 class="text-xl font-medium">Manage Compact</h1>
 				<div class="flex flex-row">
-					<h1 class="text-md font-medium mr-4">Allocator</h1>
-					<button class="rounded-l border px-4 h-8" class:hover:bg-gray-100={swapState.allocatorId != DEFAULT_ALLOCATOR} class:font-bold={swapState.allocatorId == DEFAULT_ALLOCATOR} onclick={() => (swapState.allocatorId = DEFAULT_ALLOCATOR)}>
+					<h1 class="text-md mr-4 font-medium">Allocator</h1>
+					<button
+						class="h-8 rounded-l border px-4"
+						class:hover:bg-gray-100={swapState.allocatorId != DEFAULT_ALLOCATOR}
+						class:font-bold={swapState.allocatorId == DEFAULT_ALLOCATOR}
+						onclick={() => (swapState.allocatorId = DEFAULT_ALLOCATOR)}
+					>
 						AlwaysYesAllocator
 					</button>
-					<button class=" rounded-r border border-l-0 px-4 h-8" class:hover:bg-gray-100={swapState.allocatorId != POLYMER_ALLOCATOR} class:font-bold={swapState.allocatorId == POLYMER_ALLOCATOR} onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}>
+					<button
+						class=" h-8 rounded-r border border-l-0 px-4"
+						class:hover:bg-gray-100={swapState.allocatorId != POLYMER_ALLOCATOR}
+						class:font-bold={swapState.allocatorId == POLYMER_ALLOCATOR}
+						onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}
+					>
 						Polymer
 					</button>
 				</div>
@@ -316,26 +318,24 @@
 								Waiting for transaction...
 							{/snippet}
 						</AwaitButton>
+					{:else if needsApproval}
+						<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
+							{#snippet name()}
+								Set allowance
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
 					{:else}
-						{#if needsApproval}
-							<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
-								{#snippet name()}
-									Set allowance
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{:else}
-							<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
-								{#snippet name()}
-									Execute deposit
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{/if}
+						<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
+							{#snippet name()}
+								Execute deposit
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
 					{/if}
 				</div>
 			</form>

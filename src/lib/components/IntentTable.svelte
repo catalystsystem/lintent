@@ -32,7 +32,11 @@
 		walletClient,
 		opts = $bindable()
 	}: {
-		orders: { order: StandardOrder; signature: `0x${string}`; allocatorSignature: `0x${string}` }[];
+		orders: {
+			order: StandardOrder;
+			sponsorSignature: `0x${string}`;
+			allocatorSignature: `0x${string}`;
+		}[];
 		walletClient: WC;
 		opts: {
 			preHook?: (chain?: chain) => Promise<any>;
@@ -128,7 +132,7 @@
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-gray-200">
-			{#each orders as { order, signature, allocatorSignature }, index (getOrderId(order))}
+			{#each orders as { order, sponsorSignature, allocatorSignature }, index (getOrderId(order))}
 				<tr class="hover:bg-gray-50">
 					<td class="px-4 py-2 text-sm text-gray-800">{getOrderId(order).slice(2, 8)}...</td>
 					<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
@@ -292,7 +296,7 @@
 										walletClient,
 										{
 											order,
-											signature,
+											sponsorSignature,
 											allocatorSignature,
 											fillTransactionHash: orderInputs.validate[index]
 										},
@@ -313,7 +317,7 @@
 									walletClient,
 									{
 										order,
-										signature,
+										sponsorSignature,
 										allocatorSignature,
 										fillTransactionHash: orderInputs.validate[index]
 									},

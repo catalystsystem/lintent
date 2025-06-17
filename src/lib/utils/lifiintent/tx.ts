@@ -140,7 +140,7 @@ export function swap(walletClient: WC, opts: {
 	outputChain: chain;
 	verifier: verifier;
 	account: () => `0x${string}`;
-}, orders: { order: StandardOrder; signature: `0x${string}` }[]) {
+}, orders: { order: StandardOrder; sponsorSignature: `0x${string}` }[]) {
 	return async () => {
 		const { preHook, postHook, account, inputChain } = opts;
 		if (preHook) await preHook(inputChain);
@@ -158,10 +158,10 @@ export function swap(walletClient: WC, opts: {
 			primaryType: "BatchCompact",
 			message: batchCompact,
 		});
-		const signature = await signaturePromise;
+		const sponsorSignature = await signaturePromise;
 
-		console.log({ order, batchCompact, signature });
-		orders.push({ order, signature });
+		console.log({ order, batchCompact, sponsorSignature });
+		orders.push({ order, sponsorSignature });
 
 		// const submitOrderResponse = await submitOrder({
 		// 	orderType: 'CatalystCompactOrder',
@@ -199,7 +199,7 @@ export function depositAndSwap(
 	},
 	orders: {
 		order: StandardOrder;
-		signature: `0x${string}`;
+		sponsorSignature: `0x${string}`;
 		allocatorSignature: `0x${string}`;
 	}[],
 ) {
@@ -280,7 +280,7 @@ export function depositAndSwap(
 				hash: await transactionHash,
 			});
 
-		const signature = "0x";
+		const sponsorSignature = "0x";
 		let allocatorSignature: `0x${string}` = "0x";
 		// Needs to be sent to the Catalyst order server:
 		// Check the allocator:
@@ -318,25 +318,31 @@ export function depositAndSwap(
 				allocatorAddress: dat.allocatorAddress,
 			});
 		}
-		console.log({ order, batchCompact, signature, allocatorSignature });
+		console.log({
+			order,
+			batchCompact,
+			sponsorSignature,
+			allocatorSignature,
+		});
 		orders.push({
 			order,
-			signature,
+			sponsorSignature,
 			allocatorSignature,
 		});
 
 		const submitOrderResponse = await submitOrder({
-			orderType: 'CatalystCompactOrder',
+			orderType: "CatalystCompactOrder",
 			order,
-			sponsorSigature: signature,
+			sponsorSignature,
+			allocatorSignature,
 			quote: {
 				fromAsset: opts.inputAsset,
 				toAsset: opts.outputAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
-			}
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1",
+			},
 		});
 
 		console.log({ submitOrderResponse });
@@ -588,7 +594,7 @@ export function claim(
 	args: {
 		order: StandardOrder;
 		fillTransactionHash: string;
-		signature: `0x${string}`;
+		sponsorSignature: `0x${string}`;
 		allocatorSignature: `0x${string}`;
 	},
 	opts: {
@@ -606,10 +612,10 @@ export function claim(
 		const {
 			order,
 			fillTransactionHash,
-			signature,
+			sponsorSignature,
 			allocatorSignature,
 		} = args;
-		console.log({ signature });
+		console.log({ sponsorSignature });
 		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
 		if (order.outputs.length !== 1) {
 			throw new Error("Order must have exactly one output");
@@ -629,7 +635,7 @@ export function claim(
 
 		const combinedSignatures = encodeAbiParameters(
 			parseAbiParameters(["bytes", "bytes"]),
-			[signature, allocatorSignature],
+			[sponsorSignature, allocatorSignature],
 		);
 
 		const transcationHash = await walletClient.writeContract({
