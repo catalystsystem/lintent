@@ -339,7 +339,7 @@
 					{/if}
 				</div>
 			</form>
-			<SwapForm
+			<!-- <SwapForm
 				balances={compactBalances}
 				allowances={maxAllowances}
 				{swapInputOutput}
@@ -355,7 +355,7 @@
 				{#snippet executeName()}
 					Sign BatchCompact
 				{/snippet}
-			</SwapForm>
+			</SwapForm> -->
 			<SwapForm
 				{balances}
 				{allowances}
