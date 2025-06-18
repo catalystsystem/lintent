@@ -32,7 +32,7 @@ export function getOrderId(order: StandardOrder) {
                 order.inputs,
                 encodeAbiParameters(
                     parseAbiParameters(
-                        "(bytes32 remoteOracle, bytes32 remoteFiller, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes remoteCall, bytes fulfillmentContext)[]",
+                        "(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]",
                     ),
                     [order.outputs],
                 ),
@@ -57,16 +57,16 @@ export function getOutputHash(output: MandateOutput) {
                 "bytes",
             ],
             [
-                output.remoteOracle,
-                output.remoteFiller,
+                output.oracle,
+                output.settler,
                 output.chainId,
                 output.token,
                 output.amount,
                 output.recipient,
-                output.remoteCall.replace("0x", "").length / 2,
-                output.remoteCall,
-                output.fulfillmentContext.replace("0x", "").length / 2,
-                output.fulfillmentContext,
+                output.call.replace("0x", "").length / 2,
+                output.call,
+                output.context.replace("0x", "").length / 2,
+                output.context,
             ],
         ),
     );
@@ -98,10 +98,10 @@ export function encodeMandateOutput(
             output.token,
             output.amount,
             output.recipient,
-            output.remoteCall.replace("0x", "").length / 2,
-            output.remoteCall,
-            output.fulfillmentContext.replace("0x", "").length / 2,
-            output.fulfillmentContext,
+            output.call.replace("0x", "").length / 2,
+            output.call,
+            output.context.replace("0x", "").length / 2,
+            output.context,
         ],
     );
 }

@@ -44,36 +44,36 @@
 		let { socket, disconnect } = connectOrderServerSocket();
 		onDestroy(disconnect);
 
-		getOrders().then((response) => {
-			const parsedOrders = response.data;
-			if (parsedOrders) {
-				console.log(parsedOrders);
-				if (Array.isArray(parsedOrders)) {
-					// For each order, if a field is string ending in n, convert it to bigint.
-					orders = parsedOrders.map((instance) => {
-						instance.order.nonce = BigInt(instance.order.nonce);
-						instance.order.originChainId = BigInt(instance.order.originChainId);
-						if (instance.order.inputs) {
-							instance.order.inputs = instance.order.inputs.map((input) => {
-								return [BigInt(input[0]), BigInt(input[1])];
-							});
-						}
-						if (instance.order.outputs) {
-							instance.order.outputs = instance.order.outputs.map((output) => {
-								return {
-									...output,
-									chainId: BigInt(output.chainId),
-									amount: BigInt(output.amount)
-								};
-							});
-						}
-						const allocatorSignature = instance.allocatorSignature ?? '0x';
-						const sponsorSignature = instance.sponsorSignature ?? '0x';
-						return { ...instance, allocatorSignature, sponsorSignature };
-					});
-				}
-			}
-		});
+		// getOrders().then((response) => {
+		// 	const parsedOrders = response.data;
+		// 	if (parsedOrders) {
+		// 		console.log(parsedOrders);
+		// 		if (Array.isArray(parsedOrders)) {
+		// 			// For each order, if a field is string ending in n, convert it to bigint.
+		// 			orders = parsedOrders.map((instance) => {
+		// 				instance.order.nonce = BigInt(instance.order.nonce);
+		// 				instance.order.originChainId = BigInt(instance.order.originChainId);
+		// 				if (instance.order.inputs) {
+		// 					instance.order.inputs = instance.order.inputs.map((input) => {
+		// 						return [BigInt(input[0]), BigInt(input[1])];
+		// 					});
+		// 				}
+		// 				if (instance.order.outputs) {
+		// 					instance.order.outputs = instance.order.outputs.map((output) => {
+		// 						return {
+		// 							...output,
+		// 							chainId: BigInt(output.chainId),
+		// 							amount: BigInt(output.amount)
+		// 						};
+		// 					});
+		// 				}
+		// 				const allocatorSignature = instance.allocatorSignature ?? '0x';
+		// 				const sponsorSignature = instance.sponsorSignature ?? '0x';
+		// 				return { ...instance, allocatorSignature, sponsorSignature };
+		// 			});
+		// 		}
+		// 	}
+		// });
 	});
 
 	// --- Wallet --- //

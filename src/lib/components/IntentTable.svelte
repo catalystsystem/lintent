@@ -56,7 +56,7 @@
 		const outputHash = getOutputHash(output);
 		const outputChain = getChainName(Number(output.chainId))!;
 		return await clients[outputChain].readContract({
-			address: bytes32ToAddress(output.remoteFiller),
+			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
 			functionName: 'filledOutputs',
 			args: [orderId, outputHash]
@@ -93,7 +93,7 @@
 			address: order.localOracle,
 			abi: POLYMER_ORACLE_ABI,
 			functionName: 'isProven',
-			args: [output.chainId, output.remoteOracle, output.remoteFiller, outputHash]
+			args: [output.chainId, output.oracle, output.settler, outputHash]
 		});
 	}
 

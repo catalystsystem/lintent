@@ -339,22 +339,22 @@ export function depositAndSwap(
 			allocatorSignature,
 		});
 
-		const submitOrderResponse = await submitOrder({
-			orderType: "CatalystCompactOrder",
-			order,
-			sponsorSignature,
-			allocatorSignature,
-			quote: {
-				fromAsset: opts.inputAsset,
-				toAsset: opts.outputAsset,
-				fromPrice: "1",
-				toPrice: "1",
-				intermediary: "1",
-				discount: "1",
-			},
-		});
+		// const submitOrderResponse = await submitOrder({
+		// 	orderType: "CatalystCompactOrder",
+		// 	order,
+		// 	sponsorSignature,
+		// 	allocatorSignature,
+		// 	quote: {
+		// 		fromAsset: opts.inputAsset,
+		// 		toAsset: opts.outputAsset,
+		// 		fromPrice: "1",
+		// 		toPrice: "1",
+		// 		intermediary: "1",
+		// 		discount: "1",
+		// 	},
+		// });
 
-		console.log({ submitOrderResponse });
+		// console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
