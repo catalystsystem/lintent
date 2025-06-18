@@ -17,7 +17,7 @@
 		type verifier,
 		decimalMap
 	} from '$lib/config';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
 	import { getBalance, getCompactAllowance, getCompactBalance } from '$lib/state.svelte';
 	import BalanceField from '$lib/components/BalanceField.svelte';
@@ -25,7 +25,7 @@
 	import { depositAndSwap, swap } from '$lib/utils/lifiintent/tx';
 	import IntentTable from '$lib/components/IntentTable.svelte';
 	import { toBigIntWithDecimals } from '$lib/utils/convert';
-	import { getOrders } from '$lib/utils/api';
+	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -40,6 +40,10 @@
 		}[]
 	>([]);
 	onMount(() => {
+		// Connect to websocket server
+		let { socket, disconnect } = connectOrderServerSocket();
+		onDestroy(disconnect);
+
 		getOrders().then((response) => {
 			const parsedOrders = response.data;
 			if (parsedOrders) {

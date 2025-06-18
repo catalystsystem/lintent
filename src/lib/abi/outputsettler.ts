@@ -6,17 +6,17 @@ export const COIN_FILLER_ABI = [
       {
         "name": "payloadHashes",
         "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        "internalType": "bytes32[]",
+      },
     ],
     "outputs": [
       {
         "name": "",
         "type": "bool",
-        "internalType": "bool"
-      }
+        "internalType": "bool",
+      },
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
   },
   {
     "type": "function",
@@ -25,7 +25,7 @@ export const COIN_FILLER_ABI = [
       {
         "name": "trueAmount",
         "type": "uint256",
-        "internalType": "uint256"
+        "internalType": "uint256",
       },
       {
         "name": "output",
@@ -33,50 +33,50 @@ export const COIN_FILLER_ABI = [
         "internalType": "struct MandateOutput",
         "components": [
           {
-            "name": "remoteOracle",
+            "name": "oracle",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteFiller",
+            "name": "settler",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "chainId",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "token",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "amount",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "recipient",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteCall",
+            "name": "call",
             "type": "bytes",
-            "internalType": "bytes"
+            "internalType": "bytes",
           },
           {
-            "name": "fulfillmentContext",
+            "name": "context",
             "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            "internalType": "bytes",
+          },
+        ],
+      },
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
   },
   {
     "type": "function",
@@ -85,11 +85,11 @@ export const COIN_FILLER_ABI = [
       {
         "name": "proofSeries",
         "type": "bytes",
-        "internalType": "bytes"
-      }
+        "internalType": "bytes",
+      },
     ],
     "outputs": [],
-    "stateMutability": "view"
+    "stateMutability": "view",
   },
   {
     "type": "function",
@@ -98,12 +98,12 @@ export const COIN_FILLER_ABI = [
       {
         "name": "fillDeadline",
         "type": "uint32",
-        "internalType": "uint32"
+        "internalType": "uint32",
       },
       {
         "name": "orderId",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "output",
@@ -111,75 +111,75 @@ export const COIN_FILLER_ABI = [
         "internalType": "struct MandateOutput",
         "components": [
           {
-            "name": "remoteOracle",
+            "name": "oracle",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteFiller",
+            "name": "settler",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "chainId",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "token",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "amount",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "recipient",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteCall",
+            "name": "call",
             "type": "bytes",
-            "internalType": "bytes"
+            "internalType": "bytes",
           },
           {
-            "name": "fulfillmentContext",
+            "name": "context",
             "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
+            "internalType": "bytes",
+          },
+        ],
       },
       {
         "name": "proposedSolver",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
     "outputs": [
       {
         "name": "",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
   },
   {
     "type": "function",
-    "name": "fillBatch",
+    "name": "fillOrderOutputs",
     "inputs": [
       {
         "name": "fillDeadline",
         "type": "uint32",
-        "internalType": "uint32"
+        "internalType": "uint32",
       },
       {
         "name": "orderId",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "outputs",
@@ -187,55 +187,55 @@ export const COIN_FILLER_ABI = [
         "internalType": "struct MandateOutput[]",
         "components": [
           {
-            "name": "remoteOracle",
+            "name": "oracle",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteFiller",
+            "name": "settler",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "chainId",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "token",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "amount",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "recipient",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteCall",
+            "name": "call",
             "type": "bytes",
-            "internalType": "bytes"
+            "internalType": "bytes",
           },
           {
-            "name": "fulfillmentContext",
+            "name": "context",
             "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
+            "internalType": "bytes",
+          },
+        ],
       },
       {
         "name": "proposedSolver",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "nonpayable",
   },
   {
     "type": "function",
@@ -244,22 +244,22 @@ export const COIN_FILLER_ABI = [
       {
         "name": "orderId",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "outputHash",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
     "outputs": [
       {
         "name": "solver",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
   },
   {
     "type": "function",
@@ -268,32 +268,32 @@ export const COIN_FILLER_ABI = [
       {
         "name": "remoteChainId",
         "type": "uint256",
-        "internalType": "uint256"
+        "internalType": "uint256",
       },
       {
         "name": "remoteOracle",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "application",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "dataHash",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
     "outputs": [
       {
         "name": "",
         "type": "bool",
-        "internalType": "bool"
-      }
+        "internalType": "bool",
+      },
     ],
-    "stateMutability": "view"
+    "stateMutability": "view",
   },
   {
     "type": "event",
@@ -303,19 +303,19 @@ export const COIN_FILLER_ABI = [
         "name": "orderId",
         "type": "bytes32",
         "indexed": true,
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "solver",
         "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "timestamp",
         "type": "uint32",
         "indexed": false,
-        "internalType": "uint32"
+        "internalType": "uint32",
       },
       {
         "name": "output",
@@ -324,49 +324,49 @@ export const COIN_FILLER_ABI = [
         "internalType": "struct MandateOutput",
         "components": [
           {
-            "name": "remoteOracle",
+            "name": "oracle",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteFiller",
+            "name": "settler",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "chainId",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "token",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
             "name": "amount",
             "type": "uint256",
-            "internalType": "uint256"
+            "internalType": "uint256",
           },
           {
             "name": "recipient",
             "type": "bytes32",
-            "internalType": "bytes32"
+            "internalType": "bytes32",
           },
           {
-            "name": "remoteCall",
+            "name": "call",
             "type": "bytes",
-            "internalType": "bytes"
+            "internalType": "bytes",
           },
           {
-            "name": "fulfillmentContext",
+            "name": "context",
             "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            "internalType": "bytes",
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    "anonymous": false,
   },
   {
     "type": "event",
@@ -376,28 +376,38 @@ export const COIN_FILLER_ABI = [
         "name": "chainid",
         "type": "uint256",
         "indexed": false,
-        "internalType": "uint256"
+        "internalType": "uint256",
       },
       {
         "name": "remoteIdentifier",
         "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "application",
         "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "payloadHash",
         "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
-      }
+        "internalType": "bytes32",
+      },
     ],
-    "anonymous": false
+    "anonymous": false,
+  },
+  {
+    "type": "error",
+    "name": "CallOutOfRange",
+    "inputs": [],
+  },
+  {
+    "type": "error",
+    "name": "ContextOutOfRange",
+    "inputs": [],
   },
   {
     "type": "error",
@@ -406,14 +416,14 @@ export const COIN_FILLER_ABI = [
       {
         "name": "solver",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        "internalType": "bytes32",
+      },
+    ],
   },
   {
     "type": "error",
     "name": "FillDeadline",
-    "inputs": []
+    "inputs": [],
   },
   {
     "type": "error",
@@ -422,14 +432,9 @@ export const COIN_FILLER_ABI = [
       {
         "name": "solver",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "FulfillmentContextCallOutOfRange",
-    "inputs": []
+        "internalType": "bytes32",
+      },
+    ],
   },
   {
     "type": "error",
@@ -438,34 +443,24 @@ export const COIN_FILLER_ABI = [
       {
         "name": "value",
         "type": "uint256",
-        "internalType": "uint256"
+        "internalType": "uint256",
       },
       {
         "name": "divisor",
         "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        "internalType": "uint256",
+      },
+    ],
   },
   {
     "type": "error",
     "name": "NotImplemented",
-    "inputs": []
+    "inputs": [],
   },
   {
     "type": "error",
     "name": "NotProven",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RemoteCallOutOfRange",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SlopeStopped",
-    "inputs": []
+    "inputs": [],
   },
   {
     "type": "error",
@@ -474,34 +469,34 @@ export const COIN_FILLER_ABI = [
       {
         "name": "expected",
         "type": "uint256",
-        "internalType": "uint256"
+        "internalType": "uint256",
       },
       {
         "name": "actual",
         "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        "internalType": "uint256",
+      },
+    ],
   },
   {
     "type": "error",
-    "name": "WrongRemoteFiller",
+    "name": "WrongOutputSettler",
     "inputs": [
       {
         "name": "addressThis",
         "type": "bytes32",
-        "internalType": "bytes32"
+        "internalType": "bytes32",
       },
       {
         "name": "expected",
         "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        "internalType": "bytes32",
+      },
+    ],
   },
   {
     "type": "error",
     "name": "ZeroValue",
-    "inputs": []
-  }
+    "inputs": [],
+  },
 ] as const;

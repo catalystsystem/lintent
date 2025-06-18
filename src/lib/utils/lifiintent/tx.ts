@@ -36,7 +36,7 @@ import { addressToBytes32, bytes32ToAddress } from "../convert";
 import axios from "axios";
 import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
-import { COIN_FILLER_ABI } from "$lib/abi/coinfiller";
+import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { ResetPeriod, toId } from "../compact/IdLib";
@@ -84,14 +84,14 @@ export function createOrder(
 
 	// Make Outputs
 	const output: MandateOutput = {
-		remoteOracle: addressToBytes32(remoteOracle),
-		remoteFiller: addressToBytes32(remoteFiller),
+		oracle: addressToBytes32(remoteOracle),
+		settler: addressToBytes32(remoteFiller),
 		chainId: BigInt(chainMap[outputChain].id),
 		token: addressToBytes32(outputAsset),
 		amount: outputAmount,
 		recipient: addressToBytes32(account()),
-		remoteCall: "0x",
-		fulfillmentContext: "0x",
+		call: "0x",
+		context: "0x",
 	};
 	const outputs = [output];
 
@@ -116,12 +116,21 @@ export function createOrder(
 		localOracle: order.localOracle,
 		outputs: order.outputs,
 	};
+	const commitments = inputs.map(([tokenId, amount]) => {
+		const lockTag: `0x${string}` = `0x${toHex(tokenId).replace("0x", "").slice(0, 12*2)}`
+		const token: `0x${string}` = `0x${toHex(tokenId).replace("0x", "").slice(12*2, 32*2)}`
+		return {
+			lockTag,
+			token,
+			amount
+		}
+	});
 	const batchCompact: BatchCompact = {
 		arbiter: CATALYST_SETTLER,
 		sponsor: order.user,
 		nonce: order.nonce,
 		expires: order.expires,
-		idsAndAmounts: order.inputs,
+		commitments,
 		mandate,
 	};
 
@@ -392,7 +401,7 @@ export function fill(walletClient: WC, args: {
 			functionName: "allowance",
 			args: [
 				account(),
-				bytes32ToAddress(output.remoteFiller),
+				bytes32ToAddress(output.settler),
 			],
 		});
 		if (preHook) await preHook(outputChain);
@@ -404,7 +413,7 @@ export function fill(walletClient: WC, args: {
 					address: assetAddress,
 					abi: ERC20_ABI,
 					functionName: "approve",
-					args: [bytes32ToAddress(output.remoteFiller), maxUint256],
+					args: [bytes32ToAddress(output.settler), maxUint256],
 				});
 			await clients[getChainName(Number(output.chainId))!]
 				.waitForTransactionReceipt({
@@ -415,9 +424,9 @@ export function fill(walletClient: WC, args: {
 		const transcationHash = await walletClient.writeContract({
 			chain: chainMap[outputChain],
 			account: account(),
-			address: bytes32ToAddress(output.remoteFiller),
+			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
-			functionName: "fillBatch",
+			functionName: "fillOrderOutputs",
 			args: [
 				order.fillDeadline,
 				orderId,
@@ -573,7 +582,7 @@ export function validate(
 			const wormholeChainId = wormholeChainIds[outputChain];
 			const requestUrl =
 				`https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${
-					output.remoteOracle.replace("0x", "")
+					output.oracle.replace("0x", "")
 				}/${sequence}?network=Testnet`;
 			const response = await axios.get(requestUrl);
 			console.log(response.data);
@@ -643,12 +652,14 @@ export function claim(
 			account: account(),
 			address: CATALYST_SETTLER,
 			abi: SETTLER_COMPACT_ABI,
-			functionName: "finaliseSelf",
+			functionName: "finalise",
 			args: [
 				order,
 				combinedSignatures,
 				[Number(fillTimestamp)],
+				[addressToBytes32(account())],
 				addressToBytes32(account()),
+				"0x"
 			],
 		});
 		const result = await clients[sourceChain].waitForTransactionReceipt({

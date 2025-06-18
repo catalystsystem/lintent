@@ -17,13 +17,12 @@ export async function getBalance(
                 blockTag: "latest",
             });
     } else {
-        return client
-            ?.readContract({
-                address: asset,
-                abi: ERC20_ABI,
-                functionName: "balanceOf",
-                args: [user],
-            });
+        return client.readContract({
+            address: asset,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [user],
+        });
     }
 }
 
@@ -34,13 +33,12 @@ export async function getCompactAllowance(
 ) {
     if (!user) return 0n;
     if (asset == ADDRESS_ZERO) return maxUint256;
-    return client
-        ?.readContract({
-            address: asset,
-            abi: ERC20_ABI,
-            functionName: "allowance",
-            args: [user, COMPACT],
-        });
+    return client.readContract({
+        address: asset,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [user, COMPACT],
+    });
 }
 
 export async function getCompactBalance(
@@ -56,11 +54,10 @@ export async function getCompactBalance(
         allocatorId,
         asset,
     );
-    return client
-        ?.readContract({
-            address: COMPACT,
-            abi: COMPACT_ABI,
-            functionName: "balanceOf",
-            args: [user, assetId],
-        });
+    return client.readContract({
+        address: COMPACT,
+        abi: COMPACT_ABI,
+        functionName: "balanceOf",
+        args: [user, assetId],
+    });
 }

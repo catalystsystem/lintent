@@ -2,6 +2,7 @@ import axios from "axios";
 import type { Quote, StandardOrder } from "../../types";
 
 const ORDER_SERVER_URL = "https://order-dev.li.fi";
+const WS_ORDER_SERVER_URL = "ws://order-dev.li.fi";
 
 const api = axios.create({
 	baseURL: ORDER_SERVER_URL,
@@ -60,4 +61,44 @@ export const getOrders = async (
 		console.error("Error getting orders:", error);
 		throw error;
 	}
+};
+
+export const connectOrderServerSocket = () => {
+	// Websocket
+	const socket = new WebSocket(WS_ORDER_SERVER_URL);
+
+	socket.onmessage = function (event) {
+		console.log("event", event);
+		const message = JSON.parse(event.data);
+		console.log("Received message:", message);
+
+		switch (message.event) {
+			case "order":
+				console.log(message);
+				break;
+			case "ping":
+				socket.send(
+					JSON.stringify({
+						event: "pong",
+					}),
+				);
+				break;
+			default:
+				break;
+		}
+	};
+
+	socket.addEventListener("open", (event) => {
+		console.log("Connected to Catalyst order server");
+	});
+
+	socket.addEventListener("close", (event) => {
+		console.log("Disconnected from Catalyst order server");
+	});
+
+	socket.addEventListener("error", (event) => {
+		console.error("WebSocket error:", event);
+	});
+
+	return {socket, disconnect: () => socket.close()};
 };

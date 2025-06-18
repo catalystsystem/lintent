@@ -17,7 +17,7 @@
 		type WC
 	} from '$lib/config';
 	import { addressToBytes32, bytes32ToAddress, idToToken, trunc } from '$lib/utils/convert';
-	import { COIN_FILLER_ABI } from '$lib/abi/coinfiller';
+	import { COIN_FILLER_ABI } from '$lib/abi/outputsettler';
 	import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
 	import { COMPACT_ABI } from '$lib/abi/compact';
 	import AwaitButton from './AwaitButton.svelte';

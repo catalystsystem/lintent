@@ -61,12 +61,12 @@
 	$effect(() => {
 		allowances[opts.inputChain][
 			opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]
-		].then((a) => {
+		]?.then((a) => {
 			allowance = a
 		});
 		balances[opts.inputChain][
 			opts.inputAsset as keyof (typeof coinMap)[typeof opts.inputChain]
-		].then((b) => {
+		]?.then((b) => {
 			balance = b 
 		});
 	});

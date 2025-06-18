@@ -8,14 +8,14 @@ export type Quote = {
 };
 
 export type MandateOutput = {
-	remoteOracle: `0x${string}`;
-	remoteFiller: `0x${string}`;
+	oracle: `0x${string}`;
+	settler: `0x${string}`;
 	chainId: bigint;
 	token: `0x${string}`;
 	amount: bigint;
 	recipient: `0x${string}`;
-	remoteCall: `0x${string}`;
-	fulfillmentContext: `0x${string}`;
+	call: `0x${string}`;
+	context: `0x${string}`;
 };
 
 export type StandardOrder = {
@@ -35,11 +35,17 @@ export type CompactMandate = {
 	outputs: MandateOutput[];
 };
 
+export type Lock = {
+	lockTag: `0x${string}`,
+	token: `0x${string}`,
+	amount: bigint
+}
+
 export type BatchCompact = {
 	arbiter: `0x${string}`; // The account tasked with verifying and submitting the claim.
 	sponsor: `0x${string}`; // The account to source the tokens from.
 	nonce: bigint; // A parameter to enforce replay protection, scoped to allocator.
 	expires: number; // The time at which the claim expires.
-	idsAndAmounts: [bigint, bigint][]; // The allocated token IDs and amounts.
+	commitments: Lock[] // The allocated token IDs and amounts.
 	mandate: CompactMandate;
 };
