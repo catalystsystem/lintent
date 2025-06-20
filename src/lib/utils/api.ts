@@ -55,7 +55,7 @@ export const getOrders = async (
 	options?: { user?: `0x${string}`; status?: OrderStatus },
 ) => {
 	try {
-		const response = await api.get("/orders", { data: options });
+		const response = await api.get("/orders", { params: { limit: 50, offset: 0, ...options } });
 		return response.data as GetOrderResponse;
 	} catch (error) {
 		console.error("Error getting orders:", error);
@@ -63,7 +63,13 @@ export const getOrders = async (
 	}
 };
 
-export const connectOrderServerSocket = () => {
+type orderPush = (orderArr: {
+	order: StandardOrder;
+	sponsorSignature: `0x${string}`;
+	allocatorSignature: `0x${string}`;
+}) => void;
+
+export const connectOrderServerSocket = (newOrderFunction: orderPush) => {
 	// Websocket
 	const socket = new WebSocket(WS_ORDER_SERVER_URL);
 
@@ -73,8 +79,9 @@ export const connectOrderServerSocket = () => {
 		console.log("Received message:", message);
 
 		switch (message.event) {
-			case "order":
-				console.log(message);
+			case "user:vm-order-submit":
+				const incomingOrder = message.data as SubmitOrderDto;
+				newOrderFunction(incomingOrder);
 				break;
 			case "ping":
 				socket.send(

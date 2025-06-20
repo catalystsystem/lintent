@@ -30,10 +30,10 @@ export const WORMHOLE_ORACLE = {
     optimismSepolia: "0xb516aD609f9609C914F5292084398B44fBE84A0C",
 } as const;
 export const POLYMER_ORACLE = {
-    sepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
-    baseSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
-    arbitrumSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
-    optimismSepolia: "0x8CC4969a529dE674B72E77C5205229c6b4a17755",
+    sepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+    baseSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+    arbitrumSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+    optimismSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
 } as const;
 
 export const coinMap = {

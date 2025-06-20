@@ -26,54 +26,61 @@
 	import IntentTable from '$lib/components/IntentTable.svelte';
 	import { toBigIntWithDecimals } from '$lib/utils/convert';
 	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
+	import { validateOrder } from '$lib/utils/lifiintent/OrderLib';
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
 		return this.toString();
 	};
 
-	let orders = $state<
-		{
-			order: StandardOrder;
-			sponsorSignature: `0x${string}`;
-			allocatorSignature: `0x${string}`;
-		}[]
-	>([]);
+	type OrderPackage = {
+		order: StandardOrder;
+		sponsorSignature: `0x${string}`;
+		allocatorSignature: `0x${string}`;
+	};
+
+	let orders = $state<OrderPackage[]>([]);
+
 	onMount(() => {
 		// Connect to websocket server
-		let { socket, disconnect } = connectOrderServerSocket();
+		let { socket, disconnect } = connectOrderServerSocket((order: OrderPackage) => {
+			orders.push(order);
+			console.log({ orders, order });
+		});
 		onDestroy(disconnect);
 
-		// getOrders().then((response) => {
-		// 	const parsedOrders = response.data;
-		// 	if (parsedOrders) {
-		// 		console.log(parsedOrders);
-		// 		if (Array.isArray(parsedOrders)) {
-		// 			// For each order, if a field is string ending in n, convert it to bigint.
-		// 			orders = parsedOrders.map((instance) => {
-		// 				instance.order.nonce = BigInt(instance.order.nonce);
-		// 				instance.order.originChainId = BigInt(instance.order.originChainId);
-		// 				if (instance.order.inputs) {
-		// 					instance.order.inputs = instance.order.inputs.map((input) => {
-		// 						return [BigInt(input[0]), BigInt(input[1])];
-		// 					});
-		// 				}
-		// 				if (instance.order.outputs) {
-		// 					instance.order.outputs = instance.order.outputs.map((output) => {
-		// 						return {
-		// 							...output,
-		// 							chainId: BigInt(output.chainId),
-		// 							amount: BigInt(output.amount)
-		// 						};
-		// 					});
-		// 				}
-		// 				const allocatorSignature = instance.allocatorSignature ?? '0x';
-		// 				const sponsorSignature = instance.sponsorSignature ?? '0x';
-		// 				return { ...instance, allocatorSignature, sponsorSignature };
-		// 			});
-		// 		}
-		// 	}
-		// });
+		getOrders().then((response) => {
+			const parsedOrders = response.data;
+			if (parsedOrders) {
+				if (Array.isArray(parsedOrders)) {
+					// For each order, if a field is string ending in n, convert it to bigint.
+					orders = parsedOrders
+						.filter((instance) => validateOrder(instance.order))
+						.map((instance) => {
+							instance.order.nonce = BigInt(instance.order.nonce);
+							instance.order.originChainId = BigInt(instance.order.originChainId);
+							if (instance.order.inputs) {
+								instance.order.inputs = instance.order.inputs.map((input) => {
+									return [BigInt(input[0]), BigInt(input[1])];
+								});
+							}
+							if (instance.order.outputs) {
+								instance.order.outputs = instance.order.outputs.map((output) => {
+									return {
+										...output,
+										chainId: BigInt(output.chainId),
+										amount: BigInt(output.amount)
+									};
+								});
+							}
+							const allocatorSignature = instance.allocatorSignature ?? '0x';
+							const sponsorSignature = instance.sponsorSignature ?? '0x';
+							return { ...instance, allocatorSignature, sponsorSignature };
+						});
+					console.log({ orders });
+				}
+			}
+		});
 	});
 
 	// --- Wallet --- //
@@ -380,5 +387,5 @@
 		</div>
 	</div>
 	<!-- Make a table to display orders from users -->
-	<IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} />
+	<IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} {updatedDerived}/>
 </main>

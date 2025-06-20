@@ -30,6 +30,7 @@
 	const {
 		orders,
 		walletClient,
+		updatedDerived = $bindable(),
 		opts = $bindable()
 	}: {
 		orders: {
@@ -50,23 +51,27 @@
 			account: () => `0x${string}`;
 			inputChain: chain;
 		};
+		updatedDerived: number
 	} = $props();
 
-	async function checkIfFilled(orderId: `0x${string}`, output: MandateOutput) {
+	async function checkIfFilled(orderId: `0x${string}`, output: MandateOutput, _?: any) {
 		const outputHash = getOutputHash(output);
 		const outputChain = getChainName(Number(output.chainId))!;
-		return await clients[outputChain].readContract({
+		const result = await clients[outputChain].readContract({
 			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
 			functionName: 'filledOutputs',
 			args: [orderId, outputHash]
 		});
+		console.log({ orderId, output, result, outputHash });
+		return result;
 	}
 
 	async function checkIfValidated(
 		order: StandardOrder,
 		outputIndex: number = 1,
-		transactionHash: `0x${string}`
+		transactionHash: `0x${string}`,
+		_?: any
 	) {
 		if (!transactionHash || !transactionHash.startsWith('0x') || transactionHash.length != 66)
 			return false;
@@ -159,7 +164,7 @@
 							.join(', ')}
 					</td>
 					<td class="flex">
-						{#await checkIfFilled(getOrderId(order), order.outputs[0])}
+						{#await checkIfFilled(getOrderId(order), order.outputs[0], updatedDerived)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -243,7 +248,8 @@
 									buttonFunction={validate(
 										walletClient,
 										{ order, fillTransactionHash: orderInputs.validate[index] },
-										opts
+										opts,
+										updatedDerived
 									)}
 								>
 									{#snippet name()}
@@ -273,7 +279,7 @@
 						{/await}
 					</td>
 					<td>
-						{#await checkIfClaimed(order, 0)}
+						{#await checkIfClaimed(order, updatedDerived)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"

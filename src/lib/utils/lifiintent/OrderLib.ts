@@ -5,7 +5,7 @@ import {
     parseAbiParameters,
 } from "viem";
 import type { MandateOutput, StandardOrder } from "../../../types";
-import { CATALYST_SETTLER } from "$lib/config";
+import { CATALYST_SETTLER, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE, type chain } from "$lib/config";
 
 export function getOrderId(order: StandardOrder) {
     return keccak256(
@@ -104,4 +104,47 @@ export function encodeMandateOutput(
             output.context,
         ],
     );
+}
+
+
+/// https://docs.catalyst.exchange/solver/orderflow/#order-validation
+export function validateOrder(order: StandardOrder): boolean {
+	const currentTime = Math.floor(Date.now() / 1000);
+    
+    // 1. Filldeadline
+    const isBeforeFilltime = currentTime < order.fillDeadline;
+    if (!isBeforeFilltime) return false;
+    // 2. Expires
+    const isBeforeExpiry = currentTime < order.expires;
+    if (!isBeforeExpiry) return false;
+
+    // 3. Validation layer.
+    const inputChain = (Object.entries(chainMap).find(([k, v]) => {
+        return v.id === Number(order.originChainId)
+    })?.[0]) as chain | undefined;
+    if (!inputChain) return false;
+    // Polymer?
+    const isPolymer = POLYMER_ORACLE[inputChain] !== order.localOracle;
+    const isWormhole = WORMHOLE_ORACLE[inputChain] !== order.localOracle;
+    const whitelistedOracle = isPolymer || isWormhole;
+    if (!whitelistedOracle) return false;
+
+    // 4. Check inputs.
+    // TODO: check the outputs.
+    // 5. Lockid of inputs.
+    // 6. reset period of inputs.
+    // 7. allocatorid
+    // 8. claim sig
+    // 9. Outputs
+    for (const output of order.outputs) {
+        if (!output.oracle) return false;
+    }
+    // 10. Multiple outputs.
+    if (order.outputs.length > 1) return false;
+
+    // 11. Allocatordata
+
+    // 12. Nonce.
+
+    return true
 }

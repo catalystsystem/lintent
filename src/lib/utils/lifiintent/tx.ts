@@ -78,14 +78,14 @@ export function createOrder(
 	const input: [bigint, bigint] = [inputTokenId, inputAmount];
 	const inputs = [input];
 
-	const remoteFiller = COIN_FILLER;
-	const remoteOracle = getOracle(verifier, outputChain)!;
-	const localOracle = getOracle(verifier, inputChain)!;
+	const outputSettler = COIN_FILLER;
+	const outputOracle = getOracle(verifier, outputChain)!;
+	const inputOracle = getOracle(verifier, inputChain)!;
 
 	// Make Outputs
 	const output: MandateOutput = {
-		oracle: addressToBytes32(remoteOracle),
-		settler: addressToBytes32(remoteFiller),
+		oracle: addressToBytes32(outputOracle),
+		settler: addressToBytes32(outputSettler),
 		chainId: BigInt(chainMap[outputChain].id),
 		token: addressToBytes32(outputAsset),
 		amount: outputAmount,
@@ -104,9 +104,9 @@ export function createOrder(
 		user: account(),
 		nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
 		originChainId: BigInt(chainMap[inputChain].id),
-		fillDeadline: currentTime + ONE_MINUTE * 1,
-		expires: Number(maxInt32) + ONE_MINUTE * 1,
-		localOracle: localOracle,
+		fillDeadline: currentTime + ONE_MINUTE * 10,
+		expires: currentTime + ONE_MINUTE * 10,
+		localOracle: inputOracle,
 		inputs: inputs,
 		outputs: outputs,
 	};
@@ -170,7 +170,6 @@ export function swap(walletClient: WC, opts: {
 		const sponsorSignature = await signaturePromise;
 
 		console.log({ order, batchCompact, sponsorSignature });
-		orders.push({ order, sponsorSignature });
 
 		// const submitOrderResponse = await submitOrder({
 		// 	orderType: 'CatalystCompactOrder',
@@ -333,28 +332,23 @@ export function depositAndSwap(
 			sponsorSignature,
 			allocatorSignature,
 		});
-		orders.push({
+
+		const submitOrderResponse = await submitOrder({
+			orderType: "CatalystCompactOrder",
 			order,
 			sponsorSignature,
 			allocatorSignature,
+			quote: {
+				fromAsset: opts.inputAsset,
+				toAsset: opts.outputAsset,
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1",
+			},
 		});
 
-		// const submitOrderResponse = await submitOrder({
-		// 	orderType: "CatalystCompactOrder",
-		// 	order,
-		// 	sponsorSignature,
-		// 	allocatorSignature,
-		// 	quote: {
-		// 		fromAsset: opts.inputAsset,
-		// 		toAsset: opts.outputAsset,
-		// 		fromPrice: "1",
-		// 		toPrice: "1",
-		// 		intermediary: "1",
-		// 		discount: "1",
-		// 	},
-		// });
-
-		// console.log({ submitOrderResponse });
+		console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
