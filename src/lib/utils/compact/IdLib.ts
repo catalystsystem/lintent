@@ -1,16 +1,16 @@
-import { hexToBigInt, getAddress } from 'viem';
+import { getAddress, hexToBigInt } from "viem";
 
 // source: https://github.com/Uniswap/CompactX/blob/main/src/utils/lockId.ts#L17
 
 export enum ResetPeriod {
-    OneSecond = 0,
-    FifteenSeconds,
-    OneMinute,
-    TenMinutes,
-    OneHourAndFiveMinutes,
-    OneDay,
-    SevenDaysAndOneHour,
-    ThirtyDays
+  OneSecond = 0,
+  FifteenSeconds,
+  OneMinute,
+  TenMinutes,
+  OneHourAndFiveMinutes,
+  OneDay,
+  SevenDaysAndOneHour,
+  ThirtyDays,
 }
 
 /**
@@ -31,11 +31,11 @@ export function toId(
   isMultichain: boolean,
   resetPeriod: number,
   allocatorId: string,
-  token: string
+  token: string,
 ): bigint {
   // Validate inputs
   if (resetPeriod < 0 || resetPeriod > 7) {
-    throw new Error('Reset period must be between 0 and 7');
+    throw new Error("Reset period must be between 0 and 7");
   }
   // Validate token is a valid address and normalize it
   const normalizedToken = getAddress(token);
@@ -46,7 +46,7 @@ export function toId(
   // Convert allocatorId from decimal string to BigInt
   const allocatorBigInt = BigInt(allocatorId);
   if (allocatorBigInt > (1n << 92n) - 1n) {
-    throw new Error('AllocatorId must fit in 92 bits');
+    throw new Error("AllocatorId must fit in 92 bits");
   }
 
   // Convert token address to BigInt using viem

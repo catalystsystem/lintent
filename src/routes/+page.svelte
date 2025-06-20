@@ -6,7 +6,7 @@
 	import SwapForm from '$lib/components/SwapForm.svelte';
 	import type { StandardOrder } from '../types';
 	import {
-		DEFAULT_ALLOCATOR,
+		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
 		coinMap,
 		getCoins,
@@ -122,7 +122,7 @@
 		outputAmount: 0n,
 		outputChain: 'baseSepolia' as chain,
 		verifier: 'polymer' as verifier,
-		allocatorId: POLYMER_ALLOCATOR as string,
+		allocatorId: ALWAYS_OK_ALLOCATOR as string,
 		action: 'deposit' as 'deposit' | 'withdraw'
 	});
 	$effect(() => {
@@ -247,16 +247,16 @@
 					<h1 class="text-md mr-4 font-medium">Allocator</h1>
 					<button
 						class="h-8 rounded-l border px-4"
-						class:hover:bg-gray-100={swapState.allocatorId != DEFAULT_ALLOCATOR}
-						class:font-bold={swapState.allocatorId == DEFAULT_ALLOCATOR}
-						onclick={() => (swapState.allocatorId = DEFAULT_ALLOCATOR)}
+						class:hover:bg-gray-100={swapState.allocatorId !== ALWAYS_OK_ALLOCATOR}
+						class:font-bold={swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
+						onclick={() => (swapState.allocatorId = ALWAYS_OK_ALLOCATOR)}
 					>
 						AlwaysYesAllocator
 					</button>
 					<button
 						class=" h-8 rounded-r border border-l-0 px-4"
-						class:hover:bg-gray-100={swapState.allocatorId != POLYMER_ALLOCATOR}
-						class:font-bold={swapState.allocatorId == POLYMER_ALLOCATOR}
+						class:hover:bg-gray-100={swapState.allocatorId !== POLYMER_ALLOCATOR}
+						class:font-bold={swapState.allocatorId === POLYMER_ALLOCATOR}
 						onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}
 					>
 						Polymer
@@ -350,23 +350,25 @@
 					{/if}
 				</div>
 			</form>
-			<!-- <SwapForm
-				balances={compactBalances}
-				allowances={maxAllowances}
-				{swapInputOutput}
-				bind:opts={swapState}
-				connectFunction={connect}
-				executeFunction={swap(walletClient!, swapState, orders)}
-				approveFunction={async () => {}}
-				showConnect={!connectedAccount}
-			>
-				{#snippet title()}
-					Sign Intent with Deposit
-				{/snippet}
-				{#snippet executeName()}
-					Sign BatchCompact
-				{/snippet}
-			</SwapForm> -->
+			{#if swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
+				<SwapForm
+					balances={compactBalances}
+					allowances={maxAllowances}
+					{swapInputOutput}
+					bind:opts={swapState}
+					connectFunction={connect}
+					executeFunction={swap(walletClient!, swapState, orders)}
+					approveFunction={async () => {}}
+					showConnect={!connectedAccount}
+				>
+					{#snippet title()}
+						Sign Intent with Deposit
+					{/snippet}
+					{#snippet executeName()}
+						Sign BatchCompact
+					{/snippet}
+				</SwapForm>
+			{/if}
 			<SwapForm
 				{balances}
 				{allowances}

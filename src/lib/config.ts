@@ -1,87 +1,87 @@
 import {
-    createPublicClient,
-    createWalletClient,
-    custom,
-    fallback,
-    http,
+  createPublicClient,
+  createWalletClient,
+  custom,
+  fallback,
+  http,
 } from "viem";
 import {
-    arbitrumSepolia,
-    baseSepolia,
-    optimismSepolia,
-    sepolia,
+  arbitrumSepolia,
+  baseSepolia,
+  optimismSepolia,
+  sepolia,
 } from "viem/chains";
 
 export const ADDRESS_ZERO =
-    "0x0000000000000000000000000000000000000000" as const;
+  "0x0000000000000000000000000000000000000000" as const;
 export const BYTES32_ZERO =
-    "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+  "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 export const COMPACT = "0x9664F940484599A9f49B9daE0F0cFC9C37EFe42C" as const;
 export const CATALYST_SETTLER =
-    "0xb0567293b367e8Ed99cd44cDa1743980F2e6BBB2" as const;
-export const DEFAULT_ALLOCATOR = "215375036405988945379001509" as const;
+  "0xb0567293b367e8Ed99cd44cDa1743980F2e6BBB2" as const;
+export const ALWAYS_OK_ALLOCATOR = "215375036405988945379001509" as const;
 export const POLYMER_ALLOCATOR = "68950957088517613829856253" as const; // simple allocator at 0x1A53b74e09a7d5575F3908EEDf9eC34cAB459BFd signing by 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
 export const COIN_FILLER =
-    "0xdf96516136684972CA74E8c98E01D0D495f34a0A" as const;
+  "0xdf96516136684972CA74E8c98E01D0D495f34a0A" as const;
 export const WORMHOLE_ORACLE = {
-    sepolia: "0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb",
-    baseSepolia: "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
-    arbitrumSepolia: "0x46080096B5970d26634479f2F40e9e264B8D439b",
-    optimismSepolia: "0xb516aD609f9609C914F5292084398B44fBE84A0C",
+  sepolia: "0x069cfFa455b2eFFd8adc9531d1fCd55fd32B04Cb",
+  baseSepolia: "0xb2477079b498594192837fa3EC4Ebc97153eaA65",
+  arbitrumSepolia: "0x46080096B5970d26634479f2F40e9e264B8D439b",
+  optimismSepolia: "0xb516aD609f9609C914F5292084398B44fBE84A0C",
 } as const;
 export const POLYMER_ORACLE = {
-    sepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
-    baseSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
-    arbitrumSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
-    optimismSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+  sepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+  baseSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+  arbitrumSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
+  optimismSepolia: "0xca200b41459BF9a1C7EA7F1F22610281Bfb3a8AB",
 } as const;
 
 export const coinMap = {
-    sepolia: {
-        [ADDRESS_ZERO]: "eth",
-        "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": "usdc",
-        "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": "weth",
-    },
-    baseSepolia: {
-        [ADDRESS_ZERO]: "eth",
-        "0x036CbD53842c5426634e7929541eC2318f3dCF7e": "usdc",
-        "0x4200000000000000000000000000000000000006": "weth",
-    },
-    optimismSepolia: {
-        [ADDRESS_ZERO]: "eth",
-        "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": "usdc",
-        "0x4200000000000000000000000000000000000006": "weth",
-    },
+  sepolia: {
+    [ADDRESS_ZERO]: "eth",
+    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": "usdc",
+    "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": "weth",
+  },
+  baseSepolia: {
+    [ADDRESS_ZERO]: "eth",
+    "0x036CbD53842c5426634e7929541eC2318f3dCF7e": "usdc",
+    "0x4200000000000000000000000000000000000006": "weth",
+  },
+  optimismSepolia: {
+    [ADDRESS_ZERO]: "eth",
+    "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": "usdc",
+    "0x4200000000000000000000000000000000000006": "weth",
+  },
 } as const;
 
 // Automatically infer the union of all coin address keys across all chains
 export type coin = {
-    [K in keyof typeof coinMap]: keyof (typeof coinMap)[K];
+  [K in keyof typeof coinMap]: keyof (typeof coinMap)[K];
 }[keyof typeof coinMap];
 //export type coin = keyof typeof coinMap[chain];
 
 export const wormholeChainIds = {
-    sepolia: 10002,
-    arbitrumSepolia: 10003,
-    baseSepolia: 10004,
-    optimismSepolia: 10005,
+  sepolia: 10002,
+  arbitrumSepolia: 10003,
+  baseSepolia: 10004,
+  optimismSepolia: 10005,
 } as const;
 export const polymerChainIds = {
-    sepolia: sepolia.id,
-    arbitrumSepolia: arbitrumSepolia.id,
-    baseSepolia: baseSepolia.id,
-    optimismSepolia: optimismSepolia.id,
+  sepolia: sepolia.id,
+  arbitrumSepolia: arbitrumSepolia.id,
+  baseSepolia: baseSepolia.id,
+  optimismSepolia: optimismSepolia.id,
 } as const;
 
 export type verifier = "wormhole" | "polymer";
 
 export const decimalMap = {
-    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": 6,
-    "0x036CbD53842c5426634e7929541eC2318f3dCF7e": 6,
-    "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": 6,
-    "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": 18,
-    "0x4200000000000000000000000000000000000006": 18,
-    [ADDRESS_ZERO]: 18,
+  "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": 6,
+  "0x036CbD53842c5426634e7929541eC2318f3dCF7e": 6,
+  "0x5fd84259d66Cd46123540766Be93DFE6D43130D7": 6,
+  "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": 18,
+  "0x4200000000000000000000000000000000000006": 18,
+  [ADDRESS_ZERO]: 18,
 } as const;
 
 export const chainMap = { sepolia, optimismSepolia, baseSepolia } as const;
@@ -89,89 +89,89 @@ export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
 
 export function getCoins(chain: chain) {
-    if (!coinMap[chain]) {
-        throw new Error(`No coins found for chain: ${chain}`);
-    }
-    return Object.keys(coinMap[chain]) as (keyof typeof coinMap[chain])[];
+  if (!coinMap[chain]) {
+    throw new Error(`No coins found for chain: ${chain}`);
+  }
+  return Object.keys(coinMap[chain]) as (keyof typeof coinMap[chain])[];
 }
 
 export function getCoinAddresses(chain: chain) {
-    if (!coinMap[chain]) {
-        throw new Error(`No coins found for chain: ${chain}`);
-    }
-    return Object.values(
-        coinMap[chain],
-    ) as (typeof coinMap[chain][keyof typeof coinMap[chain]])[];
+  if (!coinMap[chain]) {
+    throw new Error(`No coins found for chain: ${chain}`);
+  }
+  return Object.values(
+    coinMap[chain],
+  ) as (typeof coinMap[chain][keyof typeof coinMap[chain]])[];
 }
 
 export function getChainName(chainId: number) {
-    for (const key of chains) {
-        if (chainMap[key].id === chainId) {
-            return key;
-        }
+  for (const key of chains) {
+    if (chainMap[key].id === chainId) {
+      return key;
     }
+  }
 }
 
 export function getTokenKeyByAddress(chain: chain, address: string) {
-    const coins = getCoins(chain);
-    for (const coin of coins) {
-        if (coin === address) {
-            return coinMap[chain][coin];
-        }
+  const coins = getCoins(chain);
+  for (const coin of coins) {
+    if (coin === address) {
+      return coinMap[chain][coin];
     }
+  }
 }
 
 export function formatTokenDecimals(
-    value: bigint | number,
-    coin: coin,
-    as: "number" | "string" = "string",
+  value: bigint | number,
+  coin: coin,
+  as: "number" | "string" = "string",
 ) {
-    const decimals = decimalMap[coin];
-    const result = Number(value) / 10 ** decimals;
-    return as === "string" ? result.toString() : result;
+  const decimals = decimalMap[coin];
+  const result = Number(value) / 10 ** decimals;
+  return as === "string" ? result.toString() : result;
 }
 
 export function getOracle(verifier: verifier, chain: chain) {
-    if (verifier === "wormhole") return WORMHOLE_ORACLE[chain];
-    if (verifier === "polymer") return POLYMER_ORACLE[chain];
+  if (verifier === "wormhole") return WORMHOLE_ORACLE[chain];
+  if (verifier === "polymer") return POLYMER_ORACLE[chain];
 }
 
 export const clients = {
-    sepolia: createPublicClient({
-        chain: sepolia,
-        transport: fallback([
-            http("https://ethereum-sepolia-rpc.publicnode.com"),
-            ...sepolia.rpcUrls.default.http.map((v) => http(v)),
-        ]),
-    }),
-    arbitrumSepolia: createPublicClient({
-        chain: arbitrumSepolia,
-        transport: fallback([
-            http("https://arbitrum-sepolia-rpc.publicnode.com"),
-            ...arbitrumSepolia.rpcUrls.default.http.map((v) => http(v)),
-        ]),
-    }),
-    baseSepolia: createPublicClient({
-        chain: baseSepolia,
-        transport: fallback([
-            http("https://base-sepolia-rpc.publicnode.com"),
-            ...baseSepolia.rpcUrls.default.http.map((v) => http(v)),
-        ]),
-    }),
-    optimismSepolia: createPublicClient({
-        chain: optimismSepolia,
-        transport: fallback([
-            http("https://optimism-sepolia-rpc.publicnode.com"),
-            ...optimismSepolia.rpcUrls.default.http.map((v) => http(v)),
-        ]),
-    }),
+  sepolia: createPublicClient({
+    chain: sepolia,
+    transport: fallback([
+      http("https://ethereum-sepolia-rpc.publicnode.com"),
+      ...sepolia.rpcUrls.default.http.map((v) => http(v)),
+    ]),
+  }),
+  arbitrumSepolia: createPublicClient({
+    chain: arbitrumSepolia,
+    transport: fallback([
+      http("https://arbitrum-sepolia-rpc.publicnode.com"),
+      ...arbitrumSepolia.rpcUrls.default.http.map((v) => http(v)),
+    ]),
+  }),
+  baseSepolia: createPublicClient({
+    chain: baseSepolia,
+    transport: fallback([
+      http("https://base-sepolia-rpc.publicnode.com"),
+      ...baseSepolia.rpcUrls.default.http.map((v) => http(v)),
+    ]),
+  }),
+  optimismSepolia: createPublicClient({
+    chain: optimismSepolia,
+    transport: fallback([
+      http("https://optimism-sepolia-rpc.publicnode.com"),
+      ...optimismSepolia.rpcUrls.default.http.map((v) => http(v)),
+    ]),
+  }),
 } as const;
 
 export type WC = ReturnType<
-    typeof createWalletClient<
-        ReturnType<typeof custom>,
-        undefined,
-        undefined,
-        undefined
-    >
+  typeof createWalletClient<
+    ReturnType<typeof custom>,
+    undefined,
+    undefined,
+    undefined
+  >
 >;
