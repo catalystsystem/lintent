@@ -2,7 +2,7 @@ import axios from "axios";
 import type { Quote, StandardOrder } from "../../types";
 
 const ORDER_SERVER_URL = "https://order-dev.li.fi";
-const WS_ORDER_SERVER_URL = "ws://order-dev.li.fi";
+const WSS_ORDER_SERVER_URL = "wss://order-dev.li.fi";
 
 const api = axios.create({
   baseURL: ORDER_SERVER_URL,
@@ -74,7 +74,7 @@ type orderPush = (orderArr: {
 
 export const connectOrderServerSocket = (newOrderFunction: orderPush) => {
   // Websocket
-  const socket = new WebSocket(WS_ORDER_SERVER_URL);
+  const socket = new WebSocket(WSS_ORDER_SERVER_URL);
 
   socket.onmessage = function (event) {
     console.log("event", event);
