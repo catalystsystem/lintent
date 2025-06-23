@@ -122,7 +122,7 @@
 		outputAmount: 0n,
 		outputChain: 'baseSepolia' as chain,
 		verifier: 'polymer' as verifier,
-		allocatorId: ALWAYS_OK_ALLOCATOR as string,
+		allocatorId: POLYMER_ALLOCATOR as string,
 		action: 'deposit' as 'deposit' | 'withdraw'
 	});
 	$effect(() => {
