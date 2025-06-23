@@ -14,6 +14,7 @@ type SubmitOrderDto = {
   orderType: "CatalystCompactOrder";
   order: StandardOrder;
   quote: Quote;
+  inputSettler: `0x${string}`;
   sponsorSignature: `0x${string}`;
   allocatorSignature: `0x${string}`;
 };

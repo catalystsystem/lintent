@@ -178,6 +178,7 @@ export function swap(walletClient: WC, opts: {
     const submitOrderResponse = await submitOrder({
     	orderType: 'CatalystCompactOrder',
     	order,
+      inputSettler: CATALYST_SETTLER,
     	sponsorSignature,
       allocatorSignature: "0x",
     	quote: {
@@ -341,6 +342,7 @@ export function depositAndSwap(
     const submitOrderResponse = await submitOrder({
       orderType: "CatalystCompactOrder",
       order,
+      inputSettler: CATALYST_SETTLER,
       sponsorSignature,
       allocatorSignature,
       quote: {
