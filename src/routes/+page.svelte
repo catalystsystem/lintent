@@ -389,5 +389,5 @@
 		</div>
 	</div>
 	<!-- Make a table to display orders from users -->
-	<IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} {updatedDerived}/>
+	<IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} {updatedDerived} />
 </main>

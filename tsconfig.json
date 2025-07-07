@@ -11,7 +11,7 @@
 		"strict": true,
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"target": "ESNext",
+		"target": "ESNext"
 	}
 	// Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
 	// except $lib which is handled by https://svelte.dev/docs/kit/configuration#files

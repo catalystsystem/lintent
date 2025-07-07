@@ -1,16 +1,16 @@
-import { getAddress, hexToBigInt } from "viem";
+import { getAddress, hexToBigInt } from 'viem';
 
 // source: https://github.com/Uniswap/CompactX/blob/main/src/utils/lockId.ts#L17
 
 export enum ResetPeriod {
-  OneSecond = 0,
-  FifteenSeconds,
-  OneMinute,
-  TenMinutes,
-  OneHourAndFiveMinutes,
-  OneDay,
-  SevenDaysAndOneHour,
-  ThirtyDays,
+	OneSecond = 0,
+	FifteenSeconds,
+	OneMinute,
+	TenMinutes,
+	OneHourAndFiveMinutes,
+	OneDay,
+	SevenDaysAndOneHour,
+	ThirtyDays
 }
 
 /**
@@ -28,37 +28,37 @@ export enum ResetPeriod {
  * @returns The derived resource lock ID as a BigInt
  */
 export function toId(
-  isMultichain: boolean,
-  resetPeriod: number,
-  allocatorId: string,
-  token: string,
+	isMultichain: boolean,
+	resetPeriod: number,
+	allocatorId: string,
+	token: string
 ): bigint {
-  // Validate inputs
-  if (resetPeriod < 0 || resetPeriod > 7) {
-    throw new Error("Reset period must be between 0 and 7");
-  }
-  // Validate token is a valid address and normalize it
-  const normalizedToken = getAddress(token);
+	// Validate inputs
+	if (resetPeriod < 0 || resetPeriod > 7) {
+		throw new Error('Reset period must be between 0 and 7');
+	}
+	// Validate token is a valid address and normalize it
+	const normalizedToken = getAddress(token);
 
-  // Convert isMultichain to scope (inverse relationship)
-  const scope = isMultichain ? 0n : 1n;
+	// Convert isMultichain to scope (inverse relationship)
+	const scope = isMultichain ? 0n : 1n;
 
-  // Convert allocatorId from decimal string to BigInt
-  const allocatorBigInt = BigInt(allocatorId);
-  if (allocatorBigInt > (1n << 92n) - 1n) {
-    throw new Error("AllocatorId must fit in 92 bits");
-  }
+	// Convert allocatorId from decimal string to BigInt
+	const allocatorBigInt = BigInt(allocatorId);
+	if (allocatorBigInt > (1n << 92n) - 1n) {
+		throw new Error('AllocatorId must fit in 92 bits');
+	}
 
-  // Convert token address to BigInt using viem
-  const tokenBigInt = hexToBigInt(normalizedToken);
+	// Convert token address to BigInt using viem
+	const tokenBigInt = hexToBigInt(normalizedToken);
 
-  // Perform bitwise operations
-  const scopeBits = scope << 255n;
-  const resetPeriodBits = BigInt(resetPeriod) << 252n;
-  const allocatorBits = allocatorBigInt << 160n;
+	// Perform bitwise operations
+	const scopeBits = scope << 255n;
+	const resetPeriodBits = BigInt(resetPeriod) << 252n;
+	const allocatorBits = allocatorBigInt << 160n;
 
-  // Combine all bits using bitwise OR
-  const id = scopeBits | resetPeriodBits | allocatorBits | tokenBigInt;
+	// Combine all bits using bitwise OR
+	const id = scopeBits | resetPeriodBits | allocatorBits | tokenBigInt;
 
-  return id;
+	return id;
 }
