@@ -1,10 +1,10 @@
 import axios from 'axios';
 import type { Quote, StandardOrder } from '../../types';
 
-// const ORDER_SERVER_URL = "https://order-dev.li.fi";
-// const WSS_ORDER_SERVER_URL = "wss://order-dev.li.fi";
-const ORDER_SERVER_URL = 'http://localhost:4444';
-const WSS_ORDER_SERVER_URL = 'ws://localhost:4444';
+const ORDER_SERVER_URL = 'https://order-dev.li.fi';
+const WSS_ORDER_SERVER_URL = 'wss://order-dev.li.fi';
+// const ORDER_SERVER_URL = 'http://localhost:4444';
+// const WSS_ORDER_SERVER_URL = 'ws://localhost:4444';
 
 const api = axios.create({
 	baseURL: ORDER_SERVER_URL
