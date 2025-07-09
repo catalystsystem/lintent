@@ -565,8 +565,7 @@ export function claim(
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
-		const { order, fillTransactionHash, sponsorSignature = "0x", allocatorSignature } = args;
-		console.log({ sponsorSignature });
+		const { order, fillTransactionHash, sponsorSignature, allocatorSignature } = args;
 		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
 		if (order.outputs.length !== 1) {
 			throw new Error('Order must have exactly one output');
