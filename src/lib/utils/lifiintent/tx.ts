@@ -565,7 +565,7 @@ export function claim(
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
-		const { order, fillTransactionHash, sponsorSignature, allocatorSignature } = args;
+		const { order, fillTransactionHash, sponsorSignature = "0x", allocatorSignature } = args;
 		console.log({ sponsorSignature });
 		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
 		if (order.outputs.length !== 1) {
@@ -583,8 +583,12 @@ export function claim(
 		const sourceChain = getChainName(Number(order.originChainId))!;
 		if (preHook) await preHook(sourceChain);
 
-		const combinedSignatures = encodeAbiParameters(parseAbiParameters(['bytes', 'bytes']), [
+		console.log({
 			sponsorSignature,
+			allocatorSignature
+		});
+		const combinedSignatures = encodeAbiParameters(parseAbiParameters(['bytes', 'bytes']), [
+			sponsorSignature ?? "0x",
 			allocatorSignature
 		]);
 
