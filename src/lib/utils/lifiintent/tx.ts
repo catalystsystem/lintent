@@ -326,7 +326,8 @@ export function depositAndSwap(
 				intermediary: '1',
 				discount: '1'
 			},
-			compactRegistrationTxHash: transactionHash
+			compactRegistrationTxHash: transactionHash,
+			allocatorSignature
 		});
 
 		console.log({ submitOrderResponse });

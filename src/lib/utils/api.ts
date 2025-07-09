@@ -27,6 +27,7 @@ type SubmitOrderUnsignedDto = {
 	quote: Quote;
 	inputSettler: `0x${string}`;
 	compactRegistrationTxHash: `0x${string}`;
+	allocatorSignature: `0x${string}`;
 };
 
 type GetOrderResponse = {
