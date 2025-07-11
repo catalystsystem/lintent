@@ -346,12 +346,11 @@ export function fill(
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		outputChain: chain;
 		account: () => `0x${string}`;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, outputChain, account } = opts;
+		const { preHook, postHook, account } = opts;
 		const { order, index } = args;
 		const publicClients = clients;
 		const orderId = getOrderId(order);
@@ -367,6 +366,7 @@ export function fill(
 
 		// Check allowance & set allowance if needed
 		const assetAddress = bytes32ToAddress(output.token);
+		const outputChain = getChainName(output.chainId);
 		const allowance = await publicClients[outputChain].readContract({
 			address: assetAddress,
 			abi: ERC20_ABI,
@@ -383,7 +383,7 @@ export function fill(
 				functionName: 'approve',
 				args: [bytes32ToAddress(output.settler), maxUint256]
 			});
-			await clients[getChainName(Number(output.chainId))!].waitForTransactionReceipt({
+			await clients[getChainName(output.chainId)].waitForTransactionReceipt({
 				hash: approveTransaction
 			});
 		}
@@ -396,7 +396,7 @@ export function fill(
 			functionName: 'fillOrderOutputs',
 			args: [order.fillDeadline, orderId, order.outputs, addressToBytes32(account())]
 		});
-		await clients[getChainName(Number(output.chainId))!].waitForTransactionReceipt({
+		await clients[getChainName(output.chainId)].waitForTransactionReceipt({
 			hash: transcationHash
 		});
 		// TODO:
@@ -466,8 +466,8 @@ export function validate(
 	return async () => {
 		const { preHook, postHook, account } = opts;
 		const { order, fillTransactionHash } = args;
-		const sourceChain = getChainName(Number(order.originChainId))!;
-		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
+		const sourceChain = getChainName(order.originChainId);
+		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
 			throw new Error('Order must have exactly one output');
 		}
@@ -566,7 +566,7 @@ export function claim(
 	return async () => {
 		const { preHook, postHook, account } = opts;
 		const { order, fillTransactionHash, sponsorSignature, allocatorSignature } = args;
-		const outputChain = getChainName(Number(order.outputs[0].chainId))!;
+		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
 			throw new Error('Order must have exactly one output');
 		}
@@ -579,7 +579,7 @@ export function claim(
 		});
 		const fillTimestamp = block.timestamp;
 
-		const sourceChain = getChainName(Number(order.originChainId))!;
+		const sourceChain = getChainName(order.originChainId);
 		if (preHook) await preHook(sourceChain);
 
 		console.log({

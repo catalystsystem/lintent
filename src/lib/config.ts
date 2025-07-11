@@ -88,12 +88,14 @@ export function getCoinAddresses(chain: chain) {
 	return Object.values(coinMap[chain]) as (typeof coinMap)[chain][keyof (typeof coinMap)[chain]][];
 }
 
-export function getChainName(chainId: number) {
+export function getChainName(chainId: number | bigint) {
+	if (typeof chainId === "bigint") chainId = Number(chainId);
 	for (const key of chains) {
 		if (chainMap[key].id === chainId) {
 			return key;
 		}
 	}
+	throw new Error(`Chain is not known: ${chainId}`);
 }
 
 export function getTokenKeyByAddress(chain: chain, address: string) {
