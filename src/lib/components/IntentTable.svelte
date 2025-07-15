@@ -60,7 +60,7 @@
 		const result = await clients[outputChain].readContract({
 			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
-			functionName: 'filledOutputs',
+			functionName: '_fillRecords',
 			args: [orderId, outputHash]
 		});
 		console.log({ orderId, output, result, outputHash });
@@ -173,7 +173,7 @@
 								Fill
 							</button>
 						{:then isFilled}
-							{#if isFilled}
+							{#if isFilled == BYTES32_ZERO}
 								<AwaitButton
 									buttonFunction={async () => {
 										const txHash = await fill(walletClient, { order, index: 0 }, opts)();
