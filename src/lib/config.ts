@@ -89,6 +89,7 @@ export function getCoinAddresses(chain: chain) {
 }
 
 export function getChainName(chainId: number | bigint) {
+	if (typeof chainId === "string") chainId = Number(chainId);
 	if (typeof chainId === "bigint") chainId = Number(chainId);
 	for (const key of chains) {
 		if (chainMap[key].id === chainId) {
