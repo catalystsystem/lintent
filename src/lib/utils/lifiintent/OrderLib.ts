@@ -19,7 +19,7 @@ export function getOrderId(order: StandardOrder) {
 				'uint32',
 				'uint32',
 				'address',
-				'uint256[2][]',
+				'bytes32',
 				'bytes'
 			],
 			[
@@ -30,7 +30,7 @@ export function getOrderId(order: StandardOrder) {
 				order.expires,
 				order.fillDeadline,
 				order.localOracle,
-				order.inputs,
+				keccak256(encodePacked(["uint256[2][]"], [order.inputs])),
 				encodeAbiParameters(
 					parseAbiParameters(
 						'(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]'

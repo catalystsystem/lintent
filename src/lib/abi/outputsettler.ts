@@ -1,502 +1,614 @@
 export const COIN_FILLER_ABI = [
 	{
-		type: 'function',
-		name: 'arePayloadsValid',
-		inputs: [
+		"type": "function",
+		"name": "_fillRecords",
+		"inputs": [
 			{
-				name: 'payloadHashes',
-				type: 'bytes32[]',
-				internalType: 'bytes32[]'
-			}
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "outputHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		outputs: [
+		"outputs": [
 			{
-				name: '',
-				type: 'bool',
-				internalType: 'bool'
-			}
+				"name": "payloadHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'call',
-		inputs: [
+		"type": "function",
+		"name": "arePayloadsValid",
+		"inputs": [
 			{
-				name: 'trueAmount',
-				type: 'uint256',
-				internalType: 'uint256'
+				"name": "payloads",
+				"type": "bytes[]",
+				"internalType": "bytes[]",
 			},
-			{
-				name: 'output',
-				type: 'tuple',
-				internalType: 'struct MandateOutput',
-				components: [
-					{
-						name: 'oracle',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'settler',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'chainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'token',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'amount',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'recipient',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'call',
-						type: 'bytes',
-						internalType: 'bytes'
-					},
-					{
-						name: 'context',
-						type: 'bytes',
-						internalType: 'bytes'
-					}
-				]
-			}
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
-	},
-	{
-		type: 'function',
-		name: 'efficientRequireProven',
-		inputs: [
+		"outputs": [
 			{
-				name: 'proofSeries',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
+				"name": "accumulator",
+				"type": "bool",
+				"internalType": "bool",
+			},
 		],
-		outputs: [],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'fill',
-		inputs: [
+		"type": "function",
+		"name": "call",
+		"inputs": [
 			{
-				name: 'fillDeadline',
-				type: 'uint32',
-				internalType: 'uint32'
+				"name": "trueAmount",
+				"type": "uint256",
+				"internalType": "uint256",
 			},
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "output",
+				"type": "tuple",
+				"internalType": "struct MandateOutput",
+				"components": [
+					{
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+					{
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
 			},
-			{
-				name: 'output',
-				type: 'tuple',
-				internalType: 'struct MandateOutput',
-				components: [
-					{
-						name: 'oracle',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'settler',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'chainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'token',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'amount',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'recipient',
-						type: 'bytes32',
-						internalType: 'bytes32'
-					},
-					{
-						name: 'call',
-						type: 'bytes',
-						internalType: 'bytes'
-					},
-					{
-						name: 'context',
-						type: 'bytes',
-						internalType: 'bytes'
-					}
-				]
-			},
-			{
-				name: 'proposedSolver',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
 		],
-		outputs: [
+		"outputs": [],
+		"stateMutability": "nonpayable",
+	},
+	{
+		"type": "function",
+		"name": "efficientRequireProven",
+		"inputs": [
 			{
-				name: '',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "proofSeries",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		stateMutability: 'nonpayable'
+		"outputs": [],
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'fillOrderOutputs',
-		inputs: [
+		"type": "function",
+		"name": "fill",
+		"inputs": [
 			{
-				name: 'fillDeadline',
-				type: 'uint32',
-				internalType: 'uint32'
+				"name": "fillDeadline",
+				"type": "uint32",
+				"internalType": "uint32",
 			},
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'outputs',
-				type: 'tuple[]',
-				internalType: 'struct MandateOutput[]',
-				components: [
+				"name": "output",
+				"type": "tuple",
+				"internalType": "struct MandateOutput",
+				"components": [
 					{
-						name: 'oracle',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'settler',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'chainId',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'token',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'amount',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'recipient',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'call',
-						type: 'bytes',
-						internalType: 'bytes'
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
 					},
 					{
-						name: 'context',
-						type: 'bytes',
-						internalType: 'bytes'
-					}
-				]
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
 			},
 			{
-				name: 'proposedSolver',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "proposedSolver",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
-	},
-	{
-		type: 'function',
-		name: 'filledOutputs',
-		inputs: [
+		"outputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
-			{
-				name: 'outputHash',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
 		],
-		outputs: [
+		"stateMutability": "nonpayable",
+	},
+	{
+		"type": "function",
+		"name": "fillOrderOutputs",
+		"inputs": [
 			{
-				name: 'solver',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "fillDeadline",
+				"type": "uint32",
+				"internalType": "uint32",
+			},
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "outputs",
+				"type": "tuple[]",
+				"internalType": "struct MandateOutput[]",
+				"components": [
+					{
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+					{
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
+			},
+			{
+				"name": "proposedSolver",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		stateMutability: 'view'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'isProven',
-		inputs: [
+		"type": "function",
+		"name": "isProven",
+		"inputs": [
 			{
-				name: 'remoteChainId',
-				type: 'uint256',
-				internalType: 'uint256'
+				"name": "remoteChainId",
+				"type": "uint256",
+				"internalType": "uint256",
 			},
 			{
-				name: 'remoteOracle',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "remoteOracle",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'application',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "application",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'dataHash',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "dataHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		outputs: [
+		"outputs": [
 			{
-				name: '',
-				type: 'bool',
-				internalType: 'bool'
-			}
+				"name": "",
+				"type": "bool",
+				"internalType": "bool",
+			},
 		],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'event',
-		name: 'OutputFilled',
-		inputs: [
+		"type": "function",
+		"name": "setAttestation",
+		"inputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				indexed: true,
-				internalType: 'bytes32'
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'solver',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
+				"name": "solver",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'timestamp',
-				type: 'uint32',
-				indexed: false,
-				internalType: 'uint32'
+				"name": "timestamp",
+				"type": "uint32",
+				"internalType": "uint32",
 			},
 			{
-				name: 'output',
-				type: 'tuple',
-				indexed: false,
-				internalType: 'struct MandateOutput',
-				components: [
+				"name": "output",
+				"type": "tuple",
+				"internalType": "struct MandateOutput",
+				"components": [
 					{
-						name: 'oracle',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'settler',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'chainId',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'token',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'amount',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'recipient',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'call',
-						type: 'bytes',
-						internalType: 'bytes'
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
 					},
 					{
-						name: 'context',
-						type: 'bytes',
-						internalType: 'bytes'
-					}
-				]
-			}
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
+			},
 		],
-		anonymous: false
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'event',
-		name: 'OutputProven',
-		inputs: [
+		"type": "event",
+		"name": "OutputFilled",
+		"inputs": [
 			{
-				name: 'chainid',
-				type: 'uint256',
-				indexed: false,
-				internalType: 'uint256'
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'remoteIdentifier',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
+				"name": "solver",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'application',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
+				"name": "timestamp",
+				"type": "uint32",
+				"indexed": false,
+				"internalType": "uint32",
 			},
 			{
-				name: 'payloadHash',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
-			}
+				"name": "output",
+				"type": "tuple",
+				"indexed": false,
+				"internalType": "struct MandateOutput",
+				"components": [
+					{
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+					{
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
+			},
+			{
+				"name": "finalAmount",
+				"type": "uint256",
+				"indexed": false,
+				"internalType": "uint256",
+			},
 		],
-		anonymous: false
+		"anonymous": false,
 	},
 	{
-		type: 'error',
-		name: 'CallOutOfRange',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'ContextOutOfRange',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'ExclusiveTo',
-		inputs: [
+		"type": "event",
+		"name": "OutputProven",
+		"inputs": [
 			{
-				name: 'solver',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'FillDeadline',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'FilledBySomeoneElse',
-		inputs: [
-			{
-				name: 'solver',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'NotDivisible',
-		inputs: [
-			{
-				name: 'value',
-				type: 'uint256',
-				internalType: 'uint256'
+				"name": "chainid",
+				"type": "uint256",
+				"indexed": false,
+				"internalType": "uint256",
 			},
 			{
-				name: 'divisor',
-				type: 'uint256',
-				internalType: 'uint256'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'NotImplemented',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'NotProven',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'WrongChain',
-		inputs: [
-			{
-				name: 'expected',
-				type: 'uint256',
-				internalType: 'uint256'
+				"name": "remoteIdentifier",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'actual',
-				type: 'uint256',
-				internalType: 'uint256'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'WrongOutputSettler',
-		inputs: [
-			{
-				name: 'addressThis',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "application",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'expected',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
-		]
+				"name": "payloadHash",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
+			},
+		],
+		"anonymous": false,
 	},
 	{
-		type: 'error',
-		name: 'ZeroValue',
-		inputs: []
-	}
+		"type": "error",
+		"name": "AlreadyFilled",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "CallOutOfRange",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "ContextOutOfRange",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "ExclusiveTo",
+		"inputs": [
+			{
+				"name": "solver",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "FillDeadline",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidAttestation",
+		"inputs": [
+			{
+				"name": "storedFillRecordHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "givenFillRecordHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "NotDivisible",
+		"inputs": [
+			{
+				"name": "value",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+			{
+				"name": "divisor",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "NotFilled",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NotImplemented",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NotProven",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "PayloadTooSmall",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "WrongChain",
+		"inputs": [
+			{
+				"name": "expected",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+			{
+				"name": "actual",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "WrongOutputOracle",
+		"inputs": [
+			{
+				"name": "addressThis",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "expected",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "WrongOutputSettler",
+		"inputs": [
+			{
+				"name": "addressThis",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "expected",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "ZeroValue",
+		"inputs": [],
+	},
 ] as const;
