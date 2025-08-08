@@ -18,20 +18,9 @@ export type MandateOutput = {
 	context: `0x${string}`;
 };
 
-export type StandardOrder = {
-	user: `0x${string}`;
-	nonce: bigint;
-	originChainId: bigint;
-	expires: number;
-	fillDeadline: number;
-	localOracle: `0x${string}`;
-	inputs: [bigint, bigint][];
-	outputs: MandateOutput[];
-};
-
 export type CompactMandate = {
 	fillDeadline: number;
-	localOracle: `0x${string}`;
+	inputOracle: `0x${string}`;
 	outputs: MandateOutput[];
 };
 
@@ -49,3 +38,19 @@ export type BatchCompact = {
 	commitments: Lock[]; // The allocated token IDs and amounts.
 	mandate: CompactMandate;
 };
+
+export type StandardOrder = {
+    user: `0x${string}`,
+    nonce: bigint,
+    originChainId: bigint,
+    expires: number,
+    fillDeadline: number,
+    inputOracle: `0x${string}`,
+    inputs: [bigint, bigint][],
+    outputs: MandateOutput[],
+}
+
+export type OrderContainer = {
+	inputSettler: `0x${string}`,
+	order: StandardOrder
+}

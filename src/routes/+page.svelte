@@ -15,14 +15,20 @@
 		type coin,
 		clients,
 		type verifier,
-		decimalMap
+		decimalMap,
+
+		INPUT_SETTLER_COMPACT_LIFI,
+
+		INPUT_SETTLER_ESCROW_LIFI
+
+
 	} from '$lib/config';
 	import { onDestroy, onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
-	import { getBalance, getCompactAllowance, getCompactBalance } from '$lib/state.svelte';
+	import { getBalance, getAllowance, getCompactBalance } from '$lib/state.svelte';
 	import BalanceField from '$lib/components/BalanceField.svelte';
 	import { compactApprove, compactDeposit, compactWithdraw } from '$lib/utils/compact/tx';
-	import { depositAndSwap, swap } from '$lib/utils/lifiintent/tx';
+	import { depositAndSwap, openIntent, escrowApprove, swap } from '$lib/utils/lifiintent/tx';
 	import IntentTable from '$lib/components/IntentTable.svelte';
 	import { toBigIntWithDecimals } from '$lib/utils/convert';
 	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
@@ -33,8 +39,9 @@
 		return this.toString();
 	};
 
-	type OrderPackage = {
+	export type OrderPackage = {
 		order: StandardOrder;
+		inputSettler: `0x${string}`;
 		sponsorSignature: `0x${string}`;
 		allocatorSignature: `0x${string}`;
 	};
@@ -123,7 +130,8 @@
 		outputChain: 'baseSepolia' as chain,
 		verifier: 'polymer' as verifier,
 		allocatorId: POLYMER_ALLOCATOR as string,
-		action: 'deposit' as 'deposit' | 'withdraw'
+		action: 'deposit' as 'deposit' | 'withdraw',
+		inputSettler: INPUT_SETTLER_COMPACT_LIFI as (typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI)
 	});
 	$effect(() => {
 		const tokensForOutputChain = coinMap[swapState.outputChain];
@@ -202,7 +210,7 @@
 	});
 
 	const allowances = $derived.by(() => {
-		return mapOverCoins(getCompactAllowance, updatedDerived);
+		return mapOverCoins(getAllowance(swapState.inputSettler), updatedDerived);
 	});
 
 	const compactBalances = $derived.by(() => {
@@ -241,151 +249,191 @@
 		<Introduction />
 
 		<div class="flex w-[128rem] flex-col justify-items-center align-middle">
-			<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
-				<h1 class="text-xl font-medium">Manage Compact</h1>
-				<div class="flex flex-row">
-					<h1 class="text-md mr-4 font-medium">Allocator</h1>
+			<div class="flex flex-row mb-2">
+					<h1 class="text-md mr-4 font-medium">Input Type</h1>
 					<button
 						class="h-8 rounded-l border px-4"
-						class:hover:bg-gray-100={swapState.allocatorId !== ALWAYS_OK_ALLOCATOR}
-						class:font-bold={swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
-						onclick={() => (swapState.allocatorId = ALWAYS_OK_ALLOCATOR)}
+						class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
+						class:font-bold={swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+						onclick={() => (swapState.inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
 					>
-						AlwaysYesAllocator
+						Compact Lock
 					</button>
 					<button
 						class=" h-8 rounded-r border border-l-0 px-4"
-						class:hover:bg-gray-100={swapState.allocatorId !== POLYMER_ALLOCATOR}
-						class:font-bold={swapState.allocatorId === POLYMER_ALLOCATOR}
-						onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}
+						class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
+						class:font-bold={swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+						onclick={() => (swapState.inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
 					>
-						Polymer
+						Escrow
 					</button>
 				</div>
-				<div class="flex flex-wrap items-center justify-start gap-2">
-					<select id="in-asset" class="rounded border px-2 py-1" bind:value={swapState.action}>
-						<option value="deposit" selected>Deposit</option>
-						<option value="withdraw">Withdraw</option>
-					</select>
-					<input
-						type="number"
-						class="w-20 rounded border px-2 py-1"
-						bind:value={() => inputNumber, updateInputAmount}
-					/>
-					<span>of</span>
-					<BalanceField
-						value={(swapState.action === 'withdraw' ? compactBalances : balances)[
-							swapState.inputChain
-						][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]]}
-						decimals={decimalMap[swapState.inputAsset]}
-					/>
-					<select
-						id="deposit-chain"
-						class="rounded border px-2 py-1"
-						bind:value={swapState.inputChain}
-					>
-						<option value="sepolia" selected>Sepolia</option>
-						<option value="baseSepolia">Base Sepolia</option>
-						<option value="optimismSepolia">Optimism Sepolia</option>
-					</select>
-					<select
-						id="deposit-asset"
-						class="rounded border px-2 py-1"
-						bind:value={swapState.inputAsset}
-					>
-						{#each getCoins(swapState.inputChain) as coin (coin)}
-							<option value={coin} selected={coin === swapState.inputAsset}
-								>{coinMap[swapState.inputChain][coin].toUpperCase()}</option
-							>
-						{/each}
-					</select>
-				</div>
 
-				<!-- Action Button -->
-				<div class="flex justify-center">
-					{#if !connectedAccount}
-						<AwaitButton buttonFunction={() => onboard.connectWallet()}>
-							{#snippet name()}
-								Connect Wallet
-							{/snippet}
-							{#snippet awaiting()}
-								Waiting for wallet...
-							{/snippet}
-						</AwaitButton>
-					{:else if false}
-						<!-- <button
-							type="button"
-							class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
-							disabled
+			{#if swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+				<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+					<h1 class="text-xl font-medium">Manage Compact</h1>
+					<div class="flex flex-row">
+						<h1 class="text-md mr-4 font-medium">Allocator</h1>
+						<button
+							class="h-8 rounded-l border px-4"
+							class:hover:bg-gray-100={swapState.allocatorId !== ALWAYS_OK_ALLOCATOR}
+							class:font-bold={swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
+							onclick={() => (swapState.allocatorId = ALWAYS_OK_ALLOCATOR)}
 						>
-							Input not valid {depositInputError}
-						</button> -->
-					{:else if swapState.action === 'withdraw'}
-						<AwaitButton buttonFunction={compactWithdraw(walletClient!, swapState)}>
-							{#snippet name()}
-								Withdraw
-							{/snippet}
-							{#snippet awaiting()}
-								Waiting for transaction...
-							{/snippet}
-						</AwaitButton>
-					{:else if needsApproval}
-						<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
-							{#snippet name()}
-								Set allowance
-							{/snippet}
-							{#snippet awaiting()}
-								Waiting for transaction...
-							{/snippet}
-						</AwaitButton>
-					{:else}
-						<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
-							{#snippet name()}
-								Execute deposit
-							{/snippet}
-							{#snippet awaiting()}
-								Waiting for transaction...
-							{/snippet}
-						</AwaitButton>
-					{/if}
-				</div>
-			</form>
-			{#if swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
+							AlwaysYesAllocator
+						</button>
+						<button
+							class=" h-8 rounded-r border border-l-0 px-4"
+							class:hover:bg-gray-100={swapState.allocatorId !== POLYMER_ALLOCATOR}
+							class:font-bold={swapState.allocatorId === POLYMER_ALLOCATOR}
+							onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}
+						>
+							Polymer
+						</button>
+					</div>
+					<div class="flex flex-wrap items-center justify-start gap-2">
+						<select id="in-asset" class="rounded border px-2 py-1" bind:value={swapState.action}>
+							<option value="deposit" selected>Deposit</option>
+							<option value="withdraw">Withdraw</option>
+						</select>
+						<input
+							type="number"
+							class="w-20 rounded border px-2 py-1"
+							bind:value={() => inputNumber, updateInputAmount}
+						/>
+						<span>of</span>
+						<BalanceField
+							value={(swapState.action === 'withdraw' ? compactBalances : balances)[
+								swapState.inputChain
+							][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]]}
+							decimals={decimalMap[swapState.inputAsset]}
+						/>
+						<select
+							id="deposit-chain"
+							class="rounded border px-2 py-1"
+							bind:value={swapState.inputChain}
+						>
+							<option value="sepolia" selected>Sepolia</option>
+							<option value="baseSepolia">Base Sepolia</option>
+							<option value="optimismSepolia">Optimism Sepolia</option>
+						</select>
+						<select
+							id="deposit-asset"
+							class="rounded border px-2 py-1"
+							bind:value={swapState.inputAsset}
+						>
+							{#each getCoins(swapState.inputChain) as coin (coin)}
+								<option value={coin} selected={coin === swapState.inputAsset}
+									>{coinMap[swapState.inputChain][coin].toUpperCase()}</option
+								>
+							{/each}
+						</select>
+					</div>
+
+					<!-- Action Button -->
+					<div class="flex justify-center">
+						{#if !connectedAccount}
+							<AwaitButton buttonFunction={() => onboard.connectWallet()}>
+								{#snippet name()}
+									Connect Wallet
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for wallet...
+								{/snippet}
+							</AwaitButton>
+						{:else if false}
+							<!-- <button
+								type="button"
+								class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
+								disabled
+							>
+								Input not valid {depositInputError}
+							</button> -->
+						{:else if swapState.action === 'withdraw'}
+							<AwaitButton buttonFunction={compactWithdraw(walletClient!, swapState)}>
+								{#snippet name()}
+									Withdraw
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{:else if needsApproval}
+							<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
+								{#snippet name()}
+									Set allowance
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{:else}
+							<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
+								{#snippet name()}
+									Execute deposit
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{/if}
+					</div>
+				</form>
+				{#if swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
+					<SwapForm
+						balances={compactBalances}
+						allowances={maxAllowances}
+						{swapInputOutput}
+						bind:opts={swapState}
+						connectFunction={connect}
+						executeFunction={swap(walletClient!, swapState, orders)}
+						approveFunction={async () => {}}
+						showConnect={!connectedAccount}
+					>
+						{#snippet title()}
+							Sign Intent with Deposit
+						{/snippet}
+						{#snippet executeName()}
+							Sign BatchCompact
+						{/snippet}
+					</SwapForm>
+				{/if}
 				<SwapForm
-					balances={compactBalances}
-					allowances={maxAllowances}
+					{balances}
+					{allowances}
 					{swapInputOutput}
 					bind:opts={swapState}
 					connectFunction={connect}
-					executeFunction={swap(walletClient!, swapState, orders)}
-					approveFunction={async () => {}}
+					executeFunction={depositAndSwap(walletClient!, swapState, orders)}
+					approveFunction={compactApprove(walletClient!, swapState)}
 					showConnect={!connectedAccount}
 				>
 					{#snippet title()}
-						Sign Intent with Deposit
+						Execute Deposit and Register Intent
 					{/snippet}
 					{#snippet executeName()}
-						Sign BatchCompact
+						Execute depositAndRegister
+					{/snippet}
+				</SwapForm>
+			{:else if swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+				<SwapForm
+					{balances}
+					{allowances}
+					{swapInputOutput}
+					bind:opts={swapState}
+					connectFunction={connect}
+					executeFunction={openIntent(walletClient!, swapState, orders)}
+					approveFunction={escrowApprove(walletClient!, swapState)}
+					showConnect={!connectedAccount}
+				>
+					{#snippet title()}
+						Execute Open and Open Intent
+					{/snippet}
+					{#snippet executeName()}
+						Execute open
 					{/snippet}
 				</SwapForm>
 			{/if}
-			<SwapForm
-				{balances}
-				{allowances}
-				{swapInputOutput}
-				bind:opts={swapState}
-				connectFunction={connect}
-				executeFunction={depositAndSwap(walletClient!, swapState, orders)}
-				approveFunction={compactApprove(walletClient!, swapState)}
-				showConnect={!connectedAccount}
-			>
-				{#snippet title()}
-					Execute Deposit and Register Intent
-				{/snippet}
-				{#snippet executeName()}
-					Execute depositAndRegister
-				{/snippet}
-			</SwapForm>
 		</div>
 	</div>
 	<!-- Make a table to display orders from users -->

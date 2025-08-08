@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { encodeMandateOutput, getOrderId, getOutputHash } from '$lib/utils/lifiintent/OrderLib';
-	import { keccak256, zeroAddress } from 'viem';
+	import { keccak256 } from 'viem';
 	import type { MandateOutput, StandardOrder } from '../../types';
 	import {
 		ADDRESS_ZERO,
@@ -95,7 +95,7 @@
 		const sourceChain = getChainName(Number(order.originChainId))!;
 		const outputHash = keccak256(encodedOutput);
 		return await clients[sourceChain].readContract({
-			address: order.localOracle,
+			address: order.inputOracle,
 			abi: POLYMER_ORACLE_ABI,
 			functionName: 'isProven',
 			args: [output.chainId, output.oracle, output.settler, outputHash]
@@ -199,7 +199,7 @@
 						{/await}
 					</td>
 					<td>
-						{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.localOracle)}
+						{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.inputOracle)}
 							<div class="text-center">-</div>
 						{:else}
 							<input
