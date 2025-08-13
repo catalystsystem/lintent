@@ -19,7 +19,10 @@
 
 		INPUT_SETTLER_COMPACT_LIFI,
 
-		INPUT_SETTLER_ESCROW_LIFI
+		INPUT_SETTLER_ESCROW_LIFI,
+
+		COMPACT
+
 
 
 	} from '$lib/config';
@@ -210,7 +213,7 @@
 	});
 
 	const allowances = $derived.by(() => {
-		return mapOverCoins(getAllowance(swapState.inputSettler), updatedDerived);
+		return mapOverCoins(getAllowance(swapState.inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : swapState.inputSettler), updatedDerived);
 	});
 
 	const compactBalances = $derived.by(() => {
