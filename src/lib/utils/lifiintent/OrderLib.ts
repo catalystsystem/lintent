@@ -8,12 +8,12 @@ import type { MandateOutput, StandardOrder } from "../../../types";
 import {
 	type chain,
 	chainMap,
-	INPUT_SETTLER_COMPACT_LIFI,
 	POLYMER_ORACLE,
 	WORMHOLE_ORACLE,
 } from "$lib/config";
 
-export function getOrderId(order: StandardOrder) {
+export function getOrderId(orderContainer: {order: StandardOrder, inputSettler: `0x${string}`}) {
+	const {order, inputSettler} = orderContainer;
 	return keccak256(
 		encodePacked(
 			[
@@ -29,7 +29,7 @@ export function getOrderId(order: StandardOrder) {
 			],
 			[
 				order.originChainId,
-				INPUT_SETTLER_COMPACT_LIFI,
+				inputSettler,
 				order.user,
 				order.nonce,
 				order.expires,

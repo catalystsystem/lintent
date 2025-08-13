@@ -39,7 +39,7 @@
 		return this.toString();
 	};
 
-	export type OrderPackage = {
+	type OrderPackage = {
 		order: StandardOrder;
 		inputSettler: `0x${string}`;
 		sponsorSignature: `0x${string}`;

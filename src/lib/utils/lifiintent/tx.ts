@@ -62,21 +62,12 @@ export type opts = {
 	outputChain: chain;
 	verifier: verifier;
 	account: () => `0x${string}`;
-};
+	inputSettler: (typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI);
+}; 
 
 // --- Initiating Intents --- //
 
-export function createOrder(opts: {
-	allocatorId: string;
-	account: () => `0x${string}`;
-	inputAsset: `0x${string}`;
-	inputAmount: bigint;
-	inputChain: chain;
-	outputAsset: `0x${string}`;
-	outputAmount: bigint;
-	outputChain: chain;
-	verifier: verifier;
-}) {
+export function createOrder(opts: opts) {
 	const {
 		allocatorId,
 		inputAsset,
@@ -87,8 +78,10 @@ export function createOrder(opts: {
 		outputChain,
 		verifier,
 		account,
+		inputSettler
 	} = opts;
-	const inputTokenId = toId(true, ResetPeriod.OneDay, allocatorId, inputAsset);
+	// If Compact input, then generate the tokenId otherwise cast into uint256.
+	const inputTokenId = inputSettler == INPUT_SETTLER_COMPACT_LIFI ? toId(true, ResetPeriod.OneDay, allocatorId, inputAsset) : BigInt(inputAsset);
 	// Make Inputs
 	const input: [bigint, bigint] = [inputTokenId, inputAmount];
 	const inputs = [input];
@@ -423,7 +416,7 @@ export function openIntent(
 			sponsorSignature: "0x",
 			allocatorSignature: "0x"
 		});
-A
+
 		return transactionHash;
 	};
 }
@@ -433,7 +426,7 @@ A
 export function fill(
 	walletClient: WC,
 	args: {
-		order: StandardOrder;
+		orderContainer: OrderContainer;
 		index: number;
 	},
 	opts: {
@@ -444,9 +437,9 @@ export function fill(
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
-		const { order, index } = args;
+		const { orderContainer: {order, inputSettler}, index } = args;
 		const publicClients = clients;
-		const orderId = getOrderId(order);
+		const orderId = getOrderId({order, inputSettler});
 		//Check that only 1 output exists.
 		if (order.outputs.length !== 1) {
 			throw new Error("Order must have exactly one output");
@@ -554,7 +547,7 @@ export function fill(
 
 export function validate(
 	walletClient: WC,
-	args: { order: StandardOrder; fillTransactionHash: string },
+	args: { orderContainer: OrderContainer; fillTransactionHash: string },
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
@@ -563,7 +556,7 @@ export function validate(
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
-		const { order, fillTransactionHash } = args;
+		const { orderContainer: {order}, fillTransactionHash } = args;
 		const sourceChain = getChainName(order.originChainId);
 		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
