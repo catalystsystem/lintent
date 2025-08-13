@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { encodeMandateOutput, getOrderId, getOutputHash } from '$lib/utils/lifiintent/OrderLib';
-	import { keccak256, zeroAddress } from 'viem';
-	import type { MandateOutput, StandardOrder } from '../../types';
+	import { keccak256 } from 'viem';
+	import type { MandateOutput, OrderContainer, StandardOrder } from '../../types';
 	import {
 		ADDRESS_ZERO,
 		BYTES32_ZERO,
@@ -35,6 +35,7 @@
 	}: {
 		orders: {
 			order: StandardOrder;
+			inputSettler: `0x${string}`;
 			sponsorSignature: `0x${string}`;
 			allocatorSignature: `0x${string}`;
 		}[];
@@ -60,7 +61,7 @@
 		const result = await clients[outputChain].readContract({
 			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
-			functionName: '_fillRecords',
+			functionName: 'getFillRecord',
 			args: [orderId, outputHash]
 		});
 		console.log({ orderId, output, result, outputHash });
@@ -68,13 +69,14 @@
 	}
 
 	async function checkIfValidated(
-		order: StandardOrder,
+		orderContainer: OrderContainer,
 		outputIndex: number = 1,
 		transactionHash: `0x${string}`,
 		_?: any
 	) {
 		if (!transactionHash || !transactionHash.startsWith('0x') || transactionHash.length != 66)
 			return false;
+		const {order} = orderContainer;
 		const output = order.outputs[outputIndex]; // TODO: check all outputs at the same time.
 		const outputChain = getChainName(Number(output.chainId))!;
 		const transactionReceipt = await clients[outputChain].getTransactionReceipt({
@@ -85,7 +87,7 @@
 			blockHash: blockHashOfFill
 		});
 		const fillTimestamp = block.timestamp;
-		const orderId = getOrderId(order);
+		const orderId = getOrderId(orderContainer);
 		const encodedOutput = encodeMandateOutput(
 			addressToBytes32(opts.account()),
 			orderId,
@@ -95,7 +97,7 @@
 		const sourceChain = getChainName(Number(order.originChainId))!;
 		const outputHash = keccak256(encodedOutput);
 		return await clients[sourceChain].readContract({
-			address: order.localOracle,
+			address: order.inputOracle,
 			abi: POLYMER_ORACLE_ABI,
 			functionName: 'isProven',
 			args: [output.chainId, output.oracle, output.settler, outputHash]
@@ -137,9 +139,9 @@
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-gray-200">
-			{#each orders as { order, sponsorSignature, allocatorSignature }, index (getOrderId(order))}
+			{#each orders as { order, inputSettler, sponsorSignature, allocatorSignature }, index (getOrderId({order, inputSettler}))}
 				<tr class="hover:bg-gray-50">
-					<td class="px-4 py-2 text-sm text-gray-800">{getOrderId(order).slice(2, 8)}...</td>
+					<td class="px-4 py-2 text-sm text-gray-800">{getOrderId({order, inputSettler}).slice(2, 8)}...</td>
 					<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
 					<td class="px-4 py-2 text-sm text-gray-800"
 						>{getChainName(Number(order.originChainId))}</td
@@ -164,7 +166,7 @@
 							.join(', ')}
 					</td>
 					<td class="flex">
-						{#await checkIfFilled(getOrderId(order), order.outputs[0], updatedDerived)}
+						{#await checkIfFilled(getOrderId({order, inputSettler}), order.outputs[0], updatedDerived)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -176,7 +178,7 @@
 							{#if isFilled == BYTES32_ZERO}
 								<AwaitButton
 									buttonFunction={async () => {
-										const txHash = await fill(walletClient, { order, index: 0 }, opts)();
+										const txHash = await fill(walletClient, { orderContainer: {order, inputSettler}, index: 0 }, opts)();
 										orderInputs.validate[index] = txHash;
 									}}
 								>
@@ -199,7 +201,7 @@
 						{/await}
 					</td>
 					<td>
-						{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.localOracle)}
+						{#if (Object.values(POLYMER_ORACLE) as string[]).includes(order.inputOracle)}
 							<div class="text-center">-</div>
 						{:else}
 							<input
@@ -225,7 +227,7 @@
 							placeholder="validateContext"
 							bind:value={orderInputs.validate[index]}
 						/>
-						{#await checkIfValidated(order, 0, orderInputs.validate[index] as `0x${string}`)}
+						{#await checkIfValidated({order, inputSettler}, 0, orderInputs.validate[index] as `0x${string}`)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -247,9 +249,8 @@
 									baseClass="rounded-r border px-4 h-8 text-xl font-bold"
 									buttonFunction={validate(
 										walletClient,
-										{ order, fillTransactionHash: orderInputs.validate[index] },
-										opts,
-										updatedDerived
+										{ orderContainer: {order, inputSettler}, fillTransactionHash: orderInputs.validate[index] },
+										opts
 									)}
 								>
 									{#snippet name()}
@@ -265,7 +266,7 @@
 								baseClass="rounded-r border px-4 h-8 text-xl font-bold"
 								buttonFunction={validate(
 									walletClient,
-									{ order, fillTransactionHash: orderInputs.validate[index] },
+									{ orderContainer: {order, inputSettler}, fillTransactionHash: orderInputs.validate[index] },
 									opts
 								)}
 							>
@@ -301,7 +302,7 @@
 									buttonFunction={claim(
 										walletClient,
 										{
-											order,
+											orderContainer: {order, inputSettler},
 											sponsorSignature,
 											allocatorSignature,
 											fillTransactionHash: orderInputs.validate[index]
@@ -322,7 +323,7 @@
 								buttonFunction={claim(
 									walletClient,
 									{
-										order,
+										orderContainer: {order, inputSettler},
 										sponsorSignature,
 										allocatorSignature,
 										fillTransactionHash: orderInputs.validate[index]

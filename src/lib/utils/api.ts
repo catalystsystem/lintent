@@ -87,6 +87,7 @@ export const getOrders = async (options?: { user?: `0x${string}`; status?: Order
 
 type orderPush = (orderArr: {
 	order: StandardOrder;
+	inputSettler: `0x${string}`;
 	sponsorSignature: `0x${string}`;
 	allocatorSignature: `0x${string}`;
 }) => void;

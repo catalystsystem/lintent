@@ -1,30 +1,6 @@
 export const COIN_FILLER_ABI = [
 	{
 		"type": "function",
-		"name": "_fillRecords",
-		"inputs": [
-			{
-				"name": "orderId",
-				"type": "bytes32",
-				"internalType": "bytes32",
-			},
-			{
-				"name": "outputHash",
-				"type": "bytes32",
-				"internalType": "bytes32",
-			},
-		],
-		"outputs": [
-			{
-				"name": "payloadHash",
-				"type": "bytes32",
-				"internalType": "bytes32",
-			},
-		],
-		"stateMutability": "view",
-	},
-	{
-		"type": "function",
 		"name": "arePayloadsValid",
 		"inputs": [
 			{
@@ -260,6 +236,96 @@ export const COIN_FILLER_ABI = [
 		],
 		"outputs": [],
 		"stateMutability": "nonpayable",
+	},
+	{
+		"type": "function",
+		"name": "getFillRecord",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "output",
+				"type": "tuple",
+				"internalType": "struct MandateOutput",
+				"components": [
+					{
+						"name": "oracle",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "settler",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "chainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "token",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "amount",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "recipient",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+					{
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+					{
+						"name": "context",
+						"type": "bytes",
+						"internalType": "bytes",
+					},
+				],
+			},
+		],
+		"outputs": [
+			{
+				"name": "payloadHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+		"stateMutability": "view",
+	},
+	{
+		"type": "function",
+		"name": "getFillRecord",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "outputHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+		"outputs": [
+			{
+				"name": "payloadHash",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+		"stateMutability": "view",
 	},
 	{
 		"type": "function",
@@ -537,11 +603,6 @@ export const COIN_FILLER_ABI = [
 				"internalType": "uint256",
 			},
 		],
-	},
-	{
-		"type": "error",
-		"name": "NotFilled",
-		"inputs": [],
 	},
 	{
 		"type": "error",
