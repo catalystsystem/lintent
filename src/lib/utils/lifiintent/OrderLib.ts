@@ -1,31 +1,21 @@
-import {
-	encodeAbiParameters,
-	encodePacked,
-	keccak256,
-	parseAbiParameters,
-} from "viem";
-import type { MandateOutput, StandardOrder } from "../../../types";
-import {
-	type chain,
-	chainMap,
-	POLYMER_ORACLE,
-	WORMHOLE_ORACLE,
-} from "$lib/config";
+import { encodeAbiParameters, encodePacked, keccak256, parseAbiParameters } from 'viem';
+import type { MandateOutput, StandardOrder } from '../../../types';
+import { type chain, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE } from '$lib/config';
 
-export function getOrderId(orderContainer: {order: StandardOrder, inputSettler: `0x${string}`}) {
-	const {order, inputSettler} = orderContainer;
+export function getOrderId(orderContainer: { order: StandardOrder; inputSettler: `0x${string}` }) {
+	const { order, inputSettler } = orderContainer;
 	return keccak256(
 		encodePacked(
 			[
-				"uint256",
-				"address",
-				"address",
-				"uint256",
-				"uint32",
-				"uint32",
-				"address",
-				"bytes32",
-				"bytes",
+				'uint256',
+				'address',
+				'address',
+				'uint256',
+				'uint32',
+				'uint32',
+				'address',
+				'bytes32',
+				'bytes'
 			],
 			[
 				order.originChainId,
@@ -35,15 +25,15 @@ export function getOrderId(orderContainer: {order: StandardOrder, inputSettler: 
 				order.expires,
 				order.fillDeadline,
 				order.inputOracle,
-				keccak256(encodePacked(["uint256[2][]"], [order.inputs])),
+				keccak256(encodePacked(['uint256[2][]'], [order.inputs])),
 				encodeAbiParameters(
 					parseAbiParameters(
-						"(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]",
+						'(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]'
 					),
-					[order.outputs],
-				),
-			],
-		),
+					[order.outputs]
+				)
+			]
+		)
 	);
 }
 
@@ -51,16 +41,16 @@ export function getOutputHash(output: MandateOutput) {
 	return keccak256(
 		encodePacked(
 			[
-				"bytes32",
-				"bytes32",
-				"uint256",
-				"bytes32",
-				"uint256",
-				"bytes32",
-				"uint16",
-				"bytes",
-				"uint16",
-				"bytes",
+				'bytes32',
+				'bytes32',
+				'uint256',
+				'bytes32',
+				'uint256',
+				'bytes32',
+				'uint16',
+				'bytes',
+				'uint16',
+				'bytes'
 			],
 			[
 				output.oracle,
@@ -69,12 +59,12 @@ export function getOutputHash(output: MandateOutput) {
 				output.token,
 				output.amount,
 				output.recipient,
-				output.call.replace("0x", "").length / 2,
+				output.call.replace('0x', '').length / 2,
 				output.call,
-				output.context.replace("0x", "").length / 2,
-				output.context,
-			],
-		),
+				output.context.replace('0x', '').length / 2,
+				output.context
+			]
+		)
 	);
 }
 
@@ -82,20 +72,20 @@ export function encodeMandateOutput(
 	solver: `0x${string}`,
 	orderId: `0x${string}`,
 	timestamp: number,
-	output: MandateOutput,
+	output: MandateOutput
 ) {
 	return encodePacked(
 		[
-			"bytes32",
-			"bytes32",
-			"uint32",
-			"bytes32",
-			"uint256",
-			"bytes32",
-			"uint16",
-			"bytes",
-			"uint16",
-			"bytes",
+			'bytes32',
+			'bytes32',
+			'uint32',
+			'bytes32',
+			'uint256',
+			'bytes32',
+			'uint16',
+			'bytes',
+			'uint16',
+			'bytes'
 		],
 		[
 			solver,
@@ -104,11 +94,11 @@ export function encodeMandateOutput(
 			output.token,
 			output.amount,
 			output.recipient,
-			output.call.replace("0x", "").length / 2,
+			output.call.replace('0x', '').length / 2,
 			output.call,
-			output.context.replace("0x", "").length / 2,
-			output.context,
-		],
+			output.context.replace('0x', '').length / 2,
+			output.context
+		]
 	);
 }
 

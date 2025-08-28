@@ -16,15 +16,9 @@
 		clients,
 		type verifier,
 		decimalMap,
-
 		INPUT_SETTLER_COMPACT_LIFI,
-
 		INPUT_SETTLER_ESCROW_LIFI,
-
 		COMPACT
-
-
-
 	} from '$lib/config';
 	import { onDestroy, onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
@@ -134,7 +128,9 @@
 		verifier: 'polymer' as verifier,
 		allocatorId: POLYMER_ALLOCATOR as string,
 		action: 'deposit' as 'deposit' | 'withdraw',
-		inputSettler: INPUT_SETTLER_COMPACT_LIFI as (typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI)
+		inputSettler: INPUT_SETTLER_COMPACT_LIFI as
+			| typeof INPUT_SETTLER_COMPACT_LIFI
+			| typeof INPUT_SETTLER_ESCROW_LIFI
 	});
 	$effect(() => {
 		const tokensForOutputChain = coinMap[swapState.outputChain];
@@ -213,7 +209,12 @@
 	});
 
 	const allowances = $derived.by(() => {
-		return mapOverCoins(getAllowance(swapState.inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : swapState.inputSettler), updatedDerived);
+		return mapOverCoins(
+			getAllowance(
+				swapState.inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : swapState.inputSettler
+			),
+			updatedDerived
+		);
 	});
 
 	const compactBalances = $derived.by(() => {
@@ -252,25 +253,25 @@
 		<Introduction />
 
 		<div class="flex w-[128rem] flex-col justify-items-center align-middle">
-			<div class="flex flex-row mb-2">
-					<h1 class="text-md mr-4 font-medium">Input Type</h1>
-					<button
-						class="h-8 rounded-l border px-4"
-						class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
-						class:font-bold={swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-						onclick={() => (swapState.inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
-					>
-						Compact Lock
-					</button>
-					<button
-						class=" h-8 rounded-r border border-l-0 px-4"
-						class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
-						class:font-bold={swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-						onclick={() => (swapState.inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
-					>
-						Escrow
-					</button>
-				</div>
+			<div class="mb-2 flex flex-row">
+				<h1 class="text-md mr-4 font-medium">Input Type</h1>
+				<button
+					class="h-8 rounded-l border px-4"
+					class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
+					class:font-bold={swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+					onclick={() => (swapState.inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
+				>
+					Compact Lock
+				</button>
+				<button
+					class=" h-8 rounded-r border border-l-0 px-4"
+					class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
+					class:font-bold={swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+					onclick={() => (swapState.inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
+				>
+					Escrow
+				</button>
+			</div>
 
 			{#if swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
 				<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">

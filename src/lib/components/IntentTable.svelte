@@ -76,7 +76,7 @@
 	) {
 		if (!transactionHash || !transactionHash.startsWith('0x') || transactionHash.length != 66)
 			return false;
-		const {order} = orderContainer;
+		const { order } = orderContainer;
 		const output = order.outputs[outputIndex]; // TODO: check all outputs at the same time.
 		const outputChain = getChainName(Number(output.chainId))!;
 		const transactionReceipt = await clients[outputChain].getTransactionReceipt({
@@ -139,9 +139,11 @@
 			</tr>
 		</thead>
 		<tbody class="divide-y divide-gray-200">
-			{#each orders as { order, inputSettler, sponsorSignature, allocatorSignature }, index (getOrderId({order, inputSettler}))}
+			{#each orders as { order, inputSettler, sponsorSignature, allocatorSignature }, index (getOrderId( { order, inputSettler } ))}
 				<tr class="hover:bg-gray-50">
-					<td class="px-4 py-2 text-sm text-gray-800">{getOrderId({order, inputSettler}).slice(2, 8)}...</td>
+					<td class="px-4 py-2 text-sm text-gray-800"
+						>{getOrderId({ order, inputSettler }).slice(2, 8)}...</td
+					>
 					<td class="px-4 py-2 text-sm text-gray-800">{trunc(order.user as `0x${string}`)}</td>
 					<td class="px-4 py-2 text-sm text-gray-800"
 						>{getChainName(Number(order.originChainId))}</td
@@ -166,7 +168,7 @@
 							.join(', ')}
 					</td>
 					<td class="flex">
-						{#await checkIfFilled(getOrderId({order, inputSettler}), order.outputs[0], updatedDerived)}
+						{#await checkIfFilled(getOrderId( { order, inputSettler } ), order.outputs[0], updatedDerived)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -178,7 +180,11 @@
 							{#if isFilled == BYTES32_ZERO}
 								<AwaitButton
 									buttonFunction={async () => {
-										const txHash = await fill(walletClient, { orderContainer: {order, inputSettler}, index: 0 }, opts)();
+										const txHash = await fill(
+											walletClient,
+											{ orderContainer: { order, inputSettler }, index: 0 },
+											opts
+										)();
 										orderInputs.validate[index] = txHash;
 									}}
 								>
@@ -227,7 +233,7 @@
 							placeholder="validateContext"
 							bind:value={orderInputs.validate[index]}
 						/>
-						{#await checkIfValidated({order, inputSettler}, 0, orderInputs.validate[index] as `0x${string}`)}
+						{#await checkIfValidated({ order, inputSettler }, 0, orderInputs.validate[index] as `0x${string}`)}
 							<button
 								type="button"
 								class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
@@ -249,7 +255,10 @@
 									baseClass="rounded-r border px-4 h-8 text-xl font-bold"
 									buttonFunction={validate(
 										walletClient,
-										{ orderContainer: {order, inputSettler}, fillTransactionHash: orderInputs.validate[index] },
+										{
+											orderContainer: { order, inputSettler },
+											fillTransactionHash: orderInputs.validate[index]
+										},
 										opts
 									)}
 								>
@@ -266,7 +275,10 @@
 								baseClass="rounded-r border px-4 h-8 text-xl font-bold"
 								buttonFunction={validate(
 									walletClient,
-									{ orderContainer: {order, inputSettler}, fillTransactionHash: orderInputs.validate[index] },
+									{
+										orderContainer: { order, inputSettler },
+										fillTransactionHash: orderInputs.validate[index]
+									},
 									opts
 								)}
 							>
@@ -302,7 +314,7 @@
 									buttonFunction={claim(
 										walletClient,
 										{
-											orderContainer: {order, inputSettler},
+											orderContainer: { order, inputSettler },
 											sponsorSignature,
 											allocatorSignature,
 											fillTransactionHash: orderInputs.validate[index]
@@ -323,7 +335,7 @@
 								buttonFunction={claim(
 									walletClient,
 									{
-										orderContainer: {order, inputSettler},
+										orderContainer: { order, inputSettler },
 										sponsorSignature,
 										allocatorSignature,
 										fillTransactionHash: orderInputs.validate[index]

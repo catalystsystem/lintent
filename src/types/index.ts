@@ -40,17 +40,17 @@ export type BatchCompact = {
 };
 
 export type StandardOrder = {
-    user: `0x${string}`,
-    nonce: bigint,
-    originChainId: bigint,
-    expires: number,
-    fillDeadline: number,
-    inputOracle: `0x${string}`,
-    inputs: [bigint, bigint][],
-    outputs: MandateOutput[],
-}
+	user: `0x${string}`;
+	nonce: bigint;
+	originChainId: bigint;
+	expires: number;
+	fillDeadline: number;
+	inputOracle: `0x${string}`;
+	inputs: [bigint, bigint][];
+	outputs: MandateOutput[];
+};
 
 export type OrderContainer = {
-	inputSettler: `0x${string}`,
-	order: StandardOrder
-}
+	inputSettler: `0x${string}`;
+	order: StandardOrder;
+};
