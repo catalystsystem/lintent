@@ -248,8 +248,7 @@
 									buttonFunction={validate(
 										walletClient,
 										{ order, fillTransactionHash: orderInputs.validate[index] },
-										opts,
-										updatedDerived
+										opts
 									)}
 								>
 									{#snippet name()}

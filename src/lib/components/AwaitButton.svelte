@@ -5,7 +5,7 @@
 		name,
 		awaiting,
 		buttonFunction,
-		baseClass = 'rounded border px-4 h-8 text-xl font-bold'
+		baseClass = 'w-full py-4 px-6 bg-gray-900 text-white text-lg font-medium rounded-xl transition-all duration-200 hover:bg-gray-800 active:bg-gray-950 hover:scale-105'
 	}: {
 		name: Snippet;
 		awaiting: Snippet;
@@ -16,14 +16,14 @@
 </script>
 
 {#await buttonPromise}
-	<button type="button" class="{baseClass} text-gray-300" disabled>
+	<button type="button" class="w-full py-4 px-6 bg-gray-100 text-gray-400 text-lg font-medium rounded-xl cursor-not-allowed" disabled>
 		{@render awaiting()}
 	</button>
 {:then a}
 	<button
 		onclick={() => (buttonPromise = buttonFunction())}
 		type="button"
-		class="{baseClass} bg-gray text-gray-600 hover:text-blue-600"
+		class="{baseClass}"
 	>
 		{@render name()}
 	</button>
@@ -31,7 +31,7 @@
 	<button
 		onclick={() => (buttonPromise = buttonFunction())}
 		type="button"
-		class="{baseClass} text-gray-600 hover:text-blue-600"
+		class="w-full py-4 px-6 bg-gray-900 text-white text-lg font-medium rounded-xl transition-all duration-200 hover:bg-gray-800 active:bg-gray-950 hover:scale-105"
 	>
 		{@render name()}
 	</button>
