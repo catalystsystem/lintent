@@ -20,6 +20,8 @@ export function toBigIntWithDecimals(value: number, decimals: number): bigint {
 	return BigInt(combined);
 }
 
+
+
 export function addressToBytes32(address: `0x${string}`): `0x${string}` {
 	if (address.length !== 42 && address.length !== 40) {
 		throw new Error(`Invalid address length: ${address.length}`);
@@ -35,7 +37,6 @@ export function bytes32ToAddress(bytes: `0x${string}`): `0x${string}` {
 }
 
 export function idToToken(id: `0x${string}` | bigint): `0x${string}` {
-	console.log({ id });
 	if (typeof id === 'string' && id.indexOf('0x') != 0) {
 		id = BigInt(id);
 	}
@@ -43,7 +44,6 @@ export function idToToken(id: `0x${string}` | bigint): `0x${string}` {
 		// Convert bigint to hex string and pad it to 64 characters.
 		id = `0x${id.toString(16).padStart(64, '0')}`;
 	}
-	console.log({ id });
 	// Remove the first 12 bytes (24 hex characters) and keep the last 20 bytes (40 hex characters).
 	return checksumAddress(bytes32ToAddress(id));
 }

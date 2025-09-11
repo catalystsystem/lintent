@@ -50,7 +50,19 @@ export type StandardOrder = {
 	outputs: MandateOutput[];
 };
 
+export type NoSignature = {
+	type: "None";
+	payload: "0x";
+};
+
+export type Signature = {
+	type: "ECDSA" | "ERC-1271";
+	payload: `0x${string}`;
+};
+
 export type OrderContainer = {
 	inputSettler: `0x${string}`;
 	order: StandardOrder;
+	sponsorSignature: Signature | NoSignature;
+	allocatorSignature: Signature | NoSignature;
 };

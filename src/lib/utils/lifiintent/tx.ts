@@ -10,55 +10,61 @@ import {
 	COIN_FILLER,
 	COMPACT,
 	getChainName,
+	getClient,
 	getOracle,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
 	POLYMER_ALLOCATOR,
-	type verifier,
+	type Token,
+	type Verifier,
 	type WC,
-	wormholeChainIds
-} from '$lib/config';
+	wormholeChainIds,
+} from "$lib/config";
 import {
 	encodeAbiParameters,
 	hashStruct,
 	maxUint256,
 	parseAbiParameters,
 	toHex,
-	verifyTypedData
-} from 'viem';
+	verifyTypedData,
+} from "viem";
 import type {
 	BatchCompact,
 	CompactMandate,
 	MandateOutput,
 	OrderContainer,
-	StandardOrder
-} from '../../../types';
-import { addressToBytes32, bytes32ToAddress } from '../convert';
-import axios from 'axios';
-import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
-import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
-import { COIN_FILLER_ABI } from '$lib/abi/outputsettler';
-import { ERC20_ABI } from '$lib/abi/erc20';
-import { COMPACT_ABI } from '$lib/abi/compact';
-import { ResetPeriod, toId } from '../compact/IdLib';
-import { compact_type_hash, compactTypes, StandardOrderAbi } from '../typedMessage';
-import { getOrderId } from './OrderLib';
-import { submitOrder, submitOrderUnsigned } from '../api';
-import { SETTLER_ESCROW_ABI } from '$lib/abi/escrow';
+	StandardOrder,
+} from "../../../types";
+import { addressToBytes32, bytes32ToAddress } from "../convert";
+import axios from "axios";
+import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
+import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
+import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
+import { ERC20_ABI } from "$lib/abi/erc20";
+import { COMPACT_ABI } from "$lib/abi/compact";
+import { ResetPeriod, toId } from "../compact/IdLib";
+import {
+	compact_type_hash,
+	compactTypes,
+	StandardOrderAbi,
+} from "../typedMessage";
+import { getOrderId } from "./OrderLib";
+import { submitOrder, submitOrderUnsigned } from "../api";
+import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 
 export type opts = {
 	preHook?: (chain?: chain) => Promise<any>;
 	postHook?: () => Promise<any>;
 	allocatorId: string;
-	inputAsset: `0x${string}`;
+	inputToken: Token;
+	outputToken: Token;
 	inputAmount: bigint;
-	inputChain: chain;
-	outputAsset: `0x${string}`;
 	outputAmount: bigint;
-	outputChain: chain;
-	verifier: verifier;
+	verifier: Verifier;
 	account: () => `0x${string}`;
-	inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
+	inputSettler:
+		| typeof INPUT_SETTLER_COMPACT_LIFI
+		| typeof INPUT_SETTLER_ESCROW_LIFI;
 };
 
 // --- Initiating Intents --- //
@@ -66,39 +72,36 @@ export type opts = {
 export function createOrder(opts: opts) {
 	const {
 		allocatorId,
-		inputAsset,
+		inputToken,
+		outputToken,
 		inputAmount,
-		inputChain,
-		outputAsset,
 		outputAmount,
-		outputChain,
 		verifier,
 		account,
-		inputSettler
+		inputSettler,
 	} = opts;
 	// If Compact input, then generate the tokenId otherwise cast into uint256.
-	const inputTokenId =
-		inputSettler == INPUT_SETTLER_COMPACT_LIFI
-			? toId(true, ResetPeriod.OneDay, allocatorId, inputAsset)
-			: BigInt(inputAsset);
+	const inputTokenId = inputSettler == INPUT_SETTLER_COMPACT_LIFI
+		? toId(true, ResetPeriod.OneDay, allocatorId, inputToken.address)
+		: BigInt(inputToken.address);
 	// Make Inputs
 	const input: [bigint, bigint] = [inputTokenId, inputAmount];
 	const inputs = [input];
 
 	const outputSettler = COIN_FILLER;
-	const outputOracle = getOracle(verifier, outputChain)!;
-	const inputOracle = getOracle(verifier, inputChain)!;
+	const outputOracle = getOracle(verifier, outputToken.chain)!;
+	const inputOracle = getOracle(verifier, inputToken.chain)!;
 
 	// Make Outputs
 	const output: MandateOutput = {
 		oracle: addressToBytes32(outputOracle),
 		settler: addressToBytes32(outputSettler),
-		chainId: BigInt(chainMap[outputChain].id),
-		token: addressToBytes32(outputAsset),
+		chainId: BigInt(chainMap[outputToken.chain].id),
+		token: addressToBytes32(outputToken.address),
 		amount: outputAmount,
 		recipient: addressToBytes32(account()),
-		call: '0x',
-		context: '0x'
+		call: "0x",
+		context: "0x",
 	};
 	const outputs = [output];
 
@@ -110,30 +113,34 @@ export function createOrder(opts: opts) {
 	const order: StandardOrder = {
 		user: account(),
 		nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
-		originChainId: BigInt(chainMap[inputChain].id),
+		originChainId: BigInt(chainMap[inputToken.chain].id),
 		fillDeadline: currentTime + ONE_MINUTE * 10,
 		expires: currentTime + ONE_MINUTE * 10,
 		inputOracle: inputOracle,
 		inputs: inputs,
-		outputs: outputs
+		outputs: outputs,
 	};
 
 	const mandate: CompactMandate = {
 		fillDeadline: order.fillDeadline,
 		inputOracle: order.inputOracle,
-		outputs: order.outputs
+		outputs: order.outputs,
 	};
 	const commitments = inputs.map(([tokenId, amount]) => {
-		const lockTag: `0x${string}` = `0x${toHex(tokenId)
-			.replace('0x', '')
-			.slice(0, 12 * 2)}`;
-		const token: `0x${string}` = `0x${toHex(tokenId)
-			.replace('0x', '')
-			.slice(12 * 2, 32 * 2)}`;
+		const lockTag: `0x${string}` = `0x${
+			toHex(tokenId)
+				.replace("0x", "")
+				.slice(0, 12 * 2)
+		}`;
+		const token: `0x${string}` = `0x${
+			toHex(tokenId)
+				.replace("0x", "")
+				.slice(12 * 2, 32 * 2)
+		}`;
 		return {
 			lockTag,
 			token,
-			amount
+			amount,
 		};
 	});
 	const batchCompact: BatchCompact = {
@@ -142,7 +149,7 @@ export function createOrder(opts: opts) {
 		nonce: order.nonce,
 		expires: order.expires,
 		commitments,
-		mandate
+		mandate,
 	};
 
 	return { order, batchCompact };
@@ -151,46 +158,45 @@ export function createOrder(opts: opts) {
 export function swap(
 	walletClient: WC,
 	opts: opts,
-	orders: { order: StandardOrder; sponsorSignature: `0x${string}` }[]
+	orders: { order: StandardOrder; sponsorSignature: `0x${string}` }[],
 ) {
 	return async () => {
-		const { preHook, postHook, account, inputChain } = opts;
-		if (preHook) await preHook(inputChain);
+		const { preHook, postHook, account, inputToken } = opts;
+		if (preHook) await preHook(inputToken.chain);
 		const { order, batchCompact } = createOrder(opts);
 
 		const signaturePromise = walletClient.signTypedData({
 			account: account(),
 			domain: {
-				name: 'The Compact',
-				version: '1',
-				chainId: chainMap[opts.inputChain].id,
-				verifyingContract: COMPACT
+				name: "The Compact",
+				version: "1",
+				chainId: chainMap[inputToken.chain].id,
+				verifyingContract: COMPACT,
 			} as const,
 			types: compactTypes,
-			primaryType: 'BatchCompact',
-			message: batchCompact
+			primaryType: "BatchCompact",
+			message: batchCompact,
 		});
 		const sponsorSignature = await signaturePromise;
 
 		console.log({ order, batchCompact, sponsorSignature });
 
 		const submitOrderResponse = await submitOrder({
-			orderType: 'CatalystCompactOrder',
+			orderType: "CatalystCompactOrder",
 			order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			sponsorSignature,
-			allocatorSignature: '0x',
+			allocatorSignature: "0x",
 			quote: {
-				fromAsset: opts.inputAsset,
-				toAsset: opts.outputAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
-			}
+				fromAsset: opts.inputToken.address,
+				toAsset: opts.inputToken.address,
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1",
+			},
 		});
 
-		console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
@@ -202,71 +208,81 @@ export function depositAndSwap(
 		order: StandardOrder;
 		sponsorSignature: `0x${string}`;
 		allocatorSignature: `0x${string}`;
-	}[]
+	}[],
 ) {
 	return async () => {
-		const { preHook, postHook, allocatorId, inputAmount, inputAsset, inputChain, account } = opts;
+		const {
+			preHook,
+			postHook,
+			allocatorId,
+			inputAmount,
+			inputToken,
+			account,
+		} = opts;
 		const publicClients = clients;
 		const { order, batchCompact } = createOrder(opts);
 
 		const claimHash = hashStruct({
 			data: batchCompact,
 			types: compactTypes,
-			primaryType: 'BatchCompact'
+			primaryType: "BatchCompact",
 		});
 		const typeHash = compact_type_hash;
 
 		// Generate the locktag. We use the toId function and then discard the rightmost 20 bytes.
-		const lockTag: `0x${string}` = `0x${toHex(
-			toId(true, ResetPeriod.OneDay, allocatorId, ADDRESS_ZERO),
-			{
-				size: 32
-			}
-		)
-			.replace('0x', '')
-			.slice(0, 24)}`;
+		const lockTag: `0x${string}` = `0x${
+			toHex(
+				toId(true, ResetPeriod.OneDay, allocatorId, ADDRESS_ZERO),
+				{
+					size: 32,
+				},
+			)
+				.replace("0x", "")
+				.slice(0, 24)
+		}`;
 		// Remember to subtract existing deposited value
 		let transactionHash: `0x${string}`;
 		// TODO:
 		const trueInputValue = inputAmount; // - formattedCompactDepositedBalance;
-		if (preHook) await preHook(inputChain);
+		if (preHook) await preHook(inputToken.chain);
+		const inputChain = chainMap[inputToken.chain];
 		if (trueInputValue <= 0) {
 			transactionHash = await walletClient.writeContract({
-				chain: chainMap[inputChain],
+				chain: inputChain,
 				account: account(),
 				address: COMPACT,
 				abi: COMPACT_ABI,
-				functionName: 'register',
-				args: [claimHash, typeHash]
+				functionName: "register",
+				args: [claimHash, typeHash],
 			});
 		} else {
-			transactionHash =
-				inputAsset === ADDRESS_ZERO
-					? await walletClient.writeContract({
-							chain: chainMap[inputChain],
-							account: account(),
-							address: COMPACT,
-							abi: COMPACT_ABI,
-							functionName: 'depositNativeAndRegister',
-							value: inputAmount,
-							args: [lockTag, claimHash, typeHash]
-						})
-					: await walletClient.writeContract({
-							chain: chainMap[inputChain],
-							account: account(),
-							address: COMPACT,
-							abi: COMPACT_ABI,
-							functionName: 'depositERC20AndRegister',
-							args: [inputAsset, lockTag, inputAmount, claimHash, typeHash]
-						});
+			transactionHash = inputToken.address === ADDRESS_ZERO
+				? await walletClient.writeContract({
+					chain: inputChain,
+					account: account(),
+					address: COMPACT,
+					abi: COMPACT_ABI,
+					functionName: "depositNativeAndRegister",
+					value: inputAmount,
+					args: [lockTag, claimHash, typeHash],
+				})
+				: await walletClient.writeContract({
+					chain: inputChain,
+					account: account(),
+					address: COMPACT,
+					abi: COMPACT_ABI,
+					functionName: "depositERC20AndRegister",
+					args: [inputToken.address, lockTag, inputAmount, claimHash, typeHash],
+				});
 		}
 
-		const recepit = await publicClients[inputChain].waitForTransactionReceipt({
-			hash: await transactionHash
-		});
+		const recepit = await publicClients[inputToken.chain]
+			.waitForTransactionReceipt({
+				hash: await transactionHash,
+			});
 
-		const sponsorSignature = '0x';
-		const allocatorSignature = '0x';
+		const sponsorSignature = "0x";
+		const allocatorSignature = "0x";
 		// let allocatorSignature: `0x${string}` = "0x";
 		// Needs to be sent to the Catalyst order server:
 		// Check the allocator:
@@ -307,23 +323,23 @@ export function depositAndSwap(
 			order,
 			batchCompact,
 			sponsorSignature,
-			allocatorSignature
+			allocatorSignature,
 		});
 
 		const submitOrderResponse = await submitOrderUnsigned({
-			orderType: 'CatalystCompactOrder',
+			orderType: "CatalystCompactOrder",
 			order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			quote: {
-				fromAsset: opts.inputAsset,
-				toAsset: opts.outputAsset,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
+				fromAsset: opts.inputToken.address,
+				toAsset: opts.inputToken.address,
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1",
 			},
 			compactRegistrationTxHash: transactionHash,
-			allocatorSignature
+			allocatorSignature,
 		});
 
 		console.log({ submitOrderResponse });
@@ -333,20 +349,20 @@ export function depositAndSwap(
 
 export function escrowApprove(walletClient: WC, opts: opts) {
 	return async () => {
-		const { preHook, postHook, inputChain, account, inputAsset } = opts;
+		const { preHook, postHook, inputToken, account } = opts;
 		const publicClients = clients;
 		if (preHook) await preHook();
 		const transactionHash = walletClient.writeContract({
-			chain: chainMap[inputChain],
+			chain: chainMap[inputToken.chain],
 			account: account(),
-			address: inputAsset,
+			address: inputToken.address,
 			abi: ERC20_ABI,
-			functionName: 'approve',
-			args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256]
+			functionName: "approve",
+			args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256],
 		});
 
-		await publicClients[inputChain].waitForTransactionReceipt({
-			hash: await transactionHash
+		await publicClients[inputToken.chain].waitForTransactionReceipt({
+			hash: await transactionHash,
 		});
 		if (postHook) await postHook();
 		return transactionHash;
@@ -361,38 +377,38 @@ export function openIntent(
 		inputSettler: `0x${string}`;
 		sponsorSignature: `0x${string}`;
 		allocatorSignature: `0x${string}`;
-	}[]
+	}[],
 ) {
 	return async () => {
-		const { preHook, postHook, inputChain, account } = opts;
+		const { preHook, postHook, inputToken, account } = opts;
 		const { order } = createOrder(opts);
 
 		const orderAsBytes = encodeAbiParameters(
-			[{ type: 'tuple', components: StandardOrderAbi }],
-			[order]
+			[{ type: "tuple", components: StandardOrderAbi }],
+			[order],
 		);
 		console.log(orders);
 
-		if (preHook) await preHook(inputChain);
+		if (preHook) await preHook(inputToken.chain);
 		// Execute the open.
 		const transactionHash = await walletClient.writeContract({
-			chain: chainMap[inputChain],
+			chain: chainMap[inputToken.chain],
 			account: account(),
 			address: INPUT_SETTLER_ESCROW_LIFI,
 			abi: SETTLER_ESCROW_ABI,
-			functionName: 'open',
-			args: [orderAsBytes]
+			functionName: "open",
+			args: [orderAsBytes],
 		});
 
-		await clients[inputChain].waitForTransactionReceipt({
-			hash: transactionHash
+		await clients[inputToken.chain].waitForTransactionReceipt({
+			hash: transactionHash,
 		});
 		if (postHook) await postHook();
 		orders.push({
 			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
 			order,
-			sponsorSignature: '0x',
-			allocatorSignature: '0x'
+			sponsorSignature: "0x",
+			allocatorSignature: "0x",
 		});
 
 		return transactionHash;
@@ -405,69 +421,84 @@ export function fill(
 	walletClient: WC,
 	args: {
 		orderContainer: OrderContainer;
-		index: number;
+		outputs: MandateOutput[];
 	},
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
-	}
+	},
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
 		const {
 			orderContainer: { order, inputSettler },
-			index
+			outputs,
 		} = args;
 		const publicClients = clients;
 		const orderId = getOrderId({ order, inputSettler });
 		//Check that only 1 output exists.
-		if (order.outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
-		}
-		// The destination asset cannot be ETH.
-		const output = order.outputs[index];
-		if (output.token === BYTES32_ZERO) {
-			throw new Error('Output token cannot be ETH');
+		if (outputs.length !== 1) {
+			throw new Error("Order must have exactly one output");
 		}
 
-		// Check allowance & set allowance if needed
-		const assetAddress = bytes32ToAddress(output.token);
-		const outputChain = getChainName(output.chainId);
-		const allowance = await publicClients[outputChain].readContract({
-			address: assetAddress,
-			abi: ERC20_ABI,
-			functionName: 'allowance',
-			args: [account(), bytes32ToAddress(output.settler)]
-		});
-		if (preHook) await preHook(outputChain);
-		if (BigInt(allowance) < output.amount) {
-			const approveTransaction = await walletClient.writeContract({
-				chain: chainMap[outputChain],
-				account: account(),
+		const outputChain = getChainName(outputs[0].chainId);
+		console.log({outputChain})
+		for (const output of outputs) {
+			if (output.token === BYTES32_ZERO) {
+				// The destination asset cannot be ETH.
+				throw new Error("Output token cannot be ETH");
+			}
+			if (output.chainId != outputs[0].chainId) {
+				throw new Error(
+					"Filling outputs on multiple chains with single fill call not supported",
+				);
+			}
+			if (output.settler != outputs[0].settler) {
+				throw new Error("Different settlers on outputs, not supported");
+			}
+
+			// Check allowance & set allowance if needed
+			const assetAddress = bytes32ToAddress(output.token);
+			const allowance = await publicClients[outputChain].readContract({
 				address: assetAddress,
 				abi: ERC20_ABI,
-				functionName: 'approve',
-				args: [bytes32ToAddress(output.settler), maxUint256]
+				functionName: "allowance",
+				args: [account(), bytes32ToAddress(output.settler)],
 			});
-			await clients[getChainName(output.chainId)].waitForTransactionReceipt({
-				hash: approveTransaction
-			});
+			if (preHook) await preHook(outputChain);
+			if (BigInt(allowance) < output.amount) {
+				const approveTransaction = await walletClient.writeContract({
+					chain: chainMap[outputChain],
+					account: account(),
+					address: assetAddress,
+					abi: ERC20_ABI,
+					functionName: "approve",
+					args: [bytes32ToAddress(output.settler), maxUint256],
+				});
+				await clients[outputChain].waitForTransactionReceipt({
+					hash: approveTransaction,
+				});
+			}
 		}
 
 		const transactionHash = await walletClient.writeContract({
 			chain: chainMap[outputChain],
 			account: account(),
-			address: bytes32ToAddress(output.settler),
+			address: bytes32ToAddress(outputs[0].settler),
 			abi: COIN_FILLER_ABI,
-			functionName: 'fillOrderOutputs',
-			args: [order.fillDeadline, orderId, order.outputs, addressToBytes32(account())]
+			functionName: "fillOrderOutputs",
+			args: [
+				order.fillDeadline,
+				orderId,
+				outputs,
+				addressToBytes32(account()),
+			],
 		});
-		await clients[getChainName(output.chainId)].waitForTransactionReceipt({
-			hash: transactionHash
+		await clients[outputChain].waitForTransactionReceipt({
+			hash: transactionHash,
 		});
-		// TODO:
-		//orderInputs.validate[index] = transcationHash;
+		// orderInputs.validate[index] = transcationHash;
 		if (postHook) await postHook();
 		return transactionHash;
 	};
@@ -528,26 +559,27 @@ export function validate(
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
-	}
+	},
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
 		const {
 			orderContainer: { order },
-			fillTransactionHash
+			fillTransactionHash,
 		} = args;
 		const sourceChain = getChainName(order.originChainId);
 		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
+			throw new Error("Order must have exactly one output");
 		}
 		// The destination asset cannot be ETH.
 		const output = order.outputs[0];
 
-		if (order.inputOracle === getOracle('polymer', sourceChain)) {
-			const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-				hash: fillTransactionHash as `0x${string}`
-			});
+		if (order.inputOracle === getOracle("polymer", sourceChain)) {
+			const transactionReceipt = await clients[outputChain]
+				.getTransactionReceipt({
+					hash: fillTransactionHash as `0x${string}`,
+				});
 
 			const numlogs = transactionReceipt.logs.length;
 			if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
@@ -560,7 +592,7 @@ export function validate(
 					srcChainId: Number(order.outputs[0].chainId),
 					srcBlockNumber: Number(transactionReceipt.blockNumber),
 					globalLogIndex: Number(fillLog.logIndex),
-					polymerIndex
+					polymerIndex,
 				});
 				const dat = response.data as {
 					proof: undefined | string;
@@ -584,27 +616,30 @@ export function validate(
 					account: account(),
 					address: order.inputOracle,
 					abi: POLYMER_ORACLE_ABI,
-					functionName: 'receiveMessage',
-					args: [`0x${proof.replace('0x', '')}`]
+					functionName: "receiveMessage",
+					args: [`0x${proof.replace("0x", "")}`],
 				});
 
 				const result = await clients[sourceChain].waitForTransactionReceipt({
-					hash: transcationHash
+					hash: transcationHash,
 				});
 				if (postHook) await postHook();
 				return result;
 			}
 		}
 
-		if (order.inputOracle === getOracle('wormhole', sourceChain)) {
+		if (order.inputOracle === getOracle("wormhole", sourceChain)) {
 			// TODO: get sequence from event.
 			const sequence = 0;
 			// Get VAA
 			const wormholeChainId = wormholeChainIds[outputChain];
-			const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
-				'0x',
-				''
-			)}/${sequence}?network=Testnet`;
+			const requestUrl =
+				`https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${
+					output.oracle.replace(
+						"0x",
+						"",
+					)
+				}/${sequence}?network=Testnet`;
 			const response = await axios.get(requestUrl);
 			console.log(response.data);
 			// return $walletClient.writeContract({
@@ -624,83 +659,90 @@ export function claim(
 	args: {
 		orderContainer: OrderContainer;
 		fillTransactionHash: string;
-		sponsorSignature: `0x${string}`;
-		allocatorSignature: `0x${string}`;
 	},
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
-	}
+	},
 ) {
 	return async () => {
 		const { preHook, postHook, account } = opts;
-		const { orderContainer, fillTransactionHash, sponsorSignature, allocatorSignature } = args;
-		const order = orderContainer.order;
+		const { orderContainer, fillTransactionHash } = args;
+		const { order } = orderContainer;
 		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
+			throw new Error("Order must have exactly one output");
 		}
-		const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-			hash: fillTransactionHash as `0x${string}`
-		});
+		const transactionReceipt = await clients[outputChain].getTransactionReceipt(
+			{
+				hash: fillTransactionHash as `0x${string}`,
+			},
+		);
 		const blockHashOfFill = transactionReceipt.blockHash;
 		const block = await clients[outputChain].getBlock({
-			blockHash: blockHashOfFill
+			blockHash: blockHashOfFill,
 		});
 		const fillTimestamp = block.timestamp;
 
 		const sourceChain = getChainName(order.originChainId);
 		if (preHook) await preHook(sourceChain);
 
-		console.log({
-			sponsorSignature,
-			allocatorSignature
-		});
-		const combinedSignatures = encodeAbiParameters(parseAbiParameters(['bytes', 'bytes']), [
-			sponsorSignature ?? '0x',
-			allocatorSignature
-		]);
-
-		// Check whether this is a Compact or an Escrow. For Compact we need to provide the signature where for Escrow we don't.
-		const transactionHash =
-			orderContainer.inputSettler == INPUT_SETTLER_COMPACT_LIFI
-				? await walletClient.writeContract({
-						chain: chainMap[sourceChain],
-						account: account(),
-						address: INPUT_SETTLER_COMPACT_LIFI,
-						abi: SETTLER_COMPACT_ABI,
-						functionName: 'finalise',
-						args: [
-							order,
-							combinedSignatures,
-							[Number(fillTimestamp)],
-							[addressToBytes32(account())],
-							addressToBytes32(account()),
-							'0x'
-						]
-					})
-				: orderContainer.inputSettler == INPUT_SETTLER_ESCROW_LIFI
-					? await walletClient.writeContract({
-							chain: chainMap[sourceChain],
-							account: account(),
-							address: INPUT_SETTLER_ESCROW_LIFI,
-							abi: SETTLER_ESCROW_ABI,
-							functionName: 'finalise',
-							args: [
-								order,
-								[Number(fillTimestamp)],
-								[addressToBytes32(account())],
-								addressToBytes32(account()),
-								'0x'
-							]
-						})
-					: '0x';
-		if (transactionHash === '0x') {
-			throw new Error(`Could not detect settler type ${orderContainer.inputSettler}`);
-		}
+		const inputSettler = orderContainer.inputSettler;
+		let transactionHash: `0x${string}`;
+		const actionChain = chainMap[sourceChain];
+		if (inputSettler === INPUT_SETTLER_ESCROW_LIFI) {
+			transactionHash = await walletClient.writeContract({
+				chain: actionChain,
+				account: account(),
+				address: inputSettler,
+				abi: SETTLER_ESCROW_ABI,
+				functionName: "finalise",
+				args: [
+					order,
+					[Number(fillTimestamp)],
+					[addressToBytes32(account())],
+					addressToBytes32(account()),
+					"0x",
+				],
+			});
+		} else if (inputSettler === INPUT_SETTLER_COMPACT_LIFI) {
+			// Check whether or not we have a signature.
+			const { sponsorSignature, allocatorSignature } = orderContainer;
+			if (sponsorSignature.type == "None") {
+				throw new Error("No user signature provided");
+			}
+			console.log({
+				sponsorSignature,
+				allocatorSignature,
+			});
+			const combinedSignatures = encodeAbiParameters(
+				parseAbiParameters(["bytes", "bytes"]),
+				[
+					sponsorSignature.payload ?? "0x",
+					allocatorSignature.payload,
+				],
+			);
+			transactionHash = await walletClient.writeContract({
+				chain: actionChain,
+				account: account(),
+				address: inputSettler,
+				abi: SETTLER_COMPACT_ABI,
+				functionName: "finalise",
+				args: [
+					order,
+					combinedSignatures,
+					[Number(fillTimestamp)],
+					[addressToBytes32(account())],
+					addressToBytes32(account()),
+					"0x",
+				],
+			});
+		} else {throw new Error(
+				`Could not detect settler type ${orderContainer.inputSettler}`,
+			);}
 		const result = await clients[sourceChain].waitForTransactionReceipt({
-			hash: transactionHash
+			hash: transactionHash,
 		});
 		if (postHook) await postHook();
 		return result;

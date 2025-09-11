@@ -1,7 +1,7 @@
 /// -- Compact -- ///
 import { maxInt32, maxUint256, toHex } from 'viem';
 import { ResetPeriod, toId } from './IdLib';
-import { ADDRESS_ZERO, type chain, chainMap, clients, COMPACT, type WC } from '$lib/config';
+import { ADDRESS_ZERO, type chain, chainMap, clients, COMPACT, type Token, type WC } from '$lib/config';
 import { COMPACT_ABI } from '$lib/abi/compact';
 import { addressToBytes32 } from '../convert';
 import { ERC20_ABI } from '$lib/abi/erc20';
@@ -11,15 +11,14 @@ export function compactDeposit(
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputChain: chain;
+		inputToken: Token;
 		account: () => `0x${string}`;
-		inputAsset: `0x${string}`;
 		inputAmount: bigint;
 		allocatorId: string;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputChain, account, inputAsset, allocatorId, inputAmount } = opts;
+		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
 		const publicClients = clients;
 		if (preHook) await preHook();
 		const lockTag: `0x${string}` = `0x${toHex(
@@ -33,9 +32,9 @@ export function compactDeposit(
 		const recipient = ADDRESS_ZERO; // This means sender.
 
 		let transactionHash: `0x${string}`;
-		if (inputAsset === ADDRESS_ZERO) {
+		if (inputToken.address === ADDRESS_ZERO) {
 			transactionHash = await walletClient.writeContract({
-				chain: chainMap[inputChain],
+				chain: chainMap[inputToken.chain],
 				account: account(),
 				address: COMPACT,
 				abi: COMPACT_ABI,
@@ -45,15 +44,15 @@ export function compactDeposit(
 			});
 		} else {
 			transactionHash = await walletClient.writeContract({
-				chain: chainMap[inputChain],
+				chain: chainMap[inputToken.chain],
 				account: account(),
 				address: COMPACT,
 				abi: COMPACT_ABI,
 				functionName: 'depositERC20',
-				args: [inputAsset, lockTag, inputAmount, recipient]
+				args: [inputToken.address, lockTag, inputAmount, recipient]
 			});
 		}
-		await publicClients[inputChain].waitForTransactionReceipt({
+		await publicClients[inputToken.chain].waitForTransactionReceipt({
 			hash: await transactionHash
 		});
 		if (postHook) await postHook();
@@ -66,17 +65,16 @@ export function compactWithdraw(
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputChain: chain;
+		inputToken: Token;
 		account: () => `0x${string}`;
-		inputAsset: `0x${string}`;
 		inputAmount: bigint;
 		allocatorId: string;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputChain, account, inputAsset, allocatorId, inputAmount } = opts;
+		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
 		const publicClients = clients;
-		const assetId = toId(true, ResetPeriod.OneDay, allocatorId, inputAsset);
+		const assetId = toId(true, ResetPeriod.OneDay, allocatorId, inputToken.address);
 
 		const allocatedTransferStruct: {
 			allocatorData: `0x${string}`;
@@ -102,14 +100,14 @@ export function compactWithdraw(
 
 		if (preHook) await preHook();
 		const transactionHash = walletClient.writeContract({
-			chain: chainMap[inputChain],
+			chain: chainMap[inputToken.chain],
 			account: account(),
 			address: COMPACT,
 			abi: COMPACT_ABI,
 			functionName: 'allocatedTransfer',
 			args: [allocatedTransferStruct]
 		});
-		await publicClients[inputChain].waitForTransactionReceipt({
+		await publicClients[inputToken.chain].waitForTransactionReceipt({
 			hash: await transactionHash
 		});
 		if (postHook) await postHook();
@@ -122,25 +120,24 @@ export function compactApprove(
 	opts: {
 		preHook?: (chain?: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputChain: chain;
+		inputToken: Token;
 		account: () => `0x${string}`;
-		inputAsset: `0x${string}`;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputChain, account, inputAsset } = opts;
+		const { preHook, postHook, inputToken, account } = opts;
 		const publicClients = clients;
 		if (preHook) await preHook();
 		const transactionHash = walletClient.writeContract({
-			chain: chainMap[inputChain],
+			chain: chainMap[inputToken.chain],
 			account: account(),
-			address: inputAsset,
+			address: inputToken.address,
 			abi: ERC20_ABI,
 			functionName: 'approve',
 			args: [COMPACT, maxUint256]
 		});
 
-		await publicClients[inputChain].waitForTransactionReceipt({
+		await publicClients[inputToken.chain].waitForTransactionReceipt({
 			hash: await transactionHash
 		});
 		if (postHook) await postHook();

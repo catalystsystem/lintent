@@ -36,6 +36,7 @@ type GetOrderResponse = {
 		quote: Quote;
 		sponsorSignature: `0x${string}` | null;
 		allocatorSignature?: `0x${string}` | null;
+		inputSettler: `0x${string}`
 		meta: {
 			submitTime: number;
 			orderStatus: OrderStatus;

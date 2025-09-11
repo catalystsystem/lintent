@@ -1,6 +1,6 @@
 <script lang="ts">
 	import AwaitButton from './AwaitButton.svelte';
-	import { coinMap, decimalMap, getCoins, type chain, type coin, type verifier } from '$lib/config';
+	import { type chain, type coin, type verifier } from '$lib/config';
 	import type { Snippet } from 'svelte';
 	import { toBigIntWithDecimals } from '$lib/utils/convert';
 	import BalanceField from './BalanceField.svelte';
