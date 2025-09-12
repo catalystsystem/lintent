@@ -95,7 +95,12 @@
 					<div class="h-8 w-28 cursor-pointer rounded bg-slate-100 text-center">
 						<div class="flex flex-col items-center justify-center align-middle">
 							<div class="flex flex-row space-x-1">
-								<div>{output.amount}</div>
+								<div>
+									{formatTokenAmount(
+										output.amount,
+										getCoin({ address: output.token, chain: getChainName(output.chainId) })
+									)}
+								</div>
 								<div>
 									{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
 								</div>
