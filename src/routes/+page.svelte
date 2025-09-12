@@ -254,7 +254,7 @@
 		Resource lock intents using OIF
 	</h1>
 	<div
-		class="mx-auto flex flex-col items-center px-4 pt-2 md:max-w-11/12 md:flex-row md:items-start md:px-8 md:pt-3"
+		class="mx-auto flex flex-col items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
 	>
 		<Introduction />
 		<div class="relative h-[30rem] w-[25rem]">
