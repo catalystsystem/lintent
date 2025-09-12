@@ -254,10 +254,10 @@
 		Resource lock intents using OIF
 	</h1>
 	<div
-		class="mx-auto flex flex-col items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
+		class="mx-auto flex flex-col-reverse items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
 	>
 		<Introduction />
-		<div class="relative h-[30rem] w-[25rem]">
+		<div class="relative h-[30rem] w-[25rem] md:mb-0 mb-4">
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
