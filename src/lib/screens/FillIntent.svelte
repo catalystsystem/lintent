@@ -90,7 +90,7 @@
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Fill Intent</h1>
 	<p class="my-2">
-		Fill each chain once and continue to the right. If you refreshed the page provided your fill tx
+		Fill each chain once and continue to the right. If you refreshed the page provide your fill tx
 		hash in the input box.
 	</p>
 	<div class="w-full">
