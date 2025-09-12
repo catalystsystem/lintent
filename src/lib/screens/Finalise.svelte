@@ -5,6 +5,7 @@
 	import type { OrderContainer, StandardOrder } from '../../types';
 	import {
 		COMPACT,
+		formatTokenAmount,
 		getChainName,
 		getClient,
 		getCoin,
@@ -83,6 +84,7 @@
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="mb-2 w-full text-center text-2xl font-medium">Finalise Intent</h1>
+	<p>Finalise the order to receive the inputs.</p>
 	<div class="w-full">
 		<h2 class="w-full text-center text-lg font-medium">
 			{getChainName(orderContainer.order.originChainId)}
@@ -158,7 +160,13 @@
 						<div class="flex flex-col items-center justify-center align-middle">
 							<div class="flex flex-row space-x-1">
 								<div>
-									{input[1]}
+									{formatTokenAmount(
+										input[1],
+										getCoin({
+											address: idToToken(input[0]),
+											chain: getChainName(orderContainer.order.originChainId)
+										})
+									)}
 								</div>
 								<div>
 									{getCoin({

@@ -14,6 +14,7 @@
 	} from '$lib/config';
 	import { compactApprove } from '$lib/utils/compact/tx';
 	import { depositAndSwap, escrowApprove, openIntent, swap } from '$lib/utils/lifiintent/tx';
+	import type { OrderContainer } from '../../types';
 
 	let {
 		scroll,
@@ -29,6 +30,7 @@
 		balances,
 		allowances,
 		walletClient,
+		orders = $bindable(),
 		preHook,
 		postHook,
 		account
@@ -50,6 +52,7 @@
 		balances: balanceQuery;
 		allowances: balanceQuery;
 		walletClient: WC;
+		orders: OrderContainer[];
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
@@ -67,6 +70,11 @@
 		inputSettler,
 		account
 	});
+	
+	const postHookScroll = async () => {
+		await postHook();
+		scroll(true)();
+	}
 
 	const approveFunction = $derived(
 		inputSettler === INPUT_SETTLER_COMPACT_LIFI
@@ -99,11 +107,15 @@
 		}
 	});
 
-	const allSameChains = $derived(inputTokens.every(v => inputTokens[0].chain === v.chain))
+	const allSameChains = $derived(inputTokens.every((v) => inputTokens[0].chain === v.chain));
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Intent Issuance</h1>
+	<p class="text-sm">
+		Select assets for your intent along with the verifier for the intent. Then choose your desired
+		style of execution. Your intent will be sent to the LI.FI dev order server.
+	</p>
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
 			{#each inputTokens as inputToken, i}
@@ -127,7 +139,8 @@
 			{/each}
 			<button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
-				onclick={() => (showTokenSelector = {
+				onclick={() =>
+					(showTokenSelector = {
 						active: new Date().getTime(),
 						input: true,
 						index: -1
@@ -173,7 +186,6 @@
 			</button> -->
 		</div>
 	</div>
-
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
 		<select id="verified-by" class="rounded border px-2 py-1">
@@ -221,7 +233,16 @@
 			<div class="flex flex-row space-x-2">
 				{#if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
 					{#if allocatorId !== POLYMER_ALLOCATOR}
-						<AwaitButton buttonFunction={swap(walletClient, opts, [])}>
+						<AwaitButton
+							buttonFunction={swap(
+								walletClient,
+								{
+									...opts,
+									postHook: postHookScroll
+								},
+								[]
+							)}
+						>
 							{#snippet name()}
 								Sign Order
 							{/snippet}
@@ -230,7 +251,16 @@
 							{/snippet}
 						</AwaitButton>
 					{/if}
-					<AwaitButton buttonFunction={depositAndSwap(walletClient, opts, [])}>
+					<AwaitButton
+						buttonFunction={depositAndSwap(
+							walletClient,
+							{
+								...opts,
+								postHook: postHookScroll
+							},
+							[]
+						)}
+					>
 						{#snippet name()}
 							Execute Deposit and Open
 						{/snippet}
@@ -239,7 +269,16 @@
 						{/snippet}
 					</AwaitButton>
 				{:else}
-					<AwaitButton buttonFunction={openIntent(walletClient, opts, [])}>
+					<AwaitButton
+						buttonFunction={openIntent(
+							walletClient,
+							{
+								...opts,
+								postHook: postHookScroll
+							},
+							orders
+						)}
+					>
 						{#snippet name()}
 							Execute Open
 						{/snippet}

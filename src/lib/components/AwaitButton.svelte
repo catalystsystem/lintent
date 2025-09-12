@@ -5,25 +5,29 @@
 		name,
 		awaiting,
 		buttonFunction,
-		baseClass = 'rounded border px-4 h-8 text-xl font-bold'
+		baseClass = ['rounded border px-4 h-8 text-xl font-bold'],
+		hoverClass = ['text-gray-600 hover:text-blue-600'],
+		lazyClass = ['text-gray-300']
 	}: {
 		name: Snippet;
 		awaiting: Snippet;
 		buttonFunction: () => Promise<any>;
-		baseClass?: string;
+		baseClass?:  string[];
+		hoverClass?: string[];
+		lazyClass?: string[];
 	} = $props();
 	let buttonPromise: Promise<any> | undefined = $state();
 </script>
 
 {#await buttonPromise}
-	<button type="button" class="{baseClass} text-gray-300" disabled>
+	<button type="button" class={[...baseClass, ...lazyClass]} disabled>
 		{@render awaiting()}
 	</button>
-{:then a}
+{:then _}
 	<button
 		onclick={() => (buttonPromise = buttonFunction())}
 		type="button"
-		class="{baseClass} bg-gray text-gray-600 hover:text-blue-600"
+		class={[...baseClass, ...hoverClass]}
 	>
 		{@render name()}
 	</button>
@@ -31,7 +35,7 @@
 	<button
 		onclick={() => (buttonPromise = buttonFunction())}
 		type="button"
-		class="{baseClass} text-gray-600 hover:text-blue-600"
+		class={[...baseClass, ...hoverClass]} 
 	>
 		{@render name()}
 	</button>

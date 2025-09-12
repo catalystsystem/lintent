@@ -1,7 +1,7 @@
 <script lang="ts">
 	import BalanceField from '$lib/components/BalanceField.svelte';
 	import {
-	ADDRESS_ZERO,
+		ADDRESS_ZERO,
 		coinList,
 		getCoin,
 		INPUT_SETTLER_COMPACT_LIFI,
@@ -86,9 +86,13 @@
 			if (showTokenSelector.active < new Date().getTime() - 200) showTokenSelector.active = 0;
 		}}
 	></div>
-	<div class="absolute top-30 left-10 h-[10rem] w-[20rem] rounded border border-gray-200 bg-sky-50">
+	<div class="absolute top-30 left-10 h-[12rem] w-[20rem] rounded border border-gray-200 bg-sky-50">
 		<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
+			{#if showTokenSelector.index === -1}
+			<h3 class="-mt-2 text-center text-xl font-medium">Add Asset</h3>
+			{:else}
 			<h3 class="-mt-2 text-center text-xl font-medium">Select Asset</h3>
+			{/if}
 			<div class="flex flex-row space-x-2">
 				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={modalNumber} />
 				{#if showTokenSelector.input}
@@ -115,17 +119,17 @@
 					}
 				>
 					{#if showTokenSelector.input}
-						{#each coinList.filter(v => inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) as token, i}
+						{#each coinList.filter( (v) => (inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) ) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{:else}
-						{#each coinList.filter(v => v.address !== ADDRESS_ZERO) as token, i}
+						{#each coinList.filter((v) => v.address !== ADDRESS_ZERO) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{/if}
 				</select>
 			</div>
-			<button onclick={submit}>Submit</button>
+			<button class="rounded border px-4 h-8 text-xl font-bold bg-gray text-gray-600 hover:text-blue-600" onclick={submit}>Save</button>
 		</div>
 	</div>
 {/if}

@@ -60,6 +60,9 @@
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Assets Management</h1>
+	<p class="text-sm">
+		Select input type for your intent and manage deposited tokens. When done, continue to the right. If you want to be using TheCompact with signatures, ensure your tokens are deposited before you continue.
+	</p>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
 		<button

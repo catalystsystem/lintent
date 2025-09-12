@@ -2,7 +2,6 @@
 	import onboard from '$lib/utils/web3-onboard';
 	import { createWalletClient, custom, maxUint256 } from 'viem';
 	import type { WalletState } from '@web3-onboard/core';
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from '../types';
 	import {
 		ALWAYS_OK_ALLOCATOR,
@@ -18,22 +17,16 @@
 		coinList,
 		printToken,
 		getIndexOf,
-
 		getCoin
-
 	} from '$lib/config';
 	import { onDestroy, onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
 	import { getBalance, getAllowance, getCompactBalance } from '$lib/state.svelte';
-	import BalanceField from '$lib/components/BalanceField.svelte';
-	import { toBigIntWithDecimals } from '$lib/utils/convert';
 	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
 	import { validateOrder } from '$lib/utils/lifiintent/OrderLib';
-	import { withdraw } from 'viem/zksync';
 	import ManageDeposit from '$lib/screens/ManageDeposit.svelte';
 	import IssueIntent from '$lib/screens/IssueIntent.svelte';
 	import IntentList from '$lib/screens/IntentList.svelte';
-	import IntentDescription from '$lib/screens/IntentDescription.svelte';
 	import FillIntent from '$lib/screens/FillIntent.svelte';
 	import ReceiveMessage from '$lib/screens/ReceiveMessage.svelte';
 	import Finalise from '$lib/screens/Finalise.svelte';
@@ -271,8 +264,21 @@
 				class="h-[30rem] w-[25rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-md border border-gray-200 bg-gray-50"
 				bind:this={snapContainer}
 			>
+				<!-- Right Button -->
+				<a class="absolute w-40 bottom-2 left-[18.5rem] cursor-pointer rounded px-1 text-xs hover:text-sky-800" href="https://li.fi">
+					Preview by LI.FI
+				</a>
 				<!-- Asset Overlay -->
-				<TokenModal bind:showTokenSelector {inputSettler} {compactBalances} {balances} bind:inputTokens bind:outputToken bind:inputAmounts bind:outputAmount></TokenModal>
+				<TokenModal
+					bind:showTokenSelector
+					{inputSettler}
+					{compactBalances}
+					{balances}
+					bind:inputTokens
+					bind:outputToken
+					bind:inputAmounts
+					bind:outputAmount
+				></TokenModal>
 				{#if !(!connectedAccount || !walletClient)}
 					<!-- Right Button -->
 					<button
@@ -322,6 +328,7 @@
 							{balances}
 							{allowances}
 							{walletClient}
+							bind:orders
 							{preHook}
 							{postHook}
 							{account}
@@ -330,6 +337,7 @@
 						{#if selectedOrder !== undefined}
 							<!-- <IntentDescription></IntentDescription> -->
 							<FillIntent
+								{scroll}
 								orderContainer={selectedOrder}
 								{walletClient}
 								{account}

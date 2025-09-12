@@ -1,12 +1,5 @@
 <script lang="ts">
-	import { getChainName } from '$lib/config';
-	import { getOrderId } from '$lib/utils/lifiintent/OrderLib';
-	import type { OrderContainer } from '../../types';
-
-	let {
-		scroll
-	}: { scroll: (direction: boolean | number) => () => void} =
-		$props();
+	let { scroll }: { scroll: (direction: boolean | number) => () => void } = $props();
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4 px-10">

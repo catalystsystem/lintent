@@ -16,6 +16,7 @@
 	import AwaitButton from '$lib/components/AwaitButton.svelte';
 
 	let {
+		scroll,
 		orderContainer,
 		walletClient,
 		fillTransactionHash = $bindable(),
@@ -23,13 +24,21 @@
 		preHook,
 		postHook
 	}: {
+		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
 		walletClient: WC;
 		fillTransactionHash: `0x${string}` | undefined;
 		preHook?: (chain: chain) => Promise<any>;
-		postHook?: () => Promise<any>;
+		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
 	} = $props();
+
+	let refreshValidation = $state(0);
+	const postHookScroll = async () => {
+		await postHook();
+		refreshValidation += 1;
+		scroll(true)();
+	};
 
 	async function isFilled(orderId: `0x${string}`, output: MandateOutput, _?: any) {
 		const outputHash = getOutputHash(output);
@@ -66,7 +75,7 @@
 	const filledStatusPromises: [bigint, Promise<`0x${string}`>[]][] = $derived(
 		sortOutputsByChain(orderContainer).map(([c, outputs]) => [
 			c,
-			outputs.map((output) => isFilled(getOrderId(orderContainer), output))
+			outputs.map((output) => isFilled(getOrderId(orderContainer), output, refreshValidation))
 		])
 	);
 
@@ -80,7 +89,10 @@
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Fill Intent</h1>
-	<p class="my-2">Outputs are filled in batched for each chain.</p>
+	<p class="my-2">
+		Fill each chain once and continue to the right. If you refreshed the page provided your fill tx
+		hash in the input box.
+	</p>
 	<div class="w-full">
 		{#each sortOutputsByChain(orderContainer) as [chainId, outputs], c}
 			<h2 class="w-full text-center text-lg font-medium">
@@ -104,9 +116,7 @@
 										},
 										{
 											preHook,
-											postHook: async () => {
-												await postHook;
-											},
+											postHook: postHookScroll,
 											account
 										}
 									)

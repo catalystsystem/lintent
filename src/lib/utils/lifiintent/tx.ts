@@ -10,7 +10,6 @@ import {
 	COIN_FILLER,
 	COMPACT,
 	getChainName,
-	getClient,
 	getOracle,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
@@ -32,7 +31,9 @@ import type {
 	BatchCompact,
 	CompactMandate,
 	MandateOutput,
+	NoSignature,
 	OrderContainer,
+	Signature,
 	StandardOrder,
 } from "../../../types";
 import { addressToBytes32, bytes32ToAddress } from "../convert";
@@ -184,7 +185,7 @@ export function swap(
 			| typeof INPUT_SETTLER_ESCROW_LIFI;
 		account: () => `0x${string}`;
 	},
-	orders: { order: StandardOrder; sponsorSignature: `0x${string}` }[],
+	orders: OrderContainer[],
 ) {
 	return async () => {
 		const { preHook, postHook, account, inputTokens } = opts;
@@ -231,11 +232,7 @@ export function swap(
 export function depositAndSwap(
 	walletClient: WC,
 	opts: opts,
-	orders: {
-		order: StandardOrder;
-		sponsorSignature: `0x${string}`;
-		allocatorSignature: `0x${string}`;
-	}[],
+	orders: OrderContainer[],
 ) {
 	return async () => {
 		const {
@@ -393,12 +390,7 @@ export function escrowApprove(
 export function openIntent(
 	walletClient: WC,
 	opts: opts,
-	orders: {
-		order: StandardOrder;
-		inputSettler: `0x${string}`;
-		sponsorSignature: `0x${string}`;
-		allocatorSignature: `0x${string}`;
-	}[],
+	orders: OrderContainer[],
 ) {
 	return async () => {
 		const { preHook, postHook, inputTokens, account } = opts;
@@ -429,8 +421,14 @@ export function openIntent(
 		orders.push({
 			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
 			order,
-			sponsorSignature: "0x",
-			allocatorSignature: "0x",
+			sponsorSignature: {
+				type: "None",
+				payload: "0x",
+			},
+			allocatorSignature: {
+				type: "None",
+				payload: "0x",
+			},
 		});
 
 		return transactionHash;

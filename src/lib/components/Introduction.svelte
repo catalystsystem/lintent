@@ -1,30 +1,14 @@
 <div class="px-2">
 	<p>
-		This webapp demonstrates an
+		This webapp demonstrates chain abstraction using the
 		<a
 			class="font-bold text-blue-700 hover:text-blue-500"
 			href="https://github.com/openintentsframework/oif-contracts">Open Intents Framework</a
-		>
-		implementation using
+		>. It is work in progress and currently support a seamless resource lock flow using
 		<a
 			class="font-bold text-blue-700 hover:text-blue-500"
 			href="https://github.com/Uniswap/the-compact/tree/v1">The Compact</a
-		>
-		Resource Locks. This app currently supports two flows:
-	</p>
-
-	<ul class="list-inside list-disc">
-		<li>Swaps using existing deposits (off-chain signature-based settlement)</li>
-		<li>Swaps with on-chain deposit and registration (transaction-based resource locking)</li>
-	</ul>
-
-	<p>
-		A third, currently unimplemented, flow leverages
-		<a class="text-blue-700 hover:text-blue-500" href="https://github.com/Uniswap/permit2"
-			>permit2</a
-		>
-		to enable gasless on-chain deposits and registration—providing a smooth user experience without requiring
-		user-initiated transactions.
+		> and a traditional escrow flow.
 	</p>
 
 	<br />
@@ -49,7 +33,7 @@
 		Learn more about
 		<a
 			class="text-blue-700 hover:text-blue-500"
-			href="https://docs.catalyst.exchange/knowledge/resource-locks/">Resource Locks</a
+			href="https://docs.li.fi/lifi-intents/knowledge-database/resource-locks">Resource Locks</a
 		>.
 	</p>
 
