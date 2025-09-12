@@ -95,19 +95,19 @@ export const coinList = [
 	},
 	{
 		address: `0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14`,
-		name: "usdc",
+		name: "weth",
 		chain: "sepolia",
 		decimals: 18,
 	},
 	{
 		address: `0x4200000000000000000000000000000000000006`,
-		name: "usdc",
+		name: "weth",
 		chain: "baseSepolia",
 		decimals: 18,
 	},
 	{
 		address: `0x4200000000000000000000000000000000000006`,
-		name: "usdc",
+		name: "weth",
 		chain: "optimismSepolia",
 		decimals: 18,
 	},

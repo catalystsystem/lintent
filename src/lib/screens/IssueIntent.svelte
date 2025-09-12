@@ -9,9 +9,8 @@
 		type Token,
 		type Verifier,
 		POLYMER_ALLOCATOR,
-
-		formatTokenAmount
-
+		formatTokenAmount,
+		type chain
 	} from '$lib/config';
 	import { compactApprove } from '$lib/utils/compact/tx';
 	import { depositAndSwap, escrowApprove, openIntent, swap } from '$lib/utils/lifiintent/tx';
@@ -21,9 +20,9 @@
 		showTokenSelector = $bindable(),
 		inputSettler,
 		allocatorId,
-		inputAmount,
+		inputAmounts,
 		outputAmount,
-		inputToken,
+		inputTokens,
 		outputToken,
 		verifier,
 		compactBalances,
@@ -42,27 +41,27 @@
 		};
 		inputSettler: availableInputSettlers;
 		allocatorId: availableAllocators;
-		inputAmount: bigint;
+		inputAmounts: bigint[];
 		outputAmount: bigint;
-		inputToken: Token;
+		inputTokens: Token[];
 		outputToken: Token;
 		compactBalances: balanceQuery;
 		verifier: Verifier;
 		balances: balanceQuery;
 		allowances: balanceQuery;
 		walletClient: WC;
-		preHook: () => Promise<void>;
+		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();
 
 	const opts = $derived({
 		allocatorId,
-		inputToken,
+		inputTokens,
 		preHook,
 		postHook,
 		outputToken,
-		inputAmount,
+		inputAmounts,
 		outputAmount,
 		verifier,
 		inputSettler,
@@ -75,44 +74,58 @@
 			: escrowApprove(walletClient, opts)
 	);
 
-	let allowance = $state(0n);
+	let allowanceCheck = $state(true);
 	$effect(() => {
-		allowances[inputToken.chain][inputToken.address].then((a) => {
-			allowance = a;
-		});
+		allowanceCheck = true;
+		for (let i = 0; i < inputTokens.length; ++i) {
+			const token = inputTokens[i];
+			const inputAmount = inputAmounts[i];
+			allowances[token.chain][token.address].then((a) => {
+				allowanceCheck = allowanceCheck && a >= inputAmount;
+			});
+		}
 	});
-	let balance = $state(0n);
+	let balanceCheck = $state(true);
 	$effect(() => {
-		(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? compactBalances : balances)[inputToken.chain][
-			inputToken.address
-		].then((b) => {
-			balance = b;
-		});
+		balanceCheck = true;
+		for (let i = 0; i < inputTokens.length; ++i) {
+			const token = inputTokens[i];
+			const inputAmount = inputAmounts[i];
+			(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? compactBalances : balances)[token.chain][
+				token.address
+			].then((b) => {
+				allowanceCheck = allowanceCheck && b >= inputAmount;
+			});
+		}
 	});
+
+	const allSameChains = $derived(inputTokens.every(v => inputTokens[0].chain === v.chain))
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Intent Issuance</h1>
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
-			<button
-				class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-				onclick={() =>
-					(showTokenSelector = {
-						active: new Date().getTime(),
-						input: true,
-						index: 0
-					})}
-			>
-				<div class="flex flex-col items-center justify-center align-middle">
-					<div class="flex flex-row space-x-1">
-						<div>{formatTokenAmount(inputAmount, inputToken)}</div>
-						<div>{inputToken.name.toUpperCase()}</div>
+			{#each inputTokens as inputToken, i}
+				<button
+					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
+					onclick={() =>
+						(showTokenSelector = {
+							active: new Date().getTime(),
+							input: true,
+							index: i
+						})}
+				>
+					<div class="flex flex-col items-center justify-center align-middle">
+						<div class="flex flex-row space-x-1">
+							<div>{formatTokenAmount(inputAmounts[i], inputToken)}</div>
+							<div>{inputToken.name.toUpperCase()}</div>
+						</div>
+						<div>{inputToken.chain}</div>
 					</div>
-					<div>{inputToken.chain}</div>
-				</div>
-			</button>
-			<!-- <button
+				</button>
+			{/each}
+			<button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
 				onclick={() => (showTokenSelector = {
 						active: new Date().getTime(),
@@ -121,10 +134,10 @@
 					})}
 			>
 				+
-			</button> -->
+			</button>
 		</div>
 		<div class="flex flex-col justify-center">
-			<div class="flex h-full flex-col items-center">
+			<div class="flex flex-col items-center">
 				<div>In</div>
 				<div>exchange</div>
 				<div>for</div>
@@ -171,7 +184,23 @@
 
 	<!-- Action Button -->
 	<div class="flex justify-center">
-		{#if allowance < inputAmount}
+		{#if !allSameChains}
+			<button
+				type="button"
+				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+				disabled
+			>
+				Not Same Chain Inputs
+			</button>
+		{:else if inputTokens.length != 1}
+			<button
+				type="button"
+				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+				disabled
+			>
+				Not supported yet
+			</button>
+		{:else if !allowanceCheck}
 			<AwaitButton buttonFunction={approveFunction}>
 				{#snippet name()}
 					Set allowance
@@ -180,7 +209,7 @@
 					Waiting for transaction...
 				{/snippet}
 			</AwaitButton>
-		{:else if balance < inputAmount}
+		{:else if !balanceCheck}
 			<button
 				type="button"
 				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"

@@ -41,7 +41,7 @@
 		}[];
 		walletClient: WC;
 		opts: {
-			preHook?: (chain?: chain) => Promise<any>;
+			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
 			inputAsset: coin;
 			inputAmount: bigint;

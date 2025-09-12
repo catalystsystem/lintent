@@ -42,7 +42,7 @@
 		balances: balanceQuery;
 		allowances: balanceQuery;
 		walletClient: WC;
-		preHook: () => Promise<void>;
+		preHook: (chain: chain) => Promise<void>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();

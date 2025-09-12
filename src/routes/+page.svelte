@@ -17,7 +17,10 @@
 		type Token,
 		coinList,
 		printToken,
-		getIndexOf
+		getIndexOf,
+
+		getCoin
+
 	} from '$lib/config';
 	import { onDestroy, onMount } from 'svelte';
 	import Introduction from '$lib/components/Introduction.svelte';
@@ -35,6 +38,7 @@
 	import ReceiveMessage from '$lib/screens/ReceiveMessage.svelte';
 	import Finalise from '$lib/screens/Finalise.svelte';
 	import ConnectWallet from '$lib/screens/ConnectWallet.svelte';
+	import TokenModal from '$lib/screens/TokenModal.svelte';
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -157,10 +161,11 @@
 	let inputNumber = $state(1); // Window number
 	let outputNumber = $state(1); // Window number
 
-	let inputToken: Token = $state(coinList[0]);
+	let inputTokens: Token[] = $state([coinList[0]]);
+	let inputToken = $derived(inputTokens[0]);
 	let outputToken: Token = $state(coinList[1]);
-	let inputAmount = $derived(toBigIntWithDecimals(inputNumber, inputToken.decimals));
-	let outputAmount = $derived(toBigIntWithDecimals(outputNumber, outputToken.decimals));
+	let inputAmounts = $state([1000000n]);
+	let outputAmount = $state(1000000n);
 	// const verifier: verifier = 'polymer';
 	let allocatorId: typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR =
 		$state(POLYMER_ALLOCATOR);
@@ -267,70 +272,7 @@
 				bind:this={snapContainer}
 			>
 				<!-- Asset Overlay -->
-				{#if showTokenSelector.active > 0}
-					<div
-						style="position: fixed; inset: 0; z-index: 0; background: transparent; pointer-events: auto;"
-						aria-hidden="true"
-						onclick={() => {
-							if (showTokenSelector.active < new Date().getTime() - 200)
-								showTokenSelector.active = 0;
-						}}
-					></div>
-					<div
-						class="absolute top-30 left-10 h-[10rem] w-[20rem] rounded border border-gray-200 bg-sky-50"
-					>
-						<div
-							class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle"
-						>
-							<h3 class="-mt-2 text-center text-xl font-medium">Select Asset</h3>
-							<div class="flex flex-row space-x-2">
-								{#if showTokenSelector.input}
-									<input
-										type="number"
-										class="w-20 rounded border px-2 py-1"
-										bind:value={inputNumber}
-									/>
-									<span class="mt-0.5">of</span>
-									<BalanceField
-										value={(inputSettler === INPUT_SETTLER_COMPACT_LIFI
-											? compactBalances
-											: balances)[inputToken.chain][inputToken.address]}
-										decimals={inputToken.decimals}
-									/>
-								{:else}
-									<input
-										type="number"
-										class="w-20 rounded border px-2 py-1"
-										bind:value={outputNumber}
-									/>
-								{/if}
-							</div>
-							<div class="flex flex-row space-x-2">
-								{#if showTokenSelector.input}
-									<select
-										id="inputToken"
-										class="rounded border px-2 py-1"
-										bind:value={() => getIndexOf(inputToken), (v) => (inputToken = coinList[v])}
-									>
-										{#each coinList as token, i}
-											<option value={i}>{printToken(token)}</option>
-										{/each}
-									</select>
-								{:else}
-									<select
-										id="inputToken"
-										class="rounded border px-2 py-1"
-										bind:value={() => getIndexOf(outputToken), (v) => (outputToken = coinList[v])}
-									>
-										{#each coinList as token, i}
-											<option value={i}>{printToken(token)}</option>
-										{/each}
-									</select>
-								{/if}
-							</div>
-						</div>
-					</div>
-				{/if}
+				<TokenModal bind:showTokenSelector {inputSettler} {compactBalances} {balances} bind:inputTokens bind:outputToken bind:inputAmounts bind:outputAmount></TokenModal>
 				{#if !(!connectedAccount || !walletClient)}
 					<!-- Right Button -->
 					<button
@@ -371,9 +313,9 @@
 							bind:showTokenSelector
 							{inputSettler}
 							{allocatorId}
-							{inputAmount}
+							{inputAmounts}
 							{outputAmount}
-							{inputToken}
+							{inputTokens}
 							{outputToken}
 							{verifier}
 							{compactBalances}

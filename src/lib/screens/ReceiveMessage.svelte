@@ -20,7 +20,7 @@
 		orderContainer: OrderContainer;
 		walletClient: WC;
 		fillTransactionHash: `0x${string}`;
-		preHook?: (chain?: chain) => Promise<any>;
+		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
 	} = $props();
