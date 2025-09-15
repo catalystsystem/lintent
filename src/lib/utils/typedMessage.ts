@@ -9,10 +9,24 @@ const BatchCompact = [
 	{ name: 'mandate', type: 'Mandate' }
 ];
 
+const MultichainCompact = [
+	{ name: 'sponsor', type: 'address' },
+	{ name: 'nonce', type: 'uint256' },
+	{ name: 'expires', type: 'uint256' },
+	{ name: 'elements', type: 'Element[]' },
+];
+
 const Lock = [
 	{ name: 'lockTag', type: 'bytes12' },
 	{ name: 'token', type: 'address' },
 	{ name: 'amount', type: 'uint256' }
+];
+
+const Element = [
+	{ name: 'arbiter', type: 'address' },
+	{ name: 'chainId', type: 'uint256' },
+	{ name: 'commitments', type: 'Lock[]' },
+	{ name: 'mandate', type: 'Mandate' },
 ];
 
 const Mandate = [
@@ -48,7 +62,9 @@ export const compactTypes = {
 	BatchCompact,
 	Lock,
 	Mandate,
-	MandateOutput
+	MandateOutput,
+	Element,
+	MultichainCompact
 } as const;
 
 const compact_type =
