@@ -10,7 +10,8 @@
 		type Verifier,
 		POLYMER_ALLOCATOR,
 		formatTokenAmount,
-		type chain
+		type chain,
+		INPUT_SETTLER_ESCROW_LIFI
 	} from '$lib/config';
 	import { compactApprove } from '$lib/utils/compact/tx';
 	import { depositAndSwap, escrowApprove, openIntent, swap } from '$lib/utils/lifiintent/tx';
@@ -70,11 +71,11 @@
 		inputSettler,
 		account
 	});
-	
+
 	const postHookScroll = async () => {
 		await postHook();
 		scroll(true)();
-	}
+	};
 
 	const approveFunction = $derived(
 		inputSettler === INPUT_SETTLER_COMPACT_LIFI
@@ -93,16 +94,25 @@
 			});
 		}
 	});
-	let balanceCheck = $state(true);
+	let balanceCheckWallet = $state(true);
 	$effect(() => {
-		balanceCheck = true;
+		balanceCheckWallet = true;
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const token = inputTokens[i];
 			const inputAmount = inputAmounts[i];
-			(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? compactBalances : balances)[token.chain][
-				token.address
-			].then((b) => {
-				allowanceCheck = allowanceCheck && b >= inputAmount;
+			balances[token.chain][token.address].then((b) => {
+				balanceCheckWallet = balanceCheckWallet && b >= inputAmount;
+			});
+		}
+	});
+	let balanceCheckCompact = $state(true);
+	$effect(() => {
+		balanceCheckCompact = true;
+		for (let i = 0; i < inputTokens.length; ++i) {
+			const token = inputTokens[i];
+			const inputAmount = inputAmounts[i];
+			compactBalances[token.chain][token.address].then((b) => {
+				balanceCheckCompact = balanceCheckCompact && b >= inputAmount;
 			});
 		}
 	});
@@ -221,17 +231,62 @@
 					Waiting for transaction...
 				{/snippet}
 			</AwaitButton>
-		{:else if !balanceCheck}
-			<button
-				type="button"
-				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-				disabled
-			>
-				Low Balance
-			</button>
 		{:else}
 			<div class="flex flex-row space-x-2">
-				{#if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+				{#if !balanceCheckWallet}
+					<button
+						type="button"
+						class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+						disabled
+					>
+						Low Balance
+					</button>
+				{:else if inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+					<AwaitButton
+						buttonFunction={openIntent(
+							walletClient,
+							{
+								...opts,
+								postHook: postHookScroll
+							},
+							orders
+						)}
+					>
+						{#snippet name()}
+							Execute Open
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
+				{:else if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+					<AwaitButton
+						buttonFunction={depositAndSwap(
+							walletClient,
+							{
+								...opts,
+								postHook: postHookScroll
+							},
+							[]
+						)}
+					>
+						{#snippet name()}
+							Execute Deposit and Open
+						{/snippet}
+						{#snippet awaiting()}
+							Waiting for transaction...
+						{/snippet}
+					</AwaitButton>
+				{/if}
+				{#if !balanceCheckCompact}
+					<button
+						type="button"
+						class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+						disabled
+					>
+						Low Compact Balance
+					</button>
+				{:else if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
 					{#if allocatorId !== POLYMER_ALLOCATOR}
 						<AwaitButton
 							buttonFunction={swap(
@@ -251,41 +306,6 @@
 							{/snippet}
 						</AwaitButton>
 					{/if}
-					<AwaitButton
-						buttonFunction={depositAndSwap(
-							walletClient,
-							{
-								...opts,
-								postHook: postHookScroll
-							},
-							[]
-						)}
-					>
-						{#snippet name()}
-							Execute Deposit and Open
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{:else}
-					<AwaitButton
-						buttonFunction={openIntent(
-							walletClient,
-							{
-								...opts,
-								postHook: postHookScroll
-							},
-							orders
-						)}
-					>
-						{#snippet name()}
-							Execute Open
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
 				{/if}
 			</div>
 		{/if}
