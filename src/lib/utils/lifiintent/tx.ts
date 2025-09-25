@@ -396,10 +396,6 @@ export function openIntent(
 		const { preHook, postHook, inputTokens, account } = opts;
 		const { order } = createOrder(opts);
 
-		const orderAsBytes = encodeAbiParameters(
-			[{ type: "tuple", components: StandardOrderAbi }],
-			[order],
-		);
 		console.log(orders);
 
 		const inputChain = inputTokens[0].chain;
@@ -411,7 +407,7 @@ export function openIntent(
 			address: INPUT_SETTLER_ESCROW_LIFI,
 			abi: SETTLER_ESCROW_ABI,
 			functionName: "open",
-			args: [orderAsBytes],
+			args: [order],
 		});
 
 		await clients[inputChain].waitForTransactionReceipt({
@@ -509,9 +505,9 @@ export function fill(
 			abi: COIN_FILLER_ABI,
 			functionName: "fillOrderOutputs",
 			args: [
-				order.fillDeadline,
 				orderId,
 				outputs,
+				order.fillDeadline,
 				addressToBytes32(account()),
 			],
 		});
@@ -711,6 +707,12 @@ export function claim(
 		const inputSettler = orderContainer.inputSettler;
 		let transactionHash: `0x${string}`;
 		const actionChain = chainMap[sourceChain];
+
+		const solveParam = {
+			timestamp: Number(fillTimestamp),
+			solver: addressToBytes32(account())
+		};
+
 		if (inputSettler === INPUT_SETTLER_ESCROW_LIFI) {
 			transactionHash = await walletClient.writeContract({
 				chain: actionChain,
@@ -720,8 +722,7 @@ export function claim(
 				functionName: "finalise",
 				args: [
 					order,
-					[Number(fillTimestamp)],
-					[addressToBytes32(account())],
+					[solveParam],
 					addressToBytes32(account()),
 					"0x",
 				],
@@ -749,8 +750,7 @@ export function claim(
 				args: [
 					order,
 					combinedSignatures,
-					[Number(fillTimestamp)],
-					[addressToBytes32(account())],
+					[solveParam],
 					addressToBytes32(account()),
 					"0x",
 				],

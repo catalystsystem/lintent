@@ -1,970 +1,1642 @@
 export const SETTLER_ESCROW_ABI = [
 	{
-		type: 'function',
-		name: 'DOMAIN_SEPARATOR',
-		inputs: [],
-		outputs: [
+		"type": "constructor",
+		"inputs": [
 			{
-				name: '',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "initialOwner",
+				"type": "address",
+				"internalType": "address",
+			},
 		],
-		stateMutability: 'view'
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'eip712Domain',
-		inputs: [],
-		outputs: [
+		"type": "function",
+		"name": "DOMAIN_SEPARATOR",
+		"inputs": [],
+		"outputs": [
 			{
-				name: 'fields',
-				type: 'bytes1',
-				internalType: 'bytes1'
+				"name": "",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
-			{
-				name: 'name',
-				type: 'string',
-				internalType: 'string'
-			},
-			{
-				name: 'version',
-				type: 'string',
-				internalType: 'string'
-			},
-			{
-				name: 'chainId',
-				type: 'uint256',
-				internalType: 'uint256'
-			},
-			{
-				name: 'verifyingContract',
-				type: 'address',
-				internalType: 'address'
-			},
-			{
-				name: 'salt',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			},
-			{
-				name: 'extensions',
-				type: 'uint256[]',
-				internalType: 'uint256[]'
-			}
 		],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'finalise',
-		inputs: [
+		"type": "function",
+		"name": "applyGovernanceFee",
+		"inputs": [],
+		"outputs": [],
+		"stateMutability": "nonpayable",
+	},
+	{
+		"type": "function",
+		"name": "cancelOwnershipHandover",
+		"inputs": [],
+		"outputs": [],
+		"stateMutability": "payable",
+	},
+	{
+		"type": "function",
+		"name": "completeOwnershipHandover",
+		"inputs": [
 			{
-				name: 'order',
-				type: 'tuple',
-				internalType: 'struct StandardOrder',
-				components: [
-					{
-						name: 'user',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'nonce',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'originChainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'expires',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'fillDeadline',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'inputOracle',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'inputs',
-						type: 'uint256[2][]',
-						internalType: 'uint256[2][]'
-					},
-					{
-						name: 'outputs',
-						type: 'tuple[]',
-						internalType: 'struct MandateOutput[]',
-						components: [
-							{
-								name: 'oracle',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'settler',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'chainId',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'token',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'amount',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'recipient',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'call',
-								type: 'bytes',
-								internalType: 'bytes'
-							},
-							{
-								name: 'context',
-								type: 'bytes',
-								internalType: 'bytes'
-							}
-						]
-					}
-				]
+				"name": "pendingOwner",
+				"type": "address",
+				"internalType": "address",
 			},
-			{
-				name: 'timestamps',
-				type: 'uint32[]',
-				internalType: 'uint32[]'
-			},
-			{
-				name: 'solvers',
-				type: 'bytes32[]',
-				internalType: 'bytes32[]'
-			},
-			{
-				name: 'destination',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			},
-			{
-				name: 'call',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"outputs": [],
+		"stateMutability": "payable",
 	},
 	{
-		type: 'function',
-		name: 'finaliseWithSignature',
-		inputs: [
+		"type": "function",
+		"name": "eip712Domain",
+		"inputs": [],
+		"outputs": [
 			{
-				name: 'order',
-				type: 'tuple',
-				internalType: 'struct StandardOrder',
-				components: [
-					{
-						name: 'user',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'nonce',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'originChainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'expires',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'fillDeadline',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'inputOracle',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'inputs',
-						type: 'uint256[2][]',
-						internalType: 'uint256[2][]'
-					},
-					{
-						name: 'outputs',
-						type: 'tuple[]',
-						internalType: 'struct MandateOutput[]',
-						components: [
-							{
-								name: 'oracle',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'settler',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'chainId',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'token',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'amount',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'recipient',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'call',
-								type: 'bytes',
-								internalType: 'bytes'
-							},
-							{
-								name: 'context',
-								type: 'bytes',
-								internalType: 'bytes'
-							}
-						]
-					}
-				]
+				"name": "fields",
+				"type": "bytes1",
+				"internalType": "bytes1",
 			},
 			{
-				name: 'timestamps',
-				type: 'uint32[]',
-				internalType: 'uint32[]'
+				"name": "name",
+				"type": "string",
+				"internalType": "string",
 			},
 			{
-				name: 'solvers',
-				type: 'bytes32[]',
-				internalType: 'bytes32[]'
+				"name": "version",
+				"type": "string",
+				"internalType": "string",
 			},
 			{
-				name: 'destination',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "chainId",
+				"type": "uint256",
+				"internalType": "uint256",
 			},
 			{
-				name: 'call',
-				type: 'bytes',
-				internalType: 'bytes'
+				"name": "verifyingContract",
+				"type": "address",
+				"internalType": "address",
 			},
 			{
-				name: 'orderOwnerSignature',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
+				"name": "salt",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "extensions",
+				"type": "uint256[]",
+				"internalType": "uint256[]",
+			},
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'open',
-		inputs: [
+		"type": "function",
+		"name": "finalise",
+		"inputs": [
 			{
-				name: 'order',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
+			{
+				"name": "solveParams",
+				"type": "tuple[]",
+				"internalType": "struct InputSettlerBase.SolveParams[]",
+				"components": [
+					{
+						"name": "timestamp",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "solver",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+				],
+			},
+			{
+				"name": "destination",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "call",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'openFor',
-		inputs: [
+		"type": "function",
+		"name": "finaliseWithSignature",
+		"inputs": [
 			{
-				name: 'order',
-				type: 'bytes',
-				internalType: 'bytes'
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
 			},
 			{
-				name: 'sponsor',
-				type: 'address',
-				internalType: 'address'
+				"name": "solveParams",
+				"type": "tuple[]",
+				"internalType": "struct InputSettlerBase.SolveParams[]",
+				"components": [
+					{
+						"name": "timestamp",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "solver",
+						"type": "bytes32",
+						"internalType": "bytes32",
+					},
+				],
 			},
 			{
-				name: 'signature',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
+				"name": "destination",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "call",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
+			{
+				"name": "orderOwnerSignature",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'orderIdentifier',
-		inputs: [
+		"type": "function",
+		"name": "governanceFee",
+		"inputs": [],
+		"outputs": [
 			{
-				name: 'order',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
+				"name": "",
+				"type": "uint64",
+				"internalType": "uint64",
+			},
 		],
-		outputs: [
+		"stateMutability": "view",
+	},
+	{
+		"type": "function",
+		"name": "nextGovernanceFee",
+		"inputs": [],
+		"outputs": [
 			{
-				name: '',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "",
+				"type": "uint64",
+				"internalType": "uint64",
+			},
 		],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'orderIdentifier',
-		inputs: [
+		"type": "function",
+		"name": "nextGovernanceFeeTime",
+		"inputs": [],
+		"outputs": [
 			{
-				name: 'order',
-				type: 'tuple',
-				internalType: 'struct StandardOrder',
-				components: [
-					{
-						name: 'user',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'nonce',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'originChainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'expires',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'fillDeadline',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'inputOracle',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'inputs',
-						type: 'uint256[2][]',
-						internalType: 'uint256[2][]'
-					},
-					{
-						name: 'outputs',
-						type: 'tuple[]',
-						internalType: 'struct MandateOutput[]',
-						components: [
-							{
-								name: 'oracle',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'settler',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'chainId',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'token',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'amount',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'recipient',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'call',
-								type: 'bytes',
-								internalType: 'bytes'
-							},
-							{
-								name: 'context',
-								type: 'bytes',
-								internalType: 'bytes'
-							}
-						]
-					}
-				]
-			}
+				"name": "",
+				"type": "uint64",
+				"internalType": "uint64",
+			},
 		],
-		outputs: [
+		"stateMutability": "view",
+	},
+	{
+		"type": "function",
+		"name": "open",
+		"inputs": [
 			{
-				name: '',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
 		],
-		stateMutability: 'view'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'orderStatus',
-		inputs: [
+		"type": "function",
+		"name": "openFor",
+		"inputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
+			{
+				"name": "sponsor",
+				"type": "address",
+				"internalType": "address",
+			},
+			{
+				"name": "signature",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		outputs: [
+		"outputs": [],
+		"stateMutability": "nonpayable",
+	},
+	{
+		"type": "function",
+		"name": "openForAndFinalise",
+		"inputs": [
 			{
-				name: '',
-				type: 'uint8',
-				internalType: 'enum InputSettlerEscrow.OrderStatus'
-			}
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
+			{
+				"name": "sponsor",
+				"type": "address",
+				"internalType": "address",
+			},
+			{
+				"name": "signature",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
+			{
+				"name": "destination",
+				"type": "address",
+				"internalType": "address",
+			},
+			{
+				"name": "call",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		stateMutability: 'view'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'function',
-		name: 'purchaseOrder',
-		inputs: [
+		"type": "function",
+		"name": "orderIdentifier",
+		"inputs": [
 			{
-				name: 'orderPurchase',
-				type: 'tuple',
-				internalType: 'struct OrderPurchase',
-				components: [
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
 					{
-						name: 'orderId',
-						type: 'bytes32',
-						internalType: 'bytes32'
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
 					},
 					{
-						name: 'destination',
-						type: 'address',
-						internalType: 'address'
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'call',
-						type: 'bytes',
-						internalType: 'bytes'
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'discount',
-						type: 'uint64',
-						internalType: 'uint64'
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
 					},
 					{
-						name: 'timeToBuy',
-						type: 'uint32',
-						internalType: 'uint32'
-					}
-				]
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
 			},
-			{
-				name: 'order',
-				type: 'tuple',
-				internalType: 'struct StandardOrder',
-				components: [
-					{
-						name: 'user',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'nonce',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'originChainId',
-						type: 'uint256',
-						internalType: 'uint256'
-					},
-					{
-						name: 'expires',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'fillDeadline',
-						type: 'uint32',
-						internalType: 'uint32'
-					},
-					{
-						name: 'inputOracle',
-						type: 'address',
-						internalType: 'address'
-					},
-					{
-						name: 'inputs',
-						type: 'uint256[2][]',
-						internalType: 'uint256[2][]'
-					},
-					{
-						name: 'outputs',
-						type: 'tuple[]',
-						internalType: 'struct MandateOutput[]',
-						components: [
-							{
-								name: 'oracle',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'settler',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'chainId',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'token',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'amount',
-								type: 'uint256',
-								internalType: 'uint256'
-							},
-							{
-								name: 'recipient',
-								type: 'bytes32',
-								internalType: 'bytes32'
-							},
-							{
-								name: 'call',
-								type: 'bytes',
-								internalType: 'bytes'
-							},
-							{
-								name: 'context',
-								type: 'bytes',
-								internalType: 'bytes'
-							}
-						]
-					}
-				]
-			},
-			{
-				name: 'orderSolvedByIdentifier',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			},
-			{
-				name: 'purchaser',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			},
-			{
-				name: 'expiryTimestamp',
-				type: 'uint256',
-				internalType: 'uint256'
-			},
-			{
-				name: 'solverSignature',
-				type: 'bytes',
-				internalType: 'bytes'
-			}
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'purchasedOrders',
-		inputs: [
+		"type": "function",
+		"name": "orderStatus",
+		"inputs": [
 			{
-				name: 'solver',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
-			{
-				name: 'orderId',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
 		],
-		outputs: [
+		"outputs": [
 			{
-				name: 'lastOrderTimestamp',
-				type: 'uint32',
-				internalType: 'uint32'
+				"name": "",
+				"type": "uint8",
+				"internalType": "enum InputSettlerEscrow.OrderStatus",
 			},
-			{
-				name: 'purchaser',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
 		],
-		stateMutability: 'view'
+		"stateMutability": "view",
 	},
 	{
-		type: 'function',
-		name: 'refund',
-		inputs: [
+		"type": "function",
+		"name": "owner",
+		"inputs": [],
+		"outputs": [
 			{
-				name: 'order',
-				type: 'tuple',
-				internalType: 'struct StandardOrder',
-				components: [
+				"name": "result",
+				"type": "address",
+				"internalType": "address",
+			},
+		],
+		"stateMutability": "view",
+	},
+	{
+		"type": "function",
+		"name": "ownershipHandoverExpiresAt",
+		"inputs": [
+			{
+				"name": "pendingOwner",
+				"type": "address",
+				"internalType": "address",
+			},
+		],
+		"outputs": [
+			{
+				"name": "result",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+		],
+		"stateMutability": "view",
+	},
+	{
+		"type": "function",
+		"name": "purchaseOrder",
+		"inputs": [
+			{
+				"name": "orderPurchase",
+				"type": "tuple",
+				"internalType": "struct OrderPurchase",
+				"components": [
 					{
-						name: 'user',
-						type: 'address',
-						internalType: 'address'
+						"name": "orderId",
+						"type": "bytes32",
+						"internalType": "bytes32",
 					},
 					{
-						name: 'nonce',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "destination",
+						"type": "address",
+						"internalType": "address",
 					},
 					{
-						name: 'originChainId',
-						type: 'uint256',
-						internalType: 'uint256'
+						"name": "call",
+						"type": "bytes",
+						"internalType": "bytes",
 					},
 					{
-						name: 'expires',
-						type: 'uint32',
-						internalType: 'uint32'
+						"name": "discount",
+						"type": "uint64",
+						"internalType": "uint64",
 					},
 					{
-						name: 'fillDeadline',
-						type: 'uint32',
-						internalType: 'uint32'
+						"name": "timeToBuy",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+				],
+			},
+			{
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
 					},
 					{
-						name: 'inputOracle',
-						type: 'address',
-						internalType: 'address'
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'inputs',
-						type: 'uint256[2][]',
-						internalType: 'uint256[2][]'
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
 					},
 					{
-						name: 'outputs',
-						type: 'tuple[]',
-						internalType: 'struct MandateOutput[]',
-						components: [
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
 							{
-								name: 'oracle',
-								type: 'bytes32',
-								internalType: 'bytes32'
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
 							},
 							{
-								name: 'settler',
-								type: 'bytes32',
-								internalType: 'bytes32'
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
 							},
 							{
-								name: 'chainId',
-								type: 'uint256',
-								internalType: 'uint256'
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
 							},
 							{
-								name: 'token',
-								type: 'bytes32',
-								internalType: 'bytes32'
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
 							},
 							{
-								name: 'amount',
-								type: 'uint256',
-								internalType: 'uint256'
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
 							},
 							{
-								name: 'recipient',
-								type: 'bytes32',
-								internalType: 'bytes32'
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
 							},
 							{
-								name: 'call',
-								type: 'bytes',
-								internalType: 'bytes'
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
 							},
 							{
-								name: 'context',
-								type: 'bytes',
-								internalType: 'bytes'
-							}
-						]
-					}
-				]
-			}
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
+			{
+				"name": "orderSolvedByIdentifier",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "purchaser",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "expiryTimestamp",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+			{
+				"name": "solverSignature",
+				"type": "bytes",
+				"internalType": "bytes",
+			},
 		],
-		outputs: [],
-		stateMutability: 'nonpayable'
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'event',
-		name: 'Finalised',
-		inputs: [
+		"type": "function",
+		"name": "purchasedOrders",
+		"inputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				indexed: true,
-				internalType: 'bytes32'
+				"name": "solver",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
 			{
-				name: 'solver',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
+				"name": "orderId",
+				"type": "bytes32",
+				"internalType": "bytes32",
 			},
-			{
-				name: 'destination',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
-			}
 		],
-		anonymous: false
-	},
-	{
-		type: 'event',
-		name: 'Open',
-		inputs: [
+		"outputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				indexed: true,
-				internalType: 'bytes32'
+				"name": "lastOrderTimestamp",
+				"type": "uint32",
+				"internalType": "uint32",
 			},
 			{
-				name: 'order',
-				type: 'bytes',
-				indexed: false,
-				internalType: 'bytes'
-			}
+				"name": "purchaser",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
 		],
-		anonymous: false
+		"stateMutability": "view",
 	},
 	{
-		type: 'event',
-		name: 'OrderPurchased',
-		inputs: [
+		"type": "function",
+		"name": "refund",
+		"inputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				indexed: true,
-				internalType: 'bytes32'
+				"name": "order",
+				"type": "tuple",
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
 			},
-			{
-				name: 'solver',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
-			},
-			{
-				name: 'purchaser',
-				type: 'bytes32',
-				indexed: false,
-				internalType: 'bytes32'
-			}
 		],
-		anonymous: false
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'event',
-		name: 'Refunded',
-		inputs: [
+		"type": "function",
+		"name": "renounceOwnership",
+		"inputs": [],
+		"outputs": [],
+		"stateMutability": "payable",
+	},
+	{
+		"type": "function",
+		"name": "requestOwnershipHandover",
+		"inputs": [],
+		"outputs": [],
+		"stateMutability": "payable",
+	},
+	{
+		"type": "function",
+		"name": "setGovernanceFee",
+		"inputs": [
 			{
-				name: 'orderId',
-				type: 'bytes32',
-				indexed: true,
-				internalType: 'bytes32'
-			}
+				"name": "_nextGovernanceFee",
+				"type": "uint64",
+				"internalType": "uint64",
+			},
 		],
-		anonymous: false
+		"outputs": [],
+		"stateMutability": "nonpayable",
 	},
 	{
-		type: 'error',
-		name: 'AlreadyPurchased',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'CallOutOfRange',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'CodeSize0',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'ContextOutOfRange',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'Expired',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'FilledTooLate',
-		inputs: [
+		"type": "function",
+		"name": "transferOwnership",
+		"inputs": [
 			{
-				name: 'expected',
-				type: 'uint32',
-				internalType: 'uint32'
+				"name": "newOwner",
+				"type": "address",
+				"internalType": "address",
+			},
+		],
+		"outputs": [],
+		"stateMutability": "payable",
+	},
+	{
+		"type": "event",
+		"name": "EIP712DomainChanged",
+		"inputs": [],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "Finalised",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'actual',
-				type: 'uint32',
-				internalType: 'uint32'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'InputTokenHasDirtyBits',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'InvalidOrderStatus',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'InvalidPurchaser',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'InvalidSigner',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'InvalidTimestampLength',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'NoDestination',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'NotOrderOwner',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'OrderIdMismatch',
-		inputs: [
-			{
-				name: 'provided',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				"name": "solver",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
 			},
 			{
-				name: 'computed',
-				type: 'bytes32',
-				internalType: 'bytes32'
-			}
-		]
+				"name": "destination",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
+			},
+		],
+		"anonymous": false,
 	},
 	{
-		type: 'error',
-		name: 'ReentrancyDetected',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'SignatureAndInputsNotEqual',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'SignatureNotSupported',
-		inputs: [
+		"type": "event",
+		"name": "GovernanceFeeChanged",
+		"inputs": [
 			{
-				name: '',
-				type: 'bytes1',
-				internalType: 'bytes1'
-			}
-		]
-	},
-	{
-		type: 'error',
-		name: 'TimestampNotPassed',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'TimestampPassed',
-		inputs: []
-	},
-	{
-		type: 'error',
-		name: 'WrongChain',
-		inputs: [
-			{
-				name: 'expected',
-				type: 'uint256',
-				internalType: 'uint256'
+				"name": "oldGovernanceFee",
+				"type": "uint64",
+				"indexed": false,
+				"internalType": "uint64",
 			},
 			{
-				name: 'actual',
-				type: 'uint256',
-				internalType: 'uint256'
-			}
-		]
-	}
+				"name": "newGovernanceFee",
+				"type": "uint64",
+				"indexed": false,
+				"internalType": "uint64",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "NextGovernanceFee",
+		"inputs": [
+			{
+				"name": "nextGovernanceFee",
+				"type": "uint64",
+				"indexed": false,
+				"internalType": "uint64",
+			},
+			{
+				"name": "nextGovernanceFeeTime",
+				"type": "uint64",
+				"indexed": false,
+				"internalType": "uint64",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "Open",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
+			},
+			{
+				"name": "order",
+				"type": "tuple",
+				"indexed": false,
+				"internalType": "struct StandardOrder",
+				"components": [
+					{
+						"name": "user",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "nonce",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "originChainId",
+						"type": "uint256",
+						"internalType": "uint256",
+					},
+					{
+						"name": "expires",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "fillDeadline",
+						"type": "uint32",
+						"internalType": "uint32",
+					},
+					{
+						"name": "inputOracle",
+						"type": "address",
+						"internalType": "address",
+					},
+					{
+						"name": "inputs",
+						"type": "uint256[2][]",
+						"internalType": "uint256[2][]",
+					},
+					{
+						"name": "outputs",
+						"type": "tuple[]",
+						"internalType": "struct MandateOutput[]",
+						"components": [
+							{
+								"name": "oracle",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "settler",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "chainId",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "token",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "amount",
+								"type": "uint256",
+								"internalType": "uint256",
+							},
+							{
+								"name": "recipient",
+								"type": "bytes32",
+								"internalType": "bytes32",
+							},
+							{
+								"name": "call",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+							{
+								"name": "context",
+								"type": "bytes",
+								"internalType": "bytes",
+							},
+						],
+					},
+				],
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "Open",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "OrderPurchased",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
+			},
+			{
+				"name": "solver",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
+			},
+			{
+				"name": "purchaser",
+				"type": "bytes32",
+				"indexed": false,
+				"internalType": "bytes32",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "OwnershipHandoverCanceled",
+		"inputs": [
+			{
+				"name": "pendingOwner",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "OwnershipHandoverRequested",
+		"inputs": [
+			{
+				"name": "pendingOwner",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "OwnershipTransferred",
+		"inputs": [
+			{
+				"name": "oldOwner",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address",
+			},
+			{
+				"name": "newOwner",
+				"type": "address",
+				"indexed": true,
+				"internalType": "address",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "event",
+		"name": "Refunded",
+		"inputs": [
+			{
+				"name": "orderId",
+				"type": "bytes32",
+				"indexed": true,
+				"internalType": "bytes32",
+			},
+		],
+		"anonymous": false,
+	},
+	{
+		"type": "error",
+		"name": "AlreadyInitialized",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "AlreadyPurchased",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "CallOutOfRange",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "CodeSize0",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "ContextOutOfRange",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "Expired",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "FilledTooLate",
+		"inputs": [
+			{
+				"name": "expected",
+				"type": "uint32",
+				"internalType": "uint32",
+			},
+			{
+				"name": "actual",
+				"type": "uint32",
+				"internalType": "uint32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "GovernanceFeeChangeNotReady",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "GovernanceFeeTooHigh",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "HasDirtyBits",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidOrderStatus",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidPurchaser",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidShortString",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidSigner",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "InvalidTimestampLength",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NewOwnerIsZeroAddress",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NoDestination",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NoHandoverRequest",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "NotOrderOwner",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "OrderIdMismatch",
+		"inputs": [
+			{
+				"name": "provided",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+			{
+				"name": "computed",
+				"type": "bytes32",
+				"internalType": "bytes32",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "ReentrancyDetected",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "SafeERC20FailedOperation",
+		"inputs": [
+			{
+				"name": "token",
+				"type": "address",
+				"internalType": "address",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "SignatureAndInputsNotEqual",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "SignatureNotSupported",
+		"inputs": [
+			{
+				"name": "",
+				"type": "bytes1",
+				"internalType": "bytes1",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "StringTooLong",
+		"inputs": [
+			{
+				"name": "str",
+				"type": "string",
+				"internalType": "string",
+			},
+		],
+	},
+	{
+		"type": "error",
+		"name": "TimestampNotPassed",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "TimestampPassed",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "Unauthorized",
+		"inputs": [],
+	},
+	{
+		"type": "error",
+		"name": "WrongChain",
+		"inputs": [
+			{
+				"name": "expected",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+			{
+				"name": "actual",
+				"type": "uint256",
+				"internalType": "uint256",
+			},
+		],
+	},
 ] as const;
