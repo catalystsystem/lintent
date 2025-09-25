@@ -208,22 +208,34 @@ export function swap(
 		const sponsorSignature = await signaturePromise;
 
 		console.log({ order, batchCompact, sponsorSignature });
-
-		const submitOrderResponse = await submitOrder({
-			orderType: "CatalystCompactOrder",
-			order,
+		orders.push({
+			order: order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
-			sponsorSignature,
-			allocatorSignature: "0x",
-			quote: {
-				fromAsset: opts.inputTokens[0].address,
-				toAsset: opts.inputTokens[0].address,
-				fromPrice: "1",
-				toPrice: "1",
-				intermediary: "1",
-				discount: "1",
+			sponsorSignature: {
+				type: "ECDSA",
+				payload: sponsorSignature,
+			},
+			allocatorSignature: {
+				type: "None",
+				payload: "0x",
 			},
 		});
+
+		// const submitOrderResponse = await submitOrder({
+		// 	orderType: "CatalystCompactOrder",
+		// 	order,
+		// 	inputSettler: INPUT_SETTLER_COMPACT_LIFI,
+		// 	sponsorSignature,
+		// 	allocatorSignature: "0x",
+		// 	quote: {
+		// 		fromAsset: opts.inputTokens[0].address,
+		// 		toAsset: opts.inputTokens[0].address,
+		// 		fromPrice: "1",
+		// 		toPrice: "1",
+		// 		intermediary: "1",
+		// 		discount: "1",
+		// 	},
+		// });
 
 		if (postHook) await postHook();
 	};
@@ -280,6 +292,18 @@ export function depositAndSwap(
 			.waitForTransactionReceipt({
 				hash: await transactionHash,
 			});
+		orders.push({
+			order: order,
+			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
+			sponsorSignature: {
+				type: "None",
+				payload: "0x",
+			},
+			allocatorSignature: {
+				type: "None",
+				payload: "0x",
+			},
+		});
 
 		const sponsorSignature = "0x";
 		const allocatorSignature = "0x";
@@ -326,23 +350,23 @@ export function depositAndSwap(
 			allocatorSignature,
 		});
 
-		const submitOrderResponse = await submitOrderUnsigned({
-			orderType: "CatalystCompactOrder",
-			order,
-			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
-			quote: {
-				fromAsset: opts.inputTokens[0].address,
-				toAsset: opts.inputTokens[0].address,
-				fromPrice: "1",
-				toPrice: "1",
-				intermediary: "1",
-				discount: "1",
-			},
-			compactRegistrationTxHash: transactionHash,
-			allocatorSignature,
-		});
+		// const submitOrderResponse = await submitOrderUnsigned({
+		// 	orderType: "CatalystCompactOrder",
+		// 	order,
+		// 	inputSettler: INPUT_SETTLER_COMPACT_LIFI,
+		// 	quote: {
+		// 		fromAsset: opts.inputTokens[0].address,
+		// 		toAsset: opts.inputTokens[0].address,
+		// 		fromPrice: "1",
+		// 		toPrice: "1",
+		// 		intermediary: "1",
+		// 		discount: "1",
+		// 	},
+		// 	compactRegistrationTxHash: transactionHash,
+		// 	allocatorSignature,
+		// });
 
-		console.log({ submitOrderResponse });
+		// console.log({ submitOrderResponse });
 		if (postHook) await postHook();
 	};
 }
@@ -710,7 +734,7 @@ export function claim(
 
 		const solveParam = {
 			timestamp: Number(fillTimestamp),
-			solver: addressToBytes32(account())
+			solver: addressToBytes32(account()),
 		};
 
 		if (inputSettler === INPUT_SETTLER_ESCROW_LIFI) {
