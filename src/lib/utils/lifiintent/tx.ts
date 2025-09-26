@@ -18,7 +18,7 @@ import {
 	type Verifier,
 	type WC,
 	wormholeChainIds
-} from '$lib/config';
+} from "$lib/config";
 import {
 	encodeAbiParameters,
 	hashStruct,
@@ -26,7 +26,7 @@ import {
 	parseAbiParameters,
 	toHex,
 	verifyTypedData
-} from 'viem';
+} from "viem";
 import type {
 	BatchCompact,
 	CompactMandate,
@@ -35,19 +35,19 @@ import type {
 	OrderContainer,
 	Signature,
 	StandardOrder
-} from '../../../types';
-import { addressToBytes32, bytes32ToAddress } from '../convert';
-import axios from 'axios';
-import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
-import { SETTLER_COMPACT_ABI } from '$lib/abi/settlercompact';
-import { COIN_FILLER_ABI } from '$lib/abi/outputsettler';
-import { ERC20_ABI } from '$lib/abi/erc20';
-import { COMPACT_ABI } from '$lib/abi/compact';
-import { ResetPeriod, toId } from '../compact/IdLib';
-import { compact_type_hash, compactTypes, StandardOrderAbi } from '../typedMessage';
-import { getOrderId } from './OrderLib';
-import { submitOrder, submitOrderUnsigned } from '../api';
-import { SETTLER_ESCROW_ABI } from '$lib/abi/escrow';
+} from "../../../types";
+import { addressToBytes32, bytes32ToAddress } from "../convert";
+import axios from "axios";
+import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
+import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
+import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
+import { ERC20_ABI } from "$lib/abi/erc20";
+import { COMPACT_ABI } from "$lib/abi/compact";
+import { ResetPeriod, toId } from "../compact/IdLib";
+import { compact_type_hash, compactTypes, StandardOrderAbi } from "../typedMessage";
+import { getOrderId } from "./OrderLib";
+import { submitOrder, submitOrderUnsigned } from "../api";
+import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 
 export type opts = {
 	preHook?: (chain: chain) => Promise<any>;
@@ -107,8 +107,8 @@ export function createOrder(opts: {
 		token: addressToBytes32(outputToken.address),
 		amount: outputAmount,
 		recipient: addressToBytes32(account()),
-		call: '0x',
-		context: '0x'
+		call: "0x",
+		context: "0x"
 	};
 	const outputs = [output];
 
@@ -135,10 +135,10 @@ export function createOrder(opts: {
 	};
 	const commitments = inputs.map(([tokenId, amount]) => {
 		const lockTag: `0x${string}` = `0x${toHex(tokenId)
-			.replace('0x', '')
+			.replace("0x", "")
 			.slice(0, 12 * 2)}`;
 		const token: `0x${string}` = `0x${toHex(tokenId)
-			.replace('0x', '')
+			.replace("0x", "")
 			.slice(12 * 2, 32 * 2)}`;
 		return {
 			lockTag,
@@ -183,13 +183,13 @@ export function swap(
 		const signaturePromise = walletClient.signTypedData({
 			account: account(),
 			domain: {
-				name: 'The Compact',
-				version: '1',
+				name: "The Compact",
+				version: "1",
 				chainId: chainMap[inputTokens[0].chain].id,
 				verifyingContract: COMPACT
 			} as const,
 			types: compactTypes,
-			primaryType: 'BatchCompact',
+			primaryType: "BatchCompact",
 			message: batchCompact
 		});
 		const sponsorSignature = await signaturePromise;
@@ -199,31 +199,31 @@ export function swap(
 			order: order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			sponsorSignature: {
-				type: 'ECDSA',
+				type: "ECDSA",
 				payload: sponsorSignature
 			},
 			allocatorSignature: {
-				type: 'None',
-				payload: '0x'
+				type: "None",
+				payload: "0x"
 			}
 		});
 
 		const signedOrder = await submitOrder({
-			orderType: 'CatalystCompactOrder',
+			orderType: "CatalystCompactOrder",
 			order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			sponsorSignature,
-			allocatorSignature: '0x',
+			allocatorSignature: "0x",
 			quote: {
 				fromAsset: opts.inputTokens[0].address,
 				toAsset: opts.inputTokens[0].address,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1"
 			}
 		});
-		console.log('signedOrder', signedOrder);
+		console.log("signedOrder", signedOrder);
 
 		if (postHook) await postHook();
 	};
@@ -238,7 +238,7 @@ export function depositAndSwap(walletClient: WC, opts: opts, orders: OrderContai
 		const claimHash = hashStruct({
 			data: batchCompact,
 			types: compactTypes,
-			primaryType: 'BatchCompact'
+			primaryType: "BatchCompact"
 		});
 		const typeHash = compact_type_hash;
 
@@ -258,7 +258,7 @@ export function depositAndSwap(walletClient: WC, opts: opts, orders: OrderContai
 			account: account(),
 			address: COMPACT,
 			abi: COMPACT_ABI,
-			functionName: 'batchDepositAndRegisterMultiple',
+			functionName: "batchDepositAndRegisterMultiple",
 			args: [idsAndAmounts, [[claimHash, typeHash]]]
 		});
 
@@ -266,8 +266,8 @@ export function depositAndSwap(walletClient: WC, opts: opts, orders: OrderContai
 			hash: await transactionHash
 		});
 
-		const sponsorSignature = '0x';
-		let allocatorSignature: `0x${string}` = '0x';
+		const sponsorSignature = "0x";
+		let allocatorSignature: `0x${string}` = "0x";
 		// Check the allocator:
 		if (allocatorId == POLYMER_ALLOCATOR) {
 			// Get allocation
@@ -278,8 +278,8 @@ export function depositAndSwap(walletClient: WC, opts: opts, orders: OrderContai
 			// 	order: order
 			// });
 			const dat = {
-				allocatorAddress: '0x',
-				allocatorSignature: '0x'
+				allocatorAddress: "0x",
+				allocatorSignature: "0x"
 			} as {
 				allocatorSignature: `0x${string}`;
 				allocatorAddress: `0x${string}`;
@@ -316,35 +316,35 @@ export function depositAndSwap(walletClient: WC, opts: opts, orders: OrderContai
 			order: order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			sponsorSignature: {
-				type: 'None',
-				payload: '0x'
+				type: "None",
+				payload: "0x"
 			},
 			allocatorSignature:
-				allocatorSignature === '0x'
+				allocatorSignature === "0x"
 					? {
-							type: 'None',
-							payload: '0x'
+							type: "None",
+							payload: "0x"
 						}
-					: { type: 'ECDSA', payload: allocatorSignature }
+					: { type: "ECDSA", payload: allocatorSignature }
 		});
 
 		const unsignedOrder = await submitOrderUnsigned({
-			orderType: 'CatalystCompactOrder',
+			orderType: "CatalystCompactOrder",
 			order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 			quote: {
 				fromAsset: opts.inputTokens[0].address,
 				toAsset: opts.inputTokens[0].address,
-				fromPrice: '1',
-				toPrice: '1',
-				intermediary: '1',
-				discount: '1'
+				fromPrice: "1",
+				toPrice: "1",
+				intermediary: "1",
+				discount: "1"
 			},
 			compactRegistrationTxHash: transactionHash,
 			allocatorSignature
 		});
 
-		console.log('unsignedOrder', unsignedOrder);
+		console.log("unsignedOrder", unsignedOrder);
 		if (postHook) await postHook();
 	};
 }
@@ -368,7 +368,7 @@ export function escrowApprove(
 			const currentAllowance = await publicClient.readContract({
 				address: inputToken.address,
 				abi: ERC20_ABI,
-				functionName: 'allowance',
+				functionName: "allowance",
 				args: [account(), INPUT_SETTLER_ESCROW_LIFI]
 			});
 			if (currentAllowance >= inputAmounts[i]) continue;
@@ -377,7 +377,7 @@ export function escrowApprove(
 				account: account(),
 				address: inputToken.address,
 				abi: ERC20_ABI,
-				functionName: 'approve',
+				functionName: "approve",
 				args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256]
 			});
 
@@ -404,7 +404,7 @@ export function openIntent(walletClient: WC, opts: opts, orders: OrderContainer[
 			account: account(),
 			address: INPUT_SETTLER_ESCROW_LIFI,
 			abi: SETTLER_ESCROW_ABI,
-			functionName: 'open',
+			functionName: "open",
 			args: [order]
 		});
 
@@ -416,12 +416,12 @@ export function openIntent(walletClient: WC, opts: opts, orders: OrderContainer[
 			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
 			order,
 			sponsorSignature: {
-				type: 'None',
-				payload: '0x'
+				type: "None",
+				payload: "0x"
 			},
 			allocatorSignature: {
-				type: 'None',
-				payload: '0x'
+				type: "None",
+				payload: "0x"
 			}
 		});
 
@@ -453,7 +453,7 @@ export function fill(
 		const orderId = getOrderId({ order, inputSettler });
 		//Check that only 1 output exists.
 		if (outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
+			throw new Error("Order must have exactly one output");
 		}
 
 		const outputChain = getChainName(outputs[0].chainId);
@@ -461,13 +461,13 @@ export function fill(
 		for (const output of outputs) {
 			if (output.token === BYTES32_ZERO) {
 				// The destination asset cannot be ETH.
-				throw new Error('Output token cannot be ETH');
+				throw new Error("Output token cannot be ETH");
 			}
 			if (output.chainId != outputs[0].chainId) {
-				throw new Error('Filling outputs on multiple chains with single fill call not supported');
+				throw new Error("Filling outputs on multiple chains with single fill call not supported");
 			}
 			if (output.settler != outputs[0].settler) {
-				throw new Error('Different settlers on outputs, not supported');
+				throw new Error("Different settlers on outputs, not supported");
 			}
 
 			// Check allowance & set allowance if needed
@@ -475,7 +475,7 @@ export function fill(
 			const allowance = await publicClients[outputChain].readContract({
 				address: assetAddress,
 				abi: ERC20_ABI,
-				functionName: 'allowance',
+				functionName: "allowance",
 				args: [account(), bytes32ToAddress(output.settler)]
 			});
 			if (preHook) await preHook(outputChain);
@@ -485,7 +485,7 @@ export function fill(
 					account: account(),
 					address: assetAddress,
 					abi: ERC20_ABI,
-					functionName: 'approve',
+					functionName: "approve",
 					args: [bytes32ToAddress(output.settler), maxUint256]
 				});
 				await clients[outputChain].waitForTransactionReceipt({
@@ -499,7 +499,7 @@ export function fill(
 			account: account(),
 			address: bytes32ToAddress(outputs[0].settler),
 			abi: COIN_FILLER_ABI,
-			functionName: 'fillOrderOutputs',
+			functionName: "fillOrderOutputs",
 			args: [orderId, outputs, order.fillDeadline, addressToBytes32(account())]
 		});
 		await clients[outputChain].waitForTransactionReceipt({
@@ -577,12 +577,12 @@ export function validate(
 		const sourceChain = getChainName(order.originChainId);
 		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
+			throw new Error("Order must have exactly one output");
 		}
 		// The destination asset cannot be ETH.
 		const output = order.outputs[0];
 
-		if (order.inputOracle === getOracle('polymer', sourceChain)) {
+		if (order.inputOracle === getOracle("polymer", sourceChain)) {
 			const transactionReceipt = await clients[outputChain].getTransactionReceipt({
 				hash: fillTransactionHash as `0x${string}`
 			});
@@ -622,8 +622,8 @@ export function validate(
 					account: account(),
 					address: order.inputOracle,
 					abi: POLYMER_ORACLE_ABI,
-					functionName: 'receiveMessage',
-					args: [`0x${proof.replace('0x', '')}`]
+					functionName: "receiveMessage",
+					args: [`0x${proof.replace("0x", "")}`]
 				});
 
 				const result = await clients[sourceChain].waitForTransactionReceipt({
@@ -634,14 +634,14 @@ export function validate(
 			}
 		}
 
-		if (order.inputOracle === getOracle('wormhole', sourceChain)) {
+		if (order.inputOracle === getOracle("wormhole", sourceChain)) {
 			// TODO: get sequence from event.
 			const sequence = 0;
 			// Get VAA
 			const wormholeChainId = wormholeChainIds[outputChain];
 			const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
-				'0x',
-				''
+				"0x",
+				""
 			)}/${sequence}?network=Testnet`;
 			const response = await axios.get(requestUrl);
 			console.log(response.data);
@@ -675,7 +675,7 @@ export function claim(
 		const { order } = orderContainer;
 		const outputChain = getChainName(order.outputs[0].chainId);
 		if (order.outputs.length !== 1) {
-			throw new Error('Order must have exactly one output');
+			throw new Error("Order must have exactly one output");
 		}
 		const transactionReceipt = await clients[outputChain].getTransactionReceipt({
 			hash: fillTransactionHash as `0x${string}`
@@ -705,8 +705,8 @@ export function claim(
 				account: account(),
 				address: inputSettler,
 				abi: SETTLER_ESCROW_ABI,
-				functionName: 'finalise',
-				args: [order, [solveParam], addressToBytes32(account()), '0x']
+				functionName: "finalise",
+				args: [order, [solveParam], addressToBytes32(account()), "0x"]
 			});
 		} else if (inputSettler === INPUT_SETTLER_COMPACT_LIFI) {
 			// Check whether or not we have a signature.
@@ -715,8 +715,8 @@ export function claim(
 				sponsorSignature,
 				allocatorSignature
 			});
-			const combinedSignatures = encodeAbiParameters(parseAbiParameters(['bytes', 'bytes']), [
-				sponsorSignature.payload ?? '0x',
+			const combinedSignatures = encodeAbiParameters(parseAbiParameters(["bytes", "bytes"]), [
+				sponsorSignature.payload ?? "0x",
 				allocatorSignature.payload
 			]);
 			transactionHash = await walletClient.writeContract({
@@ -724,8 +724,8 @@ export function claim(
 				account: account(),
 				address: inputSettler,
 				abi: SETTLER_COMPACT_ABI,
-				functionName: 'finalise',
-				args: [order, combinedSignatures, [solveParam], addressToBytes32(account()), '0x']
+				functionName: "finalise",
+				args: [order, combinedSignatures, [solveParam], addressToBytes32(account()), "0x"]
 			});
 		} else {
 			throw new Error(`Could not detect settler type ${orderContainer.inputSettler}`);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
+	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import {
 		INPUT_SETTLER_COMPACT_LIFI,
 		type WC,
@@ -12,10 +12,10 @@
 		formatTokenAmount,
 		type chain,
 		INPUT_SETTLER_ESCROW_LIFI
-	} from '$lib/config';
-	import { compactApprove } from '$lib/utils/compact/tx';
-	import { depositAndSwap, escrowApprove, openIntent, swap } from '$lib/utils/lifiintent/tx';
-	import type { OrderContainer } from '../../types';
+	} from "$lib/config";
+	import { compactApprove } from "$lib/utils/compact/tx";
+	import { depositAndSwap, escrowApprove, openIntent, swap } from "$lib/utils/lifiintent/tx";
+	import type { OrderContainer } from "../../types";
 
 	let {
 		scroll,

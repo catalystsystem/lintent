@@ -1,8 +1,8 @@
 <script lang="ts">
-	import AwaitButton from '../components/AwaitButton.svelte';
+	import AwaitButton from "../components/AwaitButton.svelte";
 
-	import { claim } from '$lib/utils/lifiintent/tx';
-	import type { OrderContainer, StandardOrder } from '../../types';
+	import { claim } from "$lib/utils/lifiintent/tx";
+	import type { OrderContainer, StandardOrder } from "../../types";
 	import {
 		COMPACT,
 		formatTokenAmount,
@@ -13,10 +13,10 @@
 		INPUT_SETTLER_ESCROW_LIFI,
 		type chain,
 		type WC
-	} from '$lib/config';
-	import { COMPACT_ABI } from '$lib/abi/compact';
-	import { SETTLER_ESCROW_ABI } from '$lib/abi/escrow';
-	import { idToToken } from '$lib/utils/convert';
+	} from "$lib/config";
+	import { COMPACT_ABI } from "$lib/abi/compact";
+	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
+	import { idToToken } from "$lib/utils/convert";
 
 	let {
 		orderContainer,
@@ -53,13 +53,13 @@
 			const orderId = await inputChainClient.readContract({
 				address: inputSettler,
 				abi: SETTLER_ESCROW_ABI,
-				functionName: 'orderIdentifier',
+				functionName: "orderIdentifier",
 				args: [order]
 			});
 			const orderStatus = await inputChainClient.readContract({
 				address: inputSettler,
 				abi: SETTLER_ESCROW_ABI,
-				functionName: 'orderStatus',
+				functionName: "orderStatus",
 				args: [orderId]
 			});
 			return orderStatus == OrderStatus_Claimed || orderStatus == OrderStatus_Refunded;
@@ -68,14 +68,14 @@
 			const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
 				address: COMPACT,
 				abi: COMPACT_ABI,
-				functionName: 'getLockDetails',
+				functionName: "getLockDetails",
 				args: [order.inputs[0][0]]
 			});
 			// Check if nonce is spent.
 			return await inputChainClient.readContract({
 				address: COMPACT,
 				abi: COMPACT_ABI,
-				functionName: 'hasConsumedAllocatorNonce',
+				functionName: "hasConsumedAllocatorNonce",
 				args: [order.nonce, allocator]
 			});
 		}
@@ -91,7 +91,7 @@
 		</h2>
 		<hr class="my-1" />
 		<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
-			{#await isClaimed(orderContainer, '')}
+			{#await isClaimed(orderContainer, "")}
 				<button
 					type="button"
 					class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"

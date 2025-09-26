@@ -7,13 +7,13 @@
 		getCoin,
 		type chain,
 		type WC
-	} from '$lib/config';
-	import { bytes32ToAddress } from '$lib/utils/convert';
-	import { getOrderId, getOutputHash } from '$lib/utils/lifiintent/OrderLib';
-	import type { MandateOutput, OrderContainer } from '../../types';
-	import { fill } from '$lib/utils/lifiintent/tx';
-	import { COIN_FILLER_ABI } from '$lib/abi/outputsettler';
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
+	} from "$lib/config";
+	import { bytes32ToAddress } from "$lib/utils/convert";
+	import { getOrderId, getOutputHash } from "$lib/utils/lifiintent/OrderLib";
+	import type { MandateOutput, OrderContainer } from "../../types";
+	import { fill } from "$lib/utils/lifiintent/tx";
+	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
+	import AwaitButton from "$lib/components/AwaitButton.svelte";
 
 	let {
 		scroll,
@@ -46,7 +46,7 @@
 		const result = await outputClient.readContract({
 			address: bytes32ToAddress(output.settler),
 			abi: COIN_FILLER_ABI,
-			functionName: 'getFillRecord',
+			functionName: "getFillRecord",
 			args: [orderId, outputHash]
 		});
 		console.log({ orderId, output, result, outputHash });
@@ -151,8 +151,8 @@
 					{:then filled}
 						<div
 							class={[
-								'h-8 w-28 rounded pt-0.5 text-center',
-								filled === BYTES32_ZERO ? 'bg-slate-200' : 'bg-green-100'
+								"h-8 w-28 rounded pt-0.5 text-center",
+								filled === BYTES32_ZERO ? "bg-slate-200" : "bg-green-100"
 							]}
 						>
 							<div class="flex flex-col items-center justify-center align-middle">

@@ -13,11 +13,11 @@
 		type availableAllocators,
 		type availableInputSettlers,
 		type balanceQuery
-	} from '$lib/config';
-	import BalanceField from '$lib/components/BalanceField.svelte';
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
-	import { compactApprove, compactDeposit, compactWithdraw } from '$lib/utils/compact/tx';
-	import { toBigIntWithDecimals } from '$lib/utils/convert';
+	} from "$lib/config";
+	import BalanceField from "$lib/components/BalanceField.svelte";
+	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import { compactApprove, compactDeposit, compactWithdraw } from "$lib/utils/compact/tx";
+	import { toBigIntWithDecimals } from "$lib/utils/convert";
 
 	let {
 		scroll,
@@ -47,7 +47,7 @@
 		account: () => `0x${string}`;
 	} = $props();
 
-	let manageAssetAction: 'deposit' | 'withdraw' = $state('deposit');
+	let manageAssetAction: "deposit" | "withdraw" = $state("deposit");
 
 	let allowance = $state(0n);
 	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, inputToken.decimals));
@@ -61,7 +61,9 @@
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Assets Management</h1>
 	<p class="text-sm">
-		Select input type for your intent and manage deposited tokens. When done, continue to the right. If you want to be using TheCompact with signatures, ensure your tokens are deposited before you continue.
+		Select input type for your intent and manage deposited tokens. When done, continue to the right.
+		If you want to be using TheCompact with signatures, ensure your tokens are deposited before you
+		continue.
 	</p>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
@@ -111,7 +113,7 @@
 				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={inputNumber} />
 				<span>of</span>
 				<BalanceField
-					value={(manageAssetAction === 'withdraw' ? compactBalances : balances)[inputToken.chain][
+					value={(manageAssetAction === "withdraw" ? compactBalances : balances)[inputToken.chain][
 						inputToken.address
 					]}
 					decimals={inputToken.decimals}
@@ -129,7 +131,7 @@
 
 			<!-- Action Button -->
 			<div class="flex justify-center">
-				{#if manageAssetAction === 'withdraw'}
+				{#if manageAssetAction === "withdraw"}
 					<AwaitButton
 						buttonFunction={compactWithdraw(walletClient, {
 							preHook,

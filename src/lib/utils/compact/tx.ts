@@ -8,7 +8,7 @@ import {
 	clients,
 	COMPACT,
 	type Token,
-	type WC,
+	type WC
 } from "$lib/config";
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { addressToBytes32 } from "../convert";
@@ -23,23 +23,20 @@ export function compactDeposit(
 		account: () => `0x${string}`;
 		inputAmount: bigint;
 		allocatorId: string;
-	},
+	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } =
-			opts;
+		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
 		const publicClients = clients;
 		if (preHook) await preHook(inputToken.chain);
-		const lockTag: `0x${string}` = `0x${
-			toHex(
-				toId(true, ResetPeriod.OneDay, allocatorId, ADDRESS_ZERO),
-				{
-					size: 32,
-				},
-			)
-				.replace("0x", "")
-				.slice(0, 24)
-		}`;
+		const lockTag: `0x${string}` = `0x${toHex(
+			toId(true, ResetPeriod.OneDay, allocatorId, ADDRESS_ZERO),
+			{
+				size: 32
+			}
+		)
+			.replace("0x", "")
+			.slice(0, 24)}`;
 		const recipient = ADDRESS_ZERO; // This means sender.
 
 		let transactionHash: `0x${string}`;
@@ -51,7 +48,7 @@ export function compactDeposit(
 				abi: COMPACT_ABI,
 				functionName: "depositNative",
 				value: inputAmount,
-				args: [lockTag, recipient],
+				args: [lockTag, recipient]
 			});
 		} else {
 			transactionHash = await walletClient.writeContract({
@@ -60,11 +57,11 @@ export function compactDeposit(
 				address: COMPACT,
 				abi: COMPACT_ABI,
 				functionName: "depositERC20",
-				args: [inputToken.address, lockTag, inputAmount, recipient],
+				args: [inputToken.address, lockTag, inputAmount, recipient]
 			});
 		}
 		await publicClients[inputToken.chain].waitForTransactionReceipt({
-			hash: await transactionHash,
+			hash: await transactionHash
 		});
 		if (postHook) await postHook();
 		return transactionHash;
@@ -80,18 +77,12 @@ export function compactWithdraw(
 		account: () => `0x${string}`;
 		inputAmount: bigint;
 		allocatorId: string;
-	},
+	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } =
-			opts;
+		const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
 		const publicClients = clients;
-		const assetId = toId(
-			true,
-			ResetPeriod.OneDay,
-			allocatorId,
-			inputToken.address,
-		);
+		const assetId = toId(true, ResetPeriod.OneDay, allocatorId, inputToken.address);
 
 		const allocatedTransferStruct: {
 			allocatorData: `0x${string}`;
@@ -110,9 +101,9 @@ export function compactWithdraw(
 			recipients: [
 				{
 					claimant: BigInt(addressToBytes32(account())),
-					amount: inputAmount,
-				},
-			],
+					amount: inputAmount
+				}
+			]
 		};
 
 		if (preHook) await preHook(inputToken.chain);
@@ -122,10 +113,10 @@ export function compactWithdraw(
 			address: COMPACT,
 			abi: COMPACT_ABI,
 			functionName: "allocatedTransfer",
-			args: [allocatedTransferStruct],
+			args: [allocatedTransferStruct]
 		});
 		await publicClients[inputToken.chain].waitForTransactionReceipt({
-			hash: await transactionHash,
+			hash: await transactionHash
 		});
 		if (postHook) await postHook();
 		return transactionHash;
@@ -140,7 +131,7 @@ export function compactApprove(
 		inputTokens: Token[];
 		inputAmounts: bigint[];
 		account: () => `0x${string}`;
-	},
+	}
 ) {
 	return async () => {
 		const { preHook, postHook, inputTokens, inputAmounts, account } = opts;
@@ -153,7 +144,7 @@ export function compactApprove(
 				address: inputToken.address,
 				abi: ERC20_ABI,
 				functionName: "allowance",
-				args: [account(), COMPACT],
+				args: [account(), COMPACT]
 			});
 			if (currentAllowance >= inputAmounts[i]) continue;
 			const transactionHash = walletClient.writeContract({
@@ -162,11 +153,11 @@ export function compactApprove(
 				address: inputToken.address,
 				abi: ERC20_ABI,
 				functionName: "approve",
-				args: [COMPACT, maxUint256],
+				args: [COMPACT, maxUint256]
 			});
 
 			await publicClient.waitForTransactionReceipt({
-				hash: await transactionHash,
+				hash: await transactionHash
 			});
 		}
 		if (postHook) await postHook();

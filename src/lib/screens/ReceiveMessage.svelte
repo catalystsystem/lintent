@@ -6,14 +6,14 @@
 		getCoin,
 		type chain,
 		type WC
-	} from '$lib/config';
-	import { addressToBytes32 } from '$lib/utils/convert';
-	import { encodeMandateOutput, getOrderId } from '$lib/utils/lifiintent/OrderLib';
-	import { keccak256 } from 'viem';
-	import type { MandateOutput, OrderContainer } from '../../types';
-	import { POLYMER_ORACLE_ABI } from '$lib/abi/polymeroracle';
-	import { validate } from '$lib/utils/lifiintent/tx';
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
+	} from "$lib/config";
+	import { addressToBytes32 } from "$lib/utils/convert";
+	import { encodeMandateOutput, getOrderId } from "$lib/utils/lifiintent/OrderLib";
+	import { keccak256 } from "viem";
+	import type { MandateOutput, OrderContainer } from "../../types";
+	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
+	import { validate } from "$lib/utils/lifiintent/tx";
+	import AwaitButton from "$lib/components/AwaitButton.svelte";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
 
@@ -48,7 +48,7 @@
 	) {
 		if (
 			!fillTransactionHash ||
-			!fillTransactionHash.startsWith('0x') ||
+			!fillTransactionHash.startsWith("0x") ||
 			fillTransactionHash.length != 66
 		)
 			return false;
@@ -72,7 +72,7 @@
 		return await sourceChainClient.readContract({
 			address: order.inputOracle,
 			abi: POLYMER_ORACLE_ABI,
-			functionName: 'isProven',
+			functionName: "isProven",
 			args: [output.chainId, output.oracle, output.settler, outputHash]
 		});
 	}
@@ -109,10 +109,10 @@
 					</div>
 				{:then validated}
 					<AwaitButton
-						baseClass={['h-8 w-28 rounded text-center', validated ? 'bg-green-50' : 'bg-yellow-50']}
-						hoverClass={[validated ? '' : 'hover:bg-yellow-100 cursor-pointer']}
+						baseClass={["h-8 w-28 rounded text-center", validated ? "bg-green-50" : "bg-yellow-50"]}
+						hoverClass={[validated ? "" : "hover:bg-yellow-100 cursor-pointer"]}
 						buttonFunction={validated
-							? async () => console.log('Has already been validated')
+							? async () => console.log("Has already been validated")
 							: validate(
 									walletClient,
 									{

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { formatTokenAmount, getChainName, getCoin } from '$lib/config';
-	import { idToToken } from '$lib/utils/convert';
-	import { getOrderId } from '$lib/utils/lifiintent/OrderLib';
-	import type { OrderContainer } from '../../types';
+	import { formatTokenAmount, getChainName, getCoin } from "$lib/config";
+	import { idToToken } from "$lib/utils/convert";
+	import { getOrderId } from "$lib/utils/lifiintent/OrderLib";
+	import type { OrderContainer } from "../../types";
 
 	let {
 		scroll,
@@ -18,9 +18,10 @@
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="mb-2 w-full text-center text-2xl font-medium">Select Intent To Solve</h1>
 	<p class="text-sm">
-		Browse issued intents, including your own. You can fill intents by clicking on them. Solvers listening to the intent server also sees these intents.
+		Browse issued intents, including your own. You can fill intents by clicking on them. Solvers
+		listening to the intent server also sees these intents.
 	</p>
-	<div class="flex flex-col items-center space-y-2 align-middle overflow-y-auto h-[22rem]">
+	<div class="flex h-[22rem] flex-col items-center space-y-2 overflow-y-auto align-middle">
 		{#each orderContainers as orderContainer}
 			<button
 				class="w-11/12 cursor-pointer rounded border border-gray-200 bg-gray-100 pt-1 pb-2 transition-shadow ease-linear hover:shadow-xl"

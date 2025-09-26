@@ -1,4 +1,4 @@
-import { getAddress, hexToBigInt } from 'viem';
+import { getAddress, hexToBigInt } from "viem";
 
 // source: https://github.com/Uniswap/CompactX/blob/main/src/utils/lockId.ts#L17
 
@@ -35,7 +35,7 @@ export function toId(
 ): bigint {
 	// Validate inputs
 	if (resetPeriod < 0 || resetPeriod > 7) {
-		throw new Error('Reset period must be between 0 and 7');
+		throw new Error("Reset period must be between 0 and 7");
 	}
 	// Validate token is a valid address and normalize it
 	const normalizedToken = getAddress(token);
@@ -46,7 +46,7 @@ export function toId(
 	// Convert allocatorId from decimal string to BigInt
 	const allocatorBigInt = BigInt(allocatorId);
 	if (allocatorBigInt > (1n << 92n) - 1n) {
-		throw new Error('AllocatorId must fit in 92 bits');
+		throw new Error("AllocatorId must fit in 92 bits");
 	}
 
 	// Convert token address to BigInt using viem

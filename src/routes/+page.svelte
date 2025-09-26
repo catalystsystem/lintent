@@ -1,8 +1,8 @@
 <script lang="ts">
-	import onboard from '$lib/utils/web3-onboard';
-	import { createWalletClient, custom, maxUint256 } from 'viem';
-	import type { WalletState } from '@web3-onboard/core';
-	import type { NoSignature, OrderContainer, Signature, StandardOrder } from '../types';
+	import onboard from "$lib/utils/web3-onboard";
+	import { createWalletClient, custom, maxUint256 } from "viem";
+	import type { WalletState } from "@web3-onboard/core";
+	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
 	import {
 		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
@@ -18,20 +18,20 @@
 		printToken,
 		getIndexOf,
 		getCoin
-	} from '$lib/config';
-	import { onDestroy, onMount } from 'svelte';
-	import Introduction from '$lib/components/Introduction.svelte';
-	import { getBalance, getAllowance, getCompactBalance } from '$lib/state.svelte';
-	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
-	import { validateOrder } from '$lib/utils/lifiintent/OrderLib';
-	import ManageDeposit from '$lib/screens/ManageDeposit.svelte';
-	import IssueIntent from '$lib/screens/IssueIntent.svelte';
-	import IntentList from '$lib/screens/IntentList.svelte';
-	import FillIntent from '$lib/screens/FillIntent.svelte';
-	import ReceiveMessage from '$lib/screens/ReceiveMessage.svelte';
-	import Finalise from '$lib/screens/Finalise.svelte';
-	import ConnectWallet from '$lib/screens/ConnectWallet.svelte';
-	import TokenModal from '$lib/screens/TokenModal.svelte';
+	} from "$lib/config";
+	import { onDestroy, onMount } from "svelte";
+	import Introduction from "$lib/components/Introduction.svelte";
+	import { getBalance, getAllowance, getCompactBalance } from "$lib/state.svelte";
+	import { connectOrderServerSocket, getOrders } from "$lib/utils/api";
+	import { validateOrder } from "$lib/utils/lifiintent/OrderLib";
+	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
+	import IssueIntent from "$lib/screens/IssueIntent.svelte";
+	import IntentList from "$lib/screens/IntentList.svelte";
+	import FillIntent from "$lib/screens/FillIntent.svelte";
+	import ReceiveMessage from "$lib/screens/ReceiveMessage.svelte";
+	import Finalise from "$lib/screens/Finalise.svelte";
+	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
+	import TokenModal from "$lib/screens/TokenModal.svelte";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -52,21 +52,21 @@
 		let { socket, disconnect } = connectOrderServerSocket((order: OrderPackage) => {
 			const allocatorSignature = order.allocatorSignature
 				? ({
-						type: 'ECDSA',
+						type: "ECDSA",
 						payload: order.allocatorSignature
 					} as Signature)
 				: ({
-						type: 'None',
-						payload: '0x'
+						type: "None",
+						payload: "0x"
 					} as NoSignature);
 			const sponsorSignature = order.sponsorSignature
 				? ({
-						type: 'ECDSA',
+						type: "ECDSA",
 						payload: order.sponsorSignature
 					} as Signature)
 				: ({
-						type: 'None',
-						payload: '0x'
+						type: "None",
+						payload: "0x"
 					} as NoSignature);
 			orders.push({ ...order, allocatorSignature, sponsorSignature });
 			console.log({ orders, order });
@@ -99,21 +99,21 @@
 							}
 							const allocatorSignature = instance.allocatorSignature
 								? ({
-										type: 'ECDSA',
+										type: "ECDSA",
 										payload: instance.allocatorSignature
 									} as Signature)
 								: ({
-										type: 'None',
-										payload: '0x'
+										type: "None",
+										payload: "0x"
 									} as NoSignature);
 							const sponsorSignature = instance.sponsorSignature
 								? ({
-										type: 'ECDSA',
+										type: "ECDSA",
 										payload: instance.sponsorSignature
 									} as Signature)
 								: ({
-										type: 'None',
-										payload: '0x'
+										type: "None",
+										payload: "0x"
 									} as NoSignature);
 							return { ...instance, allocatorSignature, sponsorSignature };
 						});
@@ -124,7 +124,7 @@
 	});
 
 	// --- Wallet --- //
-	const wallets = onboard.state.select('wallets');
+	const wallets = onboard.state.select("wallets");
 	const activeWallet = $state<{ wallet?: WalletState }>({});
 	wallets.subscribe((v) => {
 		activeWallet.wallet = v?.[0];
@@ -166,7 +166,7 @@
 		INPUT_SETTLER_COMPACT_LIFI
 	);
 
-	let verifier: Verifier = $state('polymer');
+	let verifier: Verifier = $state("polymer");
 
 	// Filling Orders
 	let selectedOrder: OrderContainer | undefined = $state(undefined);
@@ -243,7 +243,7 @@
 			const width = snapContainer.clientWidth;
 			snapContainer.scrollTo({
 				left: next ? scrollLeft + Number(next) * width : scrollLeft - width,
-				behavior: 'smooth'
+				behavior: "smooth"
 			});
 		};
 	}
@@ -257,7 +257,7 @@
 		class="mx-auto flex flex-col-reverse items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
 	>
 		<Introduction />
-		<div class="relative h-[30rem] w-[25rem] md:mb-0 mb-4">
+		<div class="relative mb-4 h-[30rem] w-[25rem] md:mb-0">
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
@@ -265,7 +265,10 @@
 				bind:this={snapContainer}
 			>
 				<!-- Right Button -->
-				<a class="absolute w-40 bottom-2 left-[18.5rem] cursor-pointer rounded px-1 text-xs hover:text-sky-800" href="https://li.fi">
+				<a
+					class="absolute bottom-2 left-[18.5rem] w-40 cursor-pointer rounded px-1 text-xs hover:text-sky-800"
+					href="https://li.fi"
+				>
 					Preview by LI.FI
 				</a>
 				<!-- Asset Overlay -->

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import BalanceField from '$lib/components/BalanceField.svelte';
+	import BalanceField from "$lib/components/BalanceField.svelte";
 	import {
 		ADDRESS_ZERO,
 		coinList,
@@ -11,8 +11,8 @@
 		type balanceQuery,
 		type chain,
 		type Token
-	} from '$lib/config';
-	import { toBigIntWithDecimals } from '$lib/utils/convert';
+	} from "$lib/config";
+	import { toBigIntWithDecimals } from "$lib/utils/convert";
 
 	let {
 		showTokenSelector = $bindable(),
@@ -61,11 +61,11 @@
 		if (showTokenSelector.input) {
 			const val = toBigIntWithDecimals(modalNumber, selectedToken.decimals);
 			if (showTokenSelector.index === -1) {
-				console.log('push');
+				console.log("push");
 				inputAmounts.push(val);
 				inputTokens.push(selectedToken);
 			} else {
-				console.log('update', showTokenSelector.index);
+				console.log("update", showTokenSelector.index);
 				inputAmounts[showTokenSelector.index] = val;
 				inputTokens[showTokenSelector.index] = selectedToken;
 			}
@@ -89,9 +89,9 @@
 	<div class="absolute top-30 left-10 h-[12rem] w-[20rem] rounded border border-gray-200 bg-sky-50">
 		<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
 			{#if showTokenSelector.index === -1}
-			<h3 class="-mt-2 text-center text-xl font-medium">Add Asset</h3>
+				<h3 class="-mt-2 text-center text-xl font-medium">Add Asset</h3>
 			{:else}
-			<h3 class="-mt-2 text-center text-xl font-medium">Select Asset</h3>
+				<h3 class="-mt-2 text-center text-xl font-medium">Select Asset</h3>
 			{/if}
 			<div class="flex flex-row space-x-2">
 				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={modalNumber} />
@@ -113,7 +113,7 @@
 						() => `${selectedToken.address},${selectedToken.chain}`,
 						(v) => {
 							console.log(v);
-							const [address, chain] = v.split(',');
+							const [address, chain] = v.split(",");
 							selectedToken = getCoin({ address: address as `0x${string}`, chain: chain as chain });
 						}
 					}
@@ -129,7 +129,10 @@
 					{/if}
 				</select>
 			</div>
-			<button class="rounded border px-4 h-8 text-xl font-bold bg-gray text-gray-600 hover:text-blue-600" onclick={submit}>Save</button>
+			<button
+				class="bg-gray h-8 rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
+				onclick={submit}>Save</button
+			>
 		</div>
 	</div>
 {/if}

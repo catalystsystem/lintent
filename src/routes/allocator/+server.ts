@@ -1,8 +1,8 @@
-import { json } from '@sveltejs/kit';
-import axios from 'axios';
-import type { RequestHandler } from './$types';
-import { PRIVATE_POLYMER_ZONE_API_KEY } from '$env/static/private';
-import { type StandardOrder } from '../../types';
+import { json } from "@sveltejs/kit";
+import axios from "axios";
+import type { RequestHandler } from "./$types";
+import { PRIVATE_POLYMER_ZONE_API_KEY } from "$env/static/private";
+import { type StandardOrder } from "../../types";
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
@@ -19,11 +19,11 @@ export const POST: RequestHandler = async ({ request }) => {
 	console.log({ order, claimHash, blockNumber, chainId });
 
 	const requestAllocation = await axios.post(
-		'https://allocator.devnet.polymer.zone/',
+		"https://allocator.devnet.polymer.zone/",
 		{
-			jsonrpc: '2.0',
+			jsonrpc: "2.0",
 			id: 1,
-			method: 'allocator_attestCommit',
+			method: "allocator_attestCommit",
 			params: [
 				{
 					chainId,
@@ -36,14 +36,14 @@ export const POST: RequestHandler = async ({ request }) => {
 		{
 			headers: {
 				Authorization: `Bearer ${PRIVATE_POLYMER_ZONE_API_KEY}`,
-				'Content-Type': 'application/json',
-				Accept: 'application/json'
+				"Content-Type": "application/json",
+				Accept: "application/json"
 			}
 		}
 	);
 
 	const dat: {
-		jsonrpc: '2.0';
+		jsonrpc: "2.0";
 		id: 1;
 		result: {
 			chainId: number;
