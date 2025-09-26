@@ -152,7 +152,8 @@
 						buttonFunction={compactApprove(walletClient, {
 							preHook,
 							postHook,
-							inputToken,
+							inputTokens: [inputToken],
+							inputAmounts: [inputAmount],
 							account
 						})}
 					>
