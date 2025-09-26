@@ -13,8 +13,6 @@
 		selectedOrder: OrderContainer | undefined;
 		orderContainers: OrderContainer[];
 	} = $props();
-
-	$inspect(orderContainers);
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">

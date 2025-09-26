@@ -98,9 +98,7 @@ export const connectOrderServerSocket = (newOrderFunction: orderPush) => {
 	const socket = new WebSocket(WSS_ORDER_SERVER_URL);
 
 	socket.onmessage = function (event) {
-		console.log('event', event);
 		const message = JSON.parse(event.data);
-		console.log('Received message:', message);
 
 		switch (message.event) {
 			case 'user:vm-order-submit':

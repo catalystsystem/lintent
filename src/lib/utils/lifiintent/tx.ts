@@ -292,6 +292,50 @@ export function depositAndSwap(
 			.waitForTransactionReceipt({
 				hash: await transactionHash,
 			});
+
+		const sponsorSignature = "0x";
+		let allocatorSignature: `0x${string}` = "0x";
+		// Check the allocator:
+		if (allocatorId == POLYMER_ALLOCATOR) {
+			// Get allocation
+			const response = await axios.post(`/allocator`, {
+				chainId: Number(order.originChainId),
+				blockNumber: Number(recepit.blockNumber),
+				claimHash: claimHash,
+				order: order,
+			});
+			const dat = response.data as {
+				allocatorSignature: `0x${string}`;
+				allocatorAddress: `0x${string}`;
+			};
+			allocatorSignature = dat.allocatorSignature;
+			// Check Polymer's signature.
+			const valid = await verifyTypedData({
+				address: dat.allocatorAddress,
+				domain: {
+					name: "The Compact",
+					version: "1",
+					chainId: inputChain.id,
+					verifyingContract: COMPACT,
+				} as const,
+				types: compactTypes,
+				primaryType: "BatchCompact",
+				message: batchCompact,
+				signature: allocatorSignature,
+			});
+			console.log({
+				valid,
+				allocatorSignature,
+				allocatorAddress: dat.allocatorAddress,
+			});
+		}
+		console.log({
+			order,
+			batchCompact,
+			sponsorSignature,
+			allocatorSignature,
+		});
+
 		orders.push({
 			order: order,
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
@@ -299,55 +343,12 @@ export function depositAndSwap(
 				type: "None",
 				payload: "0x",
 			},
-			allocatorSignature: {
-				type: "None",
-				payload: "0x",
-			},
-		});
-
-		const sponsorSignature = "0x";
-		const allocatorSignature = "0x";
-		// let allocatorSignature: `0x${string}` = "0x";
-		// Needs to be sent to the Catalyst order server:
-		// Check the allocator:
-		if (allocatorId == POLYMER_ALLOCATOR) {
-			// Get allocation
-			// const response = await axios.post(`/allocator`, {
-			// 	chainId: Number(order.originChainId),
-			// 	blockNumber: Number(recepit.blockNumber),
-			// 	claimHash: claimHash,
-			// 	order: order,
-			// });
-			// const dat = response.data as {
-			// 	allocatorSignature: `0x${string}`;
-			// 	allocatorAddress: `0x${string}`;
-			// };
-			// allocatorSignature = dat.allocatorSignature;
-			// Check Polymer's signature.
-			// const valid = await verifyTypedData({
-			// 	address: dat.allocatorAddress,
-			// 	domain: {
-			// 		name: "The Compact",
-			// 		version: "1",
-			// 		chainId: chainMap[opts.inputChain].id,
-			// 		verifyingContract: COMPACT,
-			// 	} as const,
-			// 	types: compactTypes,
-			// 	primaryType: "BatchCompact",
-			// 	message: batchCompact,
-			// 	signature: allocatorSignature,
-			// });
-			// console.log({
-			// 	valid,
-			// 	allocatorSignature,
-			// 	allocatorAddress: dat.allocatorAddress,
-			// });
-		}
-		console.log({
-			order,
-			batchCompact,
-			sponsorSignature,
-			allocatorSignature,
+			allocatorSignature: allocatorSignature === "0x"
+				? {
+					type: "None",
+					payload: "0x",
+				}
+				: { type: "ECDSA", payload: allocatorSignature },
 		});
 
 		// const submitOrderResponse = await submitOrderUnsigned({
@@ -729,6 +730,7 @@ export function claim(
 		if (preHook) await preHook(sourceChain);
 
 		const inputSettler = orderContainer.inputSettler;
+		console.log({ orderContainer });
 		let transactionHash: `0x${string}`;
 		const actionChain = chainMap[sourceChain];
 
