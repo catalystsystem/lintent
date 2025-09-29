@@ -1,153 +1,153 @@
 export const POLYMER_ORACLE_ABI = [
 	{
-		type: 'constructor',
+		type: "constructor",
 		inputs: [
 			{
-				name: 'crossL2Prover',
-				type: 'address',
-				internalType: 'address'
+				name: "crossL2Prover",
+				type: "address",
+				internalType: "address"
 			}
 		],
-		stateMutability: 'nonpayable'
+		stateMutability: "nonpayable"
 	},
 	{
-		type: 'function',
-		name: 'efficientRequireProven',
+		type: "function",
+		name: "efficientRequireProven",
 		inputs: [
 			{
-				name: 'proofSeries',
-				type: 'bytes',
-				internalType: 'bytes'
+				name: "proofSeries",
+				type: "bytes",
+				internalType: "bytes"
 			}
 		],
 		outputs: [],
-		stateMutability: 'view'
+		stateMutability: "view"
 	},
 	{
-		type: 'function',
-		name: 'isProven',
+		type: "function",
+		name: "isProven",
 		inputs: [
 			{
-				name: 'remoteChainId',
-				type: 'uint256',
-				internalType: 'uint256'
+				name: "remoteChainId",
+				type: "uint256",
+				internalType: "uint256"
 			},
 			{
-				name: 'remoteOracle',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				name: "remoteOracle",
+				type: "bytes32",
+				internalType: "bytes32"
 			},
 			{
-				name: 'application',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				name: "application",
+				type: "bytes32",
+				internalType: "bytes32"
 			},
 			{
-				name: 'dataHash',
-				type: 'bytes32',
-				internalType: 'bytes32'
+				name: "dataHash",
+				type: "bytes32",
+				internalType: "bytes32"
 			}
 		],
 		outputs: [
 			{
-				name: '',
-				type: 'bool',
-				internalType: 'bool'
+				name: "",
+				type: "bool",
+				internalType: "bool"
 			}
 		],
-		stateMutability: 'view'
+		stateMutability: "view"
 	},
 	{
-		type: 'function',
-		name: 'receiveMessage',
+		type: "function",
+		name: "receiveMessage",
 		inputs: [
 			{
-				name: 'proofs',
-				type: 'bytes[]',
-				internalType: 'bytes[]'
-			}
-		],
-		outputs: [],
-		stateMutability: 'nonpayable'
-	},
-	{
-		type: 'function',
-		name: 'receiveMessage',
-		inputs: [
-			{
-				name: 'proof',
-				type: 'bytes',
-				internalType: 'bytes'
+				name: "proofs",
+				type: "bytes[]",
+				internalType: "bytes[]"
 			}
 		],
 		outputs: [],
-		stateMutability: 'nonpayable'
+		stateMutability: "nonpayable"
 	},
 	{
-		type: 'event',
-		name: 'OutputProven',
+		type: "function",
+		name: "receiveMessage",
 		inputs: [
 			{
-				name: 'chainid',
-				type: 'uint256',
+				name: "proof",
+				type: "bytes",
+				internalType: "bytes"
+			}
+		],
+		outputs: [],
+		stateMutability: "nonpayable"
+	},
+	{
+		type: "event",
+		name: "OutputProven",
+		inputs: [
+			{
+				name: "chainid",
+				type: "uint256",
 				indexed: false,
-				internalType: 'uint256'
+				internalType: "uint256"
 			},
 			{
-				name: 'remoteIdentifier',
-				type: 'bytes32',
+				name: "remoteIdentifier",
+				type: "bytes32",
 				indexed: false,
-				internalType: 'bytes32'
+				internalType: "bytes32"
 			},
 			{
-				name: 'application',
-				type: 'bytes32',
+				name: "application",
+				type: "bytes32",
 				indexed: false,
-				internalType: 'bytes32'
+				internalType: "bytes32"
 			},
 			{
-				name: 'payloadHash',
-				type: 'bytes32',
+				name: "payloadHash",
+				type: "bytes32",
 				indexed: false,
-				internalType: 'bytes32'
+				internalType: "bytes32"
 			}
 		],
 		anonymous: false
 	},
 	{
-		type: 'error',
-		name: 'CallOutOfRange',
+		type: "error",
+		name: "CallOutOfRange",
 		inputs: []
 	},
 	{
-		type: 'error',
-		name: 'ContextOutOfRange',
+		type: "error",
+		name: "ContextOutOfRange",
 		inputs: []
 	},
 	{
-		type: 'error',
-		name: 'NotDivisible',
+		type: "error",
+		name: "NotDivisible",
 		inputs: [
 			{
-				name: 'value',
-				type: 'uint256',
-				internalType: 'uint256'
+				name: "value",
+				type: "uint256",
+				internalType: "uint256"
 			},
 			{
-				name: 'divisor',
-				type: 'uint256',
-				internalType: 'uint256'
+				name: "divisor",
+				type: "uint256",
+				internalType: "uint256"
 			}
 		]
 	},
 	{
-		type: 'error',
-		name: 'NotProven',
+		type: "error",
+		name: "NotProven",
 		inputs: []
 	},
 	{
-		type: 'error',
-		name: 'WrongEventSignature',
+		type: "error",
+		name: "WrongEventSignature",
 		inputs: []
 	}
 ] as const;

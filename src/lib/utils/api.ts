@@ -1,8 +1,8 @@
-import axios from 'axios';
-import type { Quote, StandardOrder } from '../../types';
+import axios from "axios";
+import type { Quote, StandardOrder } from "../../types";
 
-const ORDER_SERVER_URL = 'https://order-dev.li.fi';
-const WSS_ORDER_SERVER_URL = 'wss://order-dev.li.fi';
+const ORDER_SERVER_URL = "https://order-dev.li.fi";
+const WSS_ORDER_SERVER_URL = "wss://order-dev.li.fi";
 // const ORDER_SERVER_URL = 'http://localhost:4444';
 // const WSS_ORDER_SERVER_URL = 'ws://localhost:4444';
 
@@ -10,10 +10,10 @@ const api = axios.create({
 	baseURL: ORDER_SERVER_URL
 });
 
-type OrderStatus = 'Signed' | 'Delivered' | 'Settled';
+type OrderStatus = "Signed" | "Delivered" | "Settled";
 
 type SubmitOrderDto = {
-	orderType: 'CatalystCompactOrder';
+	orderType: "CatalystCompactOrder";
 	order: StandardOrder;
 	quote: Quote;
 	inputSettler: `0x${string}`;
@@ -22,7 +22,7 @@ type SubmitOrderDto = {
 };
 
 type SubmitOrderUnsignedDto = {
-	orderType: 'CatalystCompactOrder';
+	orderType: "CatalystCompactOrder";
 	order: StandardOrder;
 	quote: Quote;
 	inputSettler: `0x${string}`;
@@ -36,6 +36,7 @@ type GetOrderResponse = {
 		quote: Quote;
 		sponsorSignature: `0x${string}` | null;
 		allocatorSignature?: `0x${string}` | null;
+		inputSettler: `0x${string}`;
 		meta: {
 			submitTime: number;
 			orderStatus: OrderStatus;
@@ -55,32 +56,32 @@ type GetOrderResponse = {
 
 export const submitOrder = async (request: SubmitOrderDto) => {
 	try {
-		const response = await api.post('/orders/submit', request);
+		const response = await api.post("/orders/submit", request);
 		return response.data;
 	} catch (error) {
-		console.error('Error submitting order:', error);
+		console.error("Error submitting order:", error);
 		throw error;
 	}
 };
 
 export const submitOrderUnsigned = async (request: SubmitOrderUnsignedDto) => {
 	try {
-		const response = await api.post('/orders/submit/unsigned', request);
+		const response = await api.post("/orders/submit/unsigned", request);
 		return response.data;
 	} catch (error) {
-		console.error('Error submitting order:', error);
+		console.error("Error submitting order:", error);
 		throw error;
 	}
 };
 
 export const getOrders = async (options?: { user?: `0x${string}`; status?: OrderStatus }) => {
 	try {
-		const response = await api.get('/orders', {
+		const response = await api.get("/orders", {
 			params: { limit: 50, offset: 0, ...options }
 		});
 		return response.data as GetOrderResponse;
 	} catch (error) {
-		console.error('Error getting orders:', error);
+		console.error("Error getting orders:", error);
 		throw error;
 	}
 };
@@ -97,19 +98,17 @@ export const connectOrderServerSocket = (newOrderFunction: orderPush) => {
 	const socket = new WebSocket(WSS_ORDER_SERVER_URL);
 
 	socket.onmessage = function (event) {
-		console.log('event', event);
 		const message = JSON.parse(event.data);
-		console.log('Received message:', message);
 
 		switch (message.event) {
-			case 'user:vm-order-submit':
+			case "user:vm-order-submit":
 				const incomingOrder = message.data as SubmitOrderDto;
 				newOrderFunction(incomingOrder);
 				break;
-			case 'ping':
+			case "ping":
 				socket.send(
 					JSON.stringify({
-						event: 'pong'
+						event: "pong"
 					})
 				);
 				break;
@@ -118,16 +117,16 @@ export const connectOrderServerSocket = (newOrderFunction: orderPush) => {
 		}
 	};
 
-	socket.addEventListener('open', (event) => {
-		console.log('Connected to Catalyst order server');
+	socket.addEventListener("open", (event) => {
+		console.log("Connected to Catalyst order server");
 	});
 
-	socket.addEventListener('close', (event) => {
-		console.log('Disconnected from Catalyst order server');
+	socket.addEventListener("close", (event) => {
+		console.log("Disconnected from Catalyst order server");
 	});
 
-	socket.addEventListener('error', (event) => {
-		console.error('WebSocket error:', event);
+	socket.addEventListener("error", (event) => {
+		console.error("WebSocket error:", event);
 	});
 
 	return { socket, disconnect: () => socket.close() };

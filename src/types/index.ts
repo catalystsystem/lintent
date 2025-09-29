@@ -50,7 +50,42 @@ export type StandardOrder = {
 	outputs: MandateOutput[];
 };
 
+export type MultichainOrderComponent = {
+	user: `0x${string}`;
+	nonce: bigint;
+	chainIdField: bigint;
+	chainIndex: bigint;
+	expires: number;
+	fillDeadline: number;
+	inputOracle: `0x${string}`;
+	inputs: [bigint, bigint][];
+	outputs: MandateOutput[];
+	additionalChains: `0x${string}`[];
+};
+
+export type MultichainOrder = {
+	user: `0x${string}`;
+	nonce: bigint;
+	expires: number;
+	fillDeadline: number;
+	inputOracle: `0x${string}`;
+	outputs: MandateOutput[];
+	inputs: { chainId: bigint; inputs: [bigint, bigint][] }[];
+};
+
+export type NoSignature = {
+	type: "None";
+	payload: "0x";
+};
+
+export type Signature = {
+	type: "ECDSA" | "ERC-1271";
+	payload: `0x${string}`;
+};
+
 export type OrderContainer = {
 	inputSettler: `0x${string}`;
 	order: StandardOrder;
+	sponsorSignature: Signature | NoSignature;
+	allocatorSignature: Signature | NoSignature;
 };

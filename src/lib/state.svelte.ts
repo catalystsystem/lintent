@@ -1,8 +1,8 @@
-import { maxUint256 } from 'viem';
-import { COMPACT_ABI } from './abi/compact';
-import { ERC20_ABI } from './abi/erc20';
-import { ADDRESS_ZERO, clients, COMPACT } from './config';
-import { ResetPeriod, toId } from './utils/compact/IdLib';
+import { maxUint256 } from "viem";
+import { COMPACT_ABI } from "./abi/compact";
+import { ERC20_ABI } from "./abi/erc20";
+import { ADDRESS_ZERO, clients, COMPACT } from "./config";
+import { ResetPeriod, toId } from "./utils/compact/IdLib";
 
 export async function getBalance(
 	user: `0x${string}` | undefined,
@@ -13,13 +13,13 @@ export async function getBalance(
 	if (asset === ADDRESS_ZERO) {
 		return client.getBalance({
 			address: user,
-			blockTag: 'latest'
+			blockTag: "latest"
 		});
 	} else {
 		return client.readContract({
 			address: asset,
 			abi: ERC20_ABI,
-			functionName: 'balanceOf',
+			functionName: "balanceOf",
 			args: [user]
 		});
 	}
@@ -36,7 +36,7 @@ export function getAllowance(contract: `0x${string}`) {
 		return client.readContract({
 			address: asset,
 			abi: ERC20_ABI,
-			functionName: 'allowance',
+			functionName: "allowance",
 			args: [user, contract]
 		});
 	};
@@ -53,7 +53,7 @@ export async function getCompactBalance(
 	return client.readContract({
 		address: COMPACT,
 		abi: COMPACT_ABI,
-		functionName: 'balanceOf',
+		functionName: "balanceOf",
 		args: [user, assetId]
 	});
 }

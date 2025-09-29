@@ -1,35 +1,37 @@
 <script lang="ts">
-	import onboard from '$lib/utils/web3-onboard';
-	import { createWalletClient, custom, maxUint256 } from 'viem';
-	import type { WalletState } from '@web3-onboard/core';
-	import AwaitButton from '$lib/components/AwaitButton.svelte';
-	import SwapForm from '$lib/components/SwapForm.svelte';
-	import type { StandardOrder } from '../types';
+	import onboard from "$lib/utils/web3-onboard";
+	import { createWalletClient, custom, maxUint256 } from "viem";
+	import type { WalletState } from "@web3-onboard/core";
+	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
 	import {
 		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
-		coinMap,
-		getCoins,
 		chainMap,
 		type chain,
-		type coin,
 		clients,
-		type verifier,
-		decimalMap,
+		type Verifier,
 		INPUT_SETTLER_COMPACT_LIFI,
 		INPUT_SETTLER_ESCROW_LIFI,
-		COMPACT
-	} from '$lib/config';
-	import { onDestroy, onMount } from 'svelte';
-	import Introduction from '$lib/components/Introduction.svelte';
-	import { getBalance, getAllowance, getCompactBalance } from '$lib/state.svelte';
-	import BalanceField from '$lib/components/BalanceField.svelte';
-	import { compactApprove, compactDeposit, compactWithdraw } from '$lib/utils/compact/tx';
-	import { depositAndSwap, openIntent, escrowApprove, swap } from '$lib/utils/lifiintent/tx';
-	import IntentTable from '$lib/components/IntentTable.svelte';
-	import { toBigIntWithDecimals } from '$lib/utils/convert';
-	import { connectOrderServerSocket, getOrders } from '$lib/utils/api';
-	import { validateOrder } from '$lib/utils/lifiintent/OrderLib';
+		COMPACT,
+		type Token,
+		coinList,
+		printToken,
+		getIndexOf,
+		getCoin
+	} from "$lib/config";
+	import { onDestroy, onMount } from "svelte";
+	import Introduction from "$lib/components/Introduction.svelte";
+	import { getBalance, getAllowance, getCompactBalance } from "$lib/state.svelte";
+	import { connectOrderServerSocket, getOrders } from "$lib/utils/api";
+	import { validateOrder } from "$lib/utils/lifiintent/OrderLib";
+	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
+	import IssueIntent from "$lib/screens/IssueIntent.svelte";
+	import IntentList from "$lib/screens/IntentList.svelte";
+	import FillIntent from "$lib/screens/FillIntent.svelte";
+	import ReceiveMessage from "$lib/screens/ReceiveMessage.svelte";
+	import Finalise from "$lib/screens/Finalise.svelte";
+	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
+	import TokenModal from "$lib/screens/TokenModal.svelte";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -43,12 +45,30 @@
 		allocatorSignature: `0x${string}`;
 	};
 
-	let orders = $state<OrderPackage[]>([]);
+	let orders = $state<OrderContainer[]>([]);
 
 	onMount(() => {
 		// Connect to websocket server
 		let { socket, disconnect } = connectOrderServerSocket((order: OrderPackage) => {
-			orders.push(order);
+			const allocatorSignature = order.allocatorSignature
+				? ({
+						type: "ECDSA",
+						payload: order.allocatorSignature
+					} as Signature)
+				: ({
+						type: "None",
+						payload: "0x"
+					} as NoSignature);
+			const sponsorSignature = order.sponsorSignature
+				? ({
+						type: "ECDSA",
+						payload: order.sponsorSignature
+					} as Signature)
+				: ({
+						type: "None",
+						payload: "0x"
+					} as NoSignature);
+			orders.push({ ...order, allocatorSignature, sponsorSignature });
 			console.log({ orders, order });
 		});
 		onDestroy(disconnect);
@@ -77,8 +97,24 @@
 									};
 								});
 							}
-							const allocatorSignature = instance.allocatorSignature ?? '0x';
-							const sponsorSignature = instance.sponsorSignature ?? '0x';
+							const allocatorSignature = instance.allocatorSignature
+								? ({
+										type: "ECDSA",
+										payload: instance.allocatorSignature
+									} as Signature)
+								: ({
+										type: "None",
+										payload: "0x"
+									} as NoSignature);
+							const sponsorSignature = instance.sponsorSignature
+								? ({
+										type: "ECDSA",
+										payload: instance.sponsorSignature
+									} as Signature)
+								: ({
+										type: "None",
+										payload: "0x"
+									} as NoSignature);
 							return { ...instance, allocatorSignature, sponsorSignature };
 						});
 					console.log({ orders });
@@ -88,7 +124,7 @@
 	});
 
 	// --- Wallet --- //
-	const wallets = onboard.state.select('wallets');
+	const wallets = onboard.state.select("wallets");
 	const activeWallet = $state<{ wallet?: WalletState }>({});
 	wallets.subscribe((v) => {
 		activeWallet.wallet = v?.[0];
@@ -103,11 +139,8 @@
 			: undefined
 	);
 
-	export async function setWalletToCorrectChain(chain: chain = swapState.inputChain) {
-		if (swapState.inputChain !== chain) {
-			swapState.inputChain = chain;
-		}
-		return walletClient?.switchChain({ id: chainMap[chain].id });
+	export async function setWalletToCorrectChain(chain: chain) {
+		return await walletClient?.switchChain({ id: chainMap[chain].id });
 	}
 
 	export async function connect() {
@@ -115,63 +148,47 @@
 	}
 
 	// --- Execute Transaction Variables --- //
-	let swapState = $state({
-		preHook: setWalletToCorrectChain,
-		postHook: async () => forceUpdate(),
-		inputChain: 'sepolia' as chain,
-		account: () => connectedAccount?.address!,
-		inputAsset: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as coin, // address string
-		inputAmount: 0n,
-		outputAsset: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as coin,
-		outputAmount: 0n,
-		outputChain: 'baseSepolia' as chain,
-		verifier: 'polymer' as verifier,
-		allocatorId: POLYMER_ALLOCATOR as string,
-		action: 'deposit' as 'deposit' | 'withdraw',
-		inputSettler: INPUT_SETTLER_COMPACT_LIFI as
-			| typeof INPUT_SETTLER_COMPACT_LIFI
-			| typeof INPUT_SETTLER_ESCROW_LIFI
-	});
-	$effect(() => {
-		const tokensForOutputChain = coinMap[swapState.outputChain];
-		const usdcAddressforOutputChain =
-			Object.keys(tokensForOutputChain)[Object.values(tokensForOutputChain).indexOf('usdc')];
-		swapState.outputAsset = Object.keys(tokensForOutputChain).includes(swapState.outputAsset)
-			? swapState.outputAsset
-			: (usdcAddressforOutputChain as coin);
-	});
-	$effect(() => {
-		const tokensForInputChain = coinMap[swapState.inputChain];
-		const usdcAddressforInputChain =
-			Object.keys(tokensForInputChain)[Object.values(tokensForInputChain).indexOf('usdc')];
-		swapState.inputAsset = Object.keys(tokensForInputChain).includes(swapState.inputAsset)
-			? swapState.inputAsset
-			: (usdcAddressforInputChain as coin);
-	});
+	const preHook = setWalletToCorrectChain;
+	const postHook = async () => forceUpdate();
+	const account = () => connectedAccount?.address!;
+	let inputNumber = $state(1); // Window number
+	let outputNumber = $state(1); // Window number
 
-	function swapInputOutput() {
-		[
-			swapState.inputAsset,
-			swapState.outputAsset,
-			swapState.inputChain,
-			swapState.outputChain,
-			swapState.inputAmount,
-			swapState.outputAmount
-		] = [
-			swapState.outputAsset,
-			swapState.inputAsset,
-			swapState.outputChain,
-			swapState.inputChain,
-			swapState.outputAmount,
-			swapState.inputAmount
-		];
-	}
+	let inputTokens: Token[] = $state([coinList[0]]);
+	let inputToken = $derived(inputTokens[0]);
+	let outputToken: Token = $state(coinList[1]);
+	let inputAmounts = $state([1000000n]);
+	let outputAmount = $state(1000000n);
+	// const verifier: verifier = 'polymer';
+	let allocatorId: typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR =
+		$state(POLYMER_ALLOCATOR);
+	let inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI = $state(
+		INPUT_SETTLER_COMPACT_LIFI
+	);
+
+	let verifier: Verifier = $state("polymer");
+
+	// Filling Orders
+	let selectedOrder: OrderContainer | undefined = $state(undefined);
+	let fillTransactionHash: `0x${string}` | undefined = $state(undefined);
+
+	let showTokenSelector: {
+		active: number;
+		input: boolean;
+		index: number;
+	} = $state({
+		active: 0,
+		input: true,
+		index: 0
+	});
 
 	let updatedDerived = $state(0);
 	setInterval(() => {
 		updatedDerived += 1;
 	}, 10000);
-	const forceUpdate = () => (updatedDerived += 1);
+	const forceUpdate = () => {
+		updatedDerived += 1;
+	};
 
 	function mapOverCoins<T>(
 		func: (
@@ -181,25 +198,16 @@
 		) => T,
 		_: any
 	) {
-		const resolved: {
-			-readonly [K in keyof typeof coinMap]: {
-				-readonly [V in keyof (typeof coinMap)[K]]: T;
-			};
-		} = {} as any;
-		for (const [network, tokens] of Object.entries(coinMap) as [
-			keyof typeof chainMap,
-			(typeof coinMap)[keyof typeof chainMap]
-		][]) {
-			resolved[network as keyof typeof coinMap] = {} as any;
+		const resolved: Record<chain, Record<`0x${string}`, T>> = {} as any;
+		for (const token of coinList) {
+			// Check whether we have me the chain before.
+			if (!resolved[token.chain as chain]) resolved[token.chain] = {};
 
-			for (const token of Object.keys(tokens)) {
-				resolved[network as keyof typeof coinMap][token as keyof (typeof coinMap)[typeof network]] =
-					func(
-						connectedAccount?.address,
-						token as `0x${string}`,
-						clients[network as keyof typeof coinMap]
-					);
-			}
+			resolved[token.chain][token.address] = func(
+				connectedAccount?.address,
+				token.address,
+				clients[token.chain]
+			);
 		}
 		return resolved;
 	}
@@ -210,9 +218,7 @@
 
 	const allowances = $derived.by(() => {
 		return mapOverCoins(
-			getAllowance(
-				swapState.inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : swapState.inputSettler
-			),
+			getAllowance(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : inputSettler),
 			updatedDerived
 		);
 	});
@@ -223,223 +229,149 @@
 				user: `0x${string}` | undefined,
 				asset: `0x${string}`,
 				client: (typeof clients)[keyof typeof clients]
-			) => getCompactBalance(user, asset, client, swapState.allocatorId),
+			) => getCompactBalance(user, asset, client, allocatorId),
 			updatedDerived
 		);
 	});
 
-	const maxAllowances = mapOverCoins(async () => maxUint256, '');
+	let snapContainer: HTMLDivElement;
 
-	let inputNumber = $derived(
-		Number(swapState.inputAmount) / 10 ** decimalMap[swapState.inputAsset]
-	);
-	function updateInputAmount(input: number) {
-		swapState.inputAmount = toBigIntWithDecimals(input, decimalMap[swapState.inputAsset]);
+	function scroll(next: boolean | number) {
+		return () => {
+			if (!snapContainer) return;
+			const scrollLeft = snapContainer.scrollLeft;
+			const width = snapContainer.clientWidth;
+			snapContainer.scrollTo({
+				left: next ? scrollLeft + Number(next) * width : scrollLeft - width,
+				behavior: "smooth"
+			});
+		};
 	}
-	let allowance = $state(0n);
-	const needsApproval = $derived(allowance < swapState.inputAmount);
-	$effect(() => {
-		allowances[swapState.inputChain][
-			swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]
-		].then((a) => {
-			allowance = a;
-		});
-	});
 </script>
 
 <main class="main">
-	<h1 class="pt-3 text-center align-middle text-xl font-medium">Resource lock intents using OIF</h1>
-	<div class="mx-auto flex flex-col px-4 pt-2 md:max-w-10/12 md:flex-row md:px-8 md:pt-3">
+	<h1 class="mb-2 pt-3 text-center align-middle text-xl font-medium">
+		Resource lock intents using OIF
+	</h1>
+	<div
+		class="mx-auto flex flex-col-reverse items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
+	>
 		<Introduction />
-
-		<div class="flex w-[128rem] flex-col justify-items-center align-middle">
-			<div class="mb-2 flex flex-row">
-				<h1 class="text-md mr-4 font-medium">Input Type</h1>
-				<button
-					class="h-8 rounded-l border px-4"
-					class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
-					class:font-bold={swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-					onclick={() => (swapState.inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
+		<div class="relative mb-4 h-[30rem] w-[25rem] md:mb-0">
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="h-[30rem] w-[25rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-md border border-gray-200 bg-gray-50"
+				bind:this={snapContainer}
+			>
+				<!-- Right Button -->
+				<a
+					class="absolute bottom-2 left-[18.5rem] w-40 cursor-pointer rounded px-1 text-xs hover:text-sky-800"
+					href="https://li.fi"
 				>
-					Compact Lock
-				</button>
-				<button
-					class=" h-8 rounded-r border border-l-0 px-4"
-					class:hover:bg-gray-100={swapState.inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
-					class:font-bold={swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-					onclick={() => (swapState.inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
-				>
-					Escrow
-				</button>
-			</div>
-
-			{#if swapState.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-				<form class="w-full space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
-					<h1 class="text-xl font-medium">Manage Compact</h1>
-					<div class="flex flex-row">
-						<h1 class="text-md mr-4 font-medium">Allocator</h1>
-						<button
-							class="h-8 rounded-l border px-4"
-							class:hover:bg-gray-100={swapState.allocatorId !== ALWAYS_OK_ALLOCATOR}
-							class:font-bold={swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
-							onclick={() => (swapState.allocatorId = ALWAYS_OK_ALLOCATOR)}
-						>
-							AlwaysYesAllocator
-						</button>
-						<button
-							class=" h-8 rounded-r border border-l-0 px-4"
-							class:hover:bg-gray-100={swapState.allocatorId !== POLYMER_ALLOCATOR}
-							class:font-bold={swapState.allocatorId === POLYMER_ALLOCATOR}
-							onclick={() => (swapState.allocatorId = POLYMER_ALLOCATOR)}
-						>
-							Polymer
-						</button>
-					</div>
-					<div class="flex flex-wrap items-center justify-start gap-2">
-						<select id="in-asset" class="rounded border px-2 py-1" bind:value={swapState.action}>
-							<option value="deposit" selected>Deposit</option>
-							<option value="withdraw">Withdraw</option>
-						</select>
-						<input
-							type="number"
-							class="w-20 rounded border px-2 py-1"
-							bind:value={() => inputNumber, updateInputAmount}
-						/>
-						<span>of</span>
-						<BalanceField
-							value={(swapState.action === 'withdraw' ? compactBalances : balances)[
-								swapState.inputChain
-							][swapState.inputAsset as keyof (typeof coinMap)[typeof swapState.inputChain]]}
-							decimals={decimalMap[swapState.inputAsset]}
-						/>
-						<select
-							id="deposit-chain"
-							class="rounded border px-2 py-1"
-							bind:value={swapState.inputChain}
-						>
-							<option value="sepolia" selected>Sepolia</option>
-							<option value="baseSepolia">Base Sepolia</option>
-							<option value="optimismSepolia">Optimism Sepolia</option>
-						</select>
-						<select
-							id="deposit-asset"
-							class="rounded border px-2 py-1"
-							bind:value={swapState.inputAsset}
-						>
-							{#each getCoins(swapState.inputChain) as coin (coin)}
-								<option value={coin} selected={coin === swapState.inputAsset}
-									>{coinMap[swapState.inputChain][coin].toUpperCase()}</option
-								>
-							{/each}
-						</select>
-					</div>
-
-					<!-- Action Button -->
-					<div class="flex justify-center">
-						{#if !connectedAccount}
-							<AwaitButton buttonFunction={() => onboard.connectWallet()}>
-								{#snippet name()}
-									Connect Wallet
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for wallet...
-								{/snippet}
-							</AwaitButton>
-						{:else if false}
-							<!-- <button
-								type="button"
-								class="rounded border bg-gray-200 px-4 text-xl text-gray-600"
-								disabled
-							>
-								Input not valid {depositInputError}
-							</button> -->
-						{:else if swapState.action === 'withdraw'}
-							<AwaitButton buttonFunction={compactWithdraw(walletClient!, swapState)}>
-								{#snippet name()}
-									Withdraw
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{:else if needsApproval}
-							<AwaitButton buttonFunction={compactApprove(walletClient!, swapState)}>
-								{#snippet name()}
-									Set allowance
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{:else}
-							<AwaitButton buttonFunction={compactDeposit(walletClient!, swapState)}>
-								{#snippet name()}
-									Execute deposit
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
-						{/if}
-					</div>
-				</form>
-				{#if swapState.allocatorId === ALWAYS_OK_ALLOCATOR}
-					<SwapForm
-						balances={compactBalances}
-						allowances={maxAllowances}
-						{swapInputOutput}
-						bind:opts={swapState}
-						connectFunction={connect}
-						executeFunction={swap(walletClient!, swapState, orders)}
-						approveFunction={async () => {}}
-						showConnect={!connectedAccount}
+					Preview by LI.FI
+				</a>
+				<!-- Asset Overlay -->
+				<TokenModal
+					bind:showTokenSelector
+					{inputSettler}
+					{compactBalances}
+					{balances}
+					bind:inputTokens
+					bind:outputToken
+					bind:inputAmounts
+					bind:outputAmount
+				></TokenModal>
+				{#if !(!connectedAccount || !walletClient)}
+					<!-- Right Button -->
+					<button
+						class="absolute top-1.5 left-[23rem] cursor-pointer rounded bg-sky-50 px-1"
+						onclick={scroll(true)}
 					>
-						{#snippet title()}
-							Sign Intent with Deposit
-						{/snippet}
-						{#snippet executeName()}
-							Sign BatchCompact
-						{/snippet}
-					</SwapForm>
+						→
+					</button>
+					<!-- Back Button -->
+					<button
+						class="absolute top-1.5 left-[1rem] cursor-pointer rounded bg-sky-50 px-1"
+						onclick={scroll(false)}
+					>
+						←
+					</button>
 				{/if}
-				<SwapForm
-					{balances}
-					{allowances}
-					{swapInputOutput}
-					bind:opts={swapState}
-					connectFunction={connect}
-					executeFunction={depositAndSwap(walletClient!, swapState, orders)}
-					approveFunction={compactApprove(walletClient!, swapState)}
-					showConnect={!connectedAccount}
-				>
-					{#snippet title()}
-						Execute Deposit and Register Intent
-					{/snippet}
-					{#snippet executeName()}
-						Execute depositAndRegister
-					{/snippet}
-				</SwapForm>
-			{:else if swapState.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-				<SwapForm
-					{balances}
-					{allowances}
-					{swapInputOutput}
-					bind:opts={swapState}
-					connectFunction={connect}
-					executeFunction={openIntent(walletClient!, swapState, orders)}
-					approveFunction={escrowApprove(walletClient!, swapState)}
-					showConnect={!connectedAccount}
-				>
-					{#snippet title()}
-						Execute Open and Open Intent
-					{/snippet}
-					{#snippet executeName()}
-						Execute open
-					{/snippet}
-				</SwapForm>
-			{/if}
+				<div class="flex h-full w-max flex-row">
+					<!-- TODO: Connect screen. -->
+					{#if !connectedAccount || !walletClient}
+						<ConnectWallet {onboard}></ConnectWallet>
+					{:else}
+						<ManageDeposit
+							{scroll}
+							bind:inputSettler
+							bind:allocatorId
+							bind:inputNumber
+							bind:inputToken
+							{compactBalances}
+							{balances}
+							{allowances}
+							{walletClient}
+							{preHook}
+							{postHook}
+							{account}
+						></ManageDeposit>
+						<IssueIntent
+							{scroll}
+							bind:showTokenSelector
+							{inputSettler}
+							{allocatorId}
+							{inputAmounts}
+							{outputAmount}
+							{inputTokens}
+							{outputToken}
+							{verifier}
+							{compactBalances}
+							{balances}
+							{allowances}
+							{walletClient}
+							bind:orders
+							{preHook}
+							{postHook}
+							{account}
+						></IssueIntent>
+						<IntentList {scroll} bind:selectedOrder orderContainers={orders}></IntentList>
+						{#if selectedOrder !== undefined}
+							<!-- <IntentDescription></IntentDescription> -->
+							<FillIntent
+								{scroll}
+								orderContainer={selectedOrder}
+								{walletClient}
+								{account}
+								{preHook}
+								{postHook}
+								bind:fillTransactionHash
+							></FillIntent>
+							{#if fillTransactionHash}
+								<ReceiveMessage
+									orderContainer={selectedOrder}
+									{walletClient}
+									{fillTransactionHash}
+									{account}
+									{preHook}
+									{postHook}
+								></ReceiveMessage>
+								<Finalise
+									orderContainer={selectedOrder}
+									{walletClient}
+									{fillTransactionHash}
+									{preHook}
+									{postHook}
+									{account}
+								></Finalise>
+							{/if}
+						{/if}
+					{/if}
+				</div>
+			</div>
 		</div>
 	</div>
 	<!-- Make a table to display orders from users -->
-	<IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} {updatedDerived} />
+	<!-- <IntentTable {orders} walletClient={walletClient!} bind:opts={swapState} {updatedDerived} /> -->
 </main>
