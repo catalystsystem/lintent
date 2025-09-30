@@ -17,10 +17,10 @@ type SubmitOrderDto = {
 	order: StandardOrder;
 	quote: Quote;
 	inputSettler: `0x${string}`;
-	sponsorSignature: `0x${string}`;
-	allocatorSignature: `0x${string}`;
+	sponsorSignature?: `0x${string}`;
+	allocatorSignature?: `0x${string}`;
+	compactRegistrationTxHash?: `0x${string}`;
 };
-
 type SubmitOrderUnsignedDto = {
 	orderType: "CatalystCompactOrder";
 	order: StandardOrder;
