@@ -5,7 +5,7 @@ import zealWalletModule from "@web3-onboard/zeal";
 import coinbaseWalletModule from "@web3-onboard/coinbase";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import { PUBLIC_WALLET_CONNECT_PROJECT_ID } from "$env/static/public";
-import {chainMap} from "../config";
+import { chainMap } from "../config";
 
 const injected = injectedWalletsModule();
 const zealWalletSdk = zealWalletModule();
@@ -20,14 +20,14 @@ const INFURA_ID = "";
 
 const getChains = () => {
 	return Object.values(chainMap).map((v) => {
-	return {
-		id: v.id,
-		token: v.nativeCurrency.symbol,
-		label: v.name,
-		rpcUrl: v.rpcUrls.default.http[0]
-	}
+		return {
+			id: v.id,
+			token: v.nativeCurrency.symbol,
+			label: v.name,
+			rpcUrl: v.rpcUrls.default.http[0]
+		};
 	});
-}
+};
 
 const appMetadata = {
 	name: "Open Intents Framework Demo",
