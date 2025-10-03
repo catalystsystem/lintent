@@ -11,7 +11,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	let polymerRequestIndex = polymerIndex;
 	if (!polymerRequestIndex) {
 		const requestProof = await axios.post(
-			"https://proof.testnet.polymer.zone/",
+			"https://proof.polymer.zone/",
 			{
 				jsonrpc: "2.0",
 				id: 1,
@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const requestProofData = await axios.post(
-		"https://proof.testnet.polymer.zone/",
+		"https://proof.polymer.zone/",
 		{
 			jsonrpc: "2.0",
 			id: 1,

@@ -1,5 +1,5 @@
 import { createPublicClient, createWalletClient, custom, fallback, http } from "viem";
-import { arbitrumSepolia, baseSepolia, optimismSepolia, sepolia } from "viem/chains";
+import { arbitrum, mainnet as ethereum, base } from "viem/chains";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000" as const;
 export const BYTES32_ZERO =
@@ -11,16 +11,14 @@ export const ALWAYS_OK_ALLOCATOR = "301267367668059890006832136" as const;
 export const POLYMER_ALLOCATOR = "116450367070547927622991121" as const; // 0x02ecC89C25A5DCB1206053530c58E002a737BD11 signing by 0x934244C8cd6BeBDBd0696A659D77C9BDfE86Efe6
 export const COIN_FILLER = "0x00000000D7278408CE7a490015577c41e57143a5" as const;
 export const WORMHOLE_ORACLE = {
-	sepolia: "0x0000000000000000000000000000000000000000",
-	baseSepolia: "0x0000000000000000000000000000000000000000",
-	arbitrumSepolia: "0x0000000000000000000000000000000000000000",
-	optimismSepolia: "0x0000000000000000000000000000000000000000"
+	ethereum: "0x0000000000000000000000000000000000000000",
+	arbitrum: "0x0000000000000000000000000000000000000000",
+	base: "0x0000000000000000000000000000000000000000",
 } as const;
 export const POLYMER_ORACLE = {
-	sepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
-	baseSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
-	arbitrumSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
-	optimismSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00"
+	ethereum: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	arbitrum: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	base: "0x0000006ea400569c0040d6e5ba651c00848409be",
 } as const;
 
 export type availableAllocators = typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR;
@@ -38,57 +36,57 @@ export type Token = {
 
 export const coinList = [
 	{
-		address: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`,
+		address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`,
 		name: "usdc",
-		chain: "sepolia",
+		chain: "ethereum",
 		decimals: 6
 	},
 	{
-		address: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`,
+		address: `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`,
 		name: "usdc",
-		chain: "baseSepolia",
+		chain: "arbitrum",
 		decimals: 6
 	},
 	{
-		address: `0x5fd84259d66Cd46123540766Be93DFE6D43130D7`,
+		address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`,
 		name: "usdc",
-		chain: "optimismSepolia",
+		chain: "base",
 		decimals: 6
 	},
 	{
 		address: ADDRESS_ZERO,
 		name: "eth",
-		chain: "sepolia",
+		chain: "base",
 		decimals: 18
 	},
 	{
 		address: ADDRESS_ZERO,
 		name: "eth",
-		chain: "baseSepolia",
+		chain: "arbitrum",
 		decimals: 18
 	},
 	{
 		address: ADDRESS_ZERO,
 		name: "eth",
-		chain: "optimismSepolia",
+		chain: "ethereum",
 		decimals: 18
 	},
 	{
-		address: `0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14`,
+		address: `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`,
 		name: "weth",
-		chain: "sepolia",
+		chain: "ethereum",
 		decimals: 18
 	},
 	{
 		address: `0x4200000000000000000000000000000000000006`,
 		name: "weth",
-		chain: "baseSepolia",
+		chain: "base",
 		decimals: 18
 	},
 	{
-		address: `0x4200000000000000000000000000000000000006`,
+		address: `0x82aF49447D8a07e3bd95BD0d56f35241523fBab1`,
 		name: "weth",
-		chain: "optimismSepolia",
+		chain: "arbitrum",
 		decimals: 18
 	}
 ] as const;
@@ -118,15 +116,14 @@ export const wormholeChainIds = {
 	optimismSepolia: 10005
 } as const;
 export const polymerChainIds = {
-	sepolia: sepolia.id,
-	arbitrumSepolia: arbitrumSepolia.id,
-	baseSepolia: baseSepolia.id,
-	optimismSepolia: optimismSepolia.id
+	ethereum: ethereum.id,
+	base: base.id,
+	arbitrum: arbitrum.id
 } as const;
 
 export type Verifier = "wormhole" | "polymer";
 
-export const chainMap = { sepolia, optimismSepolia, baseSepolia } as const;
+export const chainMap = { ethereum, base, arbitrum } as const;
 export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
 
@@ -188,32 +185,25 @@ export function getClient(chainId: number | bigint | string) {
 }
 
 export const clients = {
-	sepolia: createPublicClient({
-		chain: sepolia,
+	ethereum: createPublicClient({
+		chain: ethereum,
 		transport: fallback([
-			http("https://ethereum-sepolia-rpc.publicnode.com"),
-			...sepolia.rpcUrls.default.http.map((v) => http(v))
+			http("https://ethereum-rpc.publicnode.com"),
+			...ethereum.rpcUrls.default.http.map((v) => http(v))
 		])
 	}),
-	arbitrumSepolia: createPublicClient({
-		chain: arbitrumSepolia,
+	arbitrum: createPublicClient({
+		chain: arbitrum,
 		transport: fallback([
-			http("https://arbitrum-sepolia-rpc.publicnode.com"),
-			...arbitrumSepolia.rpcUrls.default.http.map((v) => http(v))
+			http("https://arbitrum-rpc.publicnode.com"),
+			...arbitrum.rpcUrls.default.http.map((v) => http(v))
 		])
 	}),
-	baseSepolia: createPublicClient({
-		chain: baseSepolia,
+	base: createPublicClient({
+		chain: base,
 		transport: fallback([
-			http("https://base-sepolia-rpc.publicnode.com"),
-			...baseSepolia.rpcUrls.default.http.map((v) => http(v))
-		])
-	}),
-	optimismSepolia: createPublicClient({
-		chain: optimismSepolia,
-		transport: fallback([
-			http("https://optimism-sepolia-rpc.publicnode.com"),
-			...optimismSepolia.rpcUrls.default.http.map((v) => http(v))
+			http("https://base-rpc.publicnode.com"),
+			...base.rpcUrls.default.http.map((v) => http(v))
 		])
 	})
 } as const;

@@ -67,16 +67,16 @@
 	</p>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
-		<button
+		<!-- <button
 			class="h-8 rounded-l border px-4"
 			class:hover:bg-gray-100={inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
 			class:font-bold={inputSettler === INPUT_SETTLER_COMPACT_LIFI}
 			onclick={() => (inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
 		>
 			Compact Lock
-		</button>
+		</button> -->
 		<button
-			class=" h-8 rounded-r border border-l-0 px-4"
+			class=" h-8 rounded border px-4"
 			class:hover:bg-gray-100={inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
 			class:font-bold={inputSettler === INPUT_SETTLER_ESCROW_LIFI}
 			onclick={() => (inputSettler = INPUT_SETTLER_ESCROW_LIFI)}

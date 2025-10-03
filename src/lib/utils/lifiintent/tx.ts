@@ -397,56 +397,56 @@ export function openIntent(walletClient: WC, opts: opts, orders: OrderContainer[
 		const inputChain = inputTokens[0].chain;
 		if (preHook) await preHook(inputChain);
 		// Execute the open.
-		// const transactionHash = await walletClient.writeContract({
-		// 	chain: chainMap[inputChain],
-		// 	account: account(),
-		// 	address: INPUT_SETTLER_ESCROW_LIFI,
-		// 	abi: SETTLER_ESCROW_ABI,
-		// 	functionName: "open",
-		// 	args: [order]
-		// });
+		const transactionHash = await walletClient.writeContract({
+			chain: chainMap[inputChain],
+			account: account(),
+			address: INPUT_SETTLER_ESCROW_LIFI,
+			abi: SETTLER_ESCROW_ABI,
+			functionName: "open",
+			args: [order]
+		});
 
-		// await clients[inputChain].waitForTransactionReceipt({
-		// 	hash: transactionHash
-		// });
-		// if (postHook) await postHook();
-		// orders.push({
-		// 	inputSettler: INPUT_SETTLER_ESCROW_LIFI,
-		// 	order,
-		// 	sponsorSignature: {
-		// 		type: "None",
-		// 		payload: "0x"
-		// 	},
-		// 	allocatorSignature: {
-		// 		type: "None",
-		// 		payload: "0x"
-		// 	}
-		// });
-
-		console.dir(
-			{
-				order,
-				orders
-			},
-			{
-				depth: 10
-			}
-		);
-
-		const orderRequest = await submitOrder({
-			orderType: "CatalystCompactOrder",
-			order,
+		await clients[inputChain].waitForTransactionReceipt({
+			hash: transactionHash
+		});
+		if (postHook) await postHook();
+		orders.push({
 			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
-			quote: {
-				fromAsset: opts.inputTokens[0].address,
-				toAsset: opts.inputTokens[0].address,
-				fromPrice: "1",
-				toPrice: "1",
-				intermediary: "1",
-				discount: "1"
+			order,
+			sponsorSignature: {
+				type: "None",
+				payload: "0x"
+			},
+			allocatorSignature: {
+				type: "None",
+				payload: "0x"
 			}
 		});
-		console.log("orderRequest", orderRequest);
+
+		// console.dir(
+		// 	{
+		// 		order,
+		// 		orders
+		// 	},
+		// 	{
+		// 		depth: 10
+		// 	}
+		// );
+
+		// const orderRequest = await submitOrder({
+		// 	orderType: "CatalystCompactOrder",
+		// 	order,
+		// 	inputSettler: INPUT_SETTLER_ESCROW_LIFI,
+		// 	quote: {
+		// 		fromAsset: opts.inputTokens[0].address,
+		// 		toAsset: opts.inputTokens[0].address,
+		// 		fromPrice: "1",
+		// 		toPrice: "1",
+		// 		intermediary: "1",
+		// 		discount: "1"
+		// 	}
+		// });
+		// console.log("orderRequest", orderRequest);
 
 		// return transactionHash;
 
