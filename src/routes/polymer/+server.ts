@@ -4,6 +4,8 @@ import type { RequestHandler } from "./$types";
 import { PRIVATE_POLYMER_ZONE_API_KEY } from "$env/static/private";
 import { toByteArray } from "base64-js";
 
+const MAINNET = false;
+
 export const POST: RequestHandler = async ({ request }) => {
 	const { srcChainId, srcBlockNumber, globalLogIndex, polymerIndex } = await request.json();
 	console.log({ srcChainId, srcBlockNumber, globalLogIndex, polymerIndex });
@@ -37,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const requestProofData = await axios.post(
-		"https://proof.testnet.polymer.zone/",
+		MAINNET ? "https://api.polymer.zone/v1/" : "https://api.testnet.polymer.zone/v1/",
 		{
 			jsonrpc: "2.0",
 			id: 1,
