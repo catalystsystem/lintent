@@ -21,6 +21,8 @@ export const POLYMER_ORACLE = {
 	base: "0x0000006ea400569c0040d6e5ba651c00848409be"
 } as const;
 
+export const MAINNET = true;
+
 export type availableAllocators = typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR;
 export type availableInputSettlers =
 	| typeof INPUT_SETTLER_COMPACT_LIFI

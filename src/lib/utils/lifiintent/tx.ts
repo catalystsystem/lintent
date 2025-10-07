@@ -448,9 +448,9 @@ export function openIntent(walletClient: WC, opts: opts, orders: OrderContainer[
 		// });
 		// console.log("orderRequest", orderRequest);
 
-		// return transactionHash;
+		return transactionHash;
 
-		if (postHook) await postHook();
+		// if (postHook) await postHook();
 	};
 }
 
