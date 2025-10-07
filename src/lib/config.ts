@@ -1,3 +1,4 @@
+import { PUBLIC_DEPLOY_AS_MAINNET } from "$env/static/public";
 import { createPublicClient, createWalletClient, custom, fallback, http } from "viem";
 import {
 	arbitrum,
@@ -34,7 +35,7 @@ export const POLYMER_ORACLE = {
 	optimismSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00"
 } as const;
 
-export const MAINNET = false;
+export const MAINNET = PUBLIC_DEPLOY_AS_MAINNET === "true";
 
 export type availableAllocators = typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR;
 export type availableInputSettlers =
