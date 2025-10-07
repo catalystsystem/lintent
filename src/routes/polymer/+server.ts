@@ -1,13 +1,20 @@
 import { json } from "@sveltejs/kit";
 import axios from "axios";
 import type { RequestHandler } from "./$types";
-import { PRIVATE_POLYMER_MAINNET_ZONE_API_KEY, PRIVATE_POLYMER_TESTNET_ZONE_API_KEY } from "$env/static/private";
+import {
+	PRIVATE_POLYMER_MAINNET_ZONE_API_KEY,
+	PRIVATE_POLYMER_TESTNET_ZONE_API_KEY
+} from "$env/static/private";
 import { toByteArray } from "base64-js";
 import { MAINNET } from "$lib/config";
 
-const POLYMER_URL = MAINNET ? "https://api.polymer.zone/v1/" as const : "https://api.testnet.polymer.zone/v1/" as const;
+const POLYMER_URL = MAINNET
+	? ("https://api.polymer.zone/v1/" as const)
+	: ("https://api.testnet.polymer.zone/v1/" as const);
 
-const PRIVATE_POLYMER_ZONE_API_KEY = MAINNET ? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY : PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
+const PRIVATE_POLYMER_ZONE_API_KEY = MAINNET
+	? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY
+	: PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
 
 export const POST: RequestHandler = async ({ request }) => {
 	const { srcChainId, srcBlockNumber, globalLogIndex, polymerIndex } = await request.json();
