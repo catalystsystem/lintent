@@ -1,8 +1,16 @@
 import { json } from "@sveltejs/kit";
 import axios from "axios";
 import type { RequestHandler } from "./$types";
-import { PRIVATE_POLYMER_ZONE_API_KEY } from "$env/static/private";
 import { type StandardOrder } from "../../types";
+import { MAINNET } from "$lib/config";
+import {
+	PRIVATE_POLYMER_MAINNET_ZONE_API_KEY,
+	PRIVATE_POLYMER_TESTNET_ZONE_API_KEY
+} from "$env/static/private";
+
+const PRIVATE_POLYMER_ZONE_API_KEY = MAINNET
+	? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY
+	: PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
