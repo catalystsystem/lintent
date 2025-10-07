@@ -140,7 +140,15 @@
 	);
 
 	export async function setWalletToCorrectChain(chain: chain) {
-		return await walletClient?.switchChain({ id: chainMap[chain].id });
+		try {
+			return await walletClient?.switchChain({ id: chainMap[chain].id });
+		} catch (error) {
+			console.warn(
+				`Wallet does not support switchChain or failed to switch chain: ${chainMap[chain].id}`,
+				error
+			);
+			return undefined;
+		}
 	}
 
 	export async function connect() {
@@ -162,9 +170,8 @@
 	// const verifier: verifier = 'polymer';
 	let allocatorId: typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR =
 		$state(POLYMER_ALLOCATOR);
-	let inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI = $state(
-		INPUT_SETTLER_COMPACT_LIFI
-	);
+	let inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI =
+		$state(INPUT_SETTLER_ESCROW_LIFI);
 
 	let verifier: Verifier = $state("polymer");
 

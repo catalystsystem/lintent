@@ -423,15 +423,15 @@ export function openIntent(walletClient: WC, opts: opts, orders: OrderContainer[
 			}
 		});
 
-		console.dir(
-			{
-				order,
-				orders
-			},
-			{
-				depth: 10
-			}
-		);
+		// console.dir(
+		// 	{
+		// 		order,
+		// 		orders
+		// 	},
+		// 	{
+		// 		depth: 10
+		// 	}
+		// );
 
 		// const orderRequest = await submitOrder({
 		// 	orderType: "CatalystCompactOrder",
@@ -724,7 +724,7 @@ export function claim(
 			solver: addressToBytes32(account())
 		};
 
-		if (inputSettler === INPUT_SETTLER_ESCROW_LIFI) {
+		if (inputSettler.toLowerCase() === INPUT_SETTLER_ESCROW_LIFI.toLowerCase()) {
 			transactionHash = await walletClient.writeContract({
 				chain: actionChain,
 				account: account(),
@@ -733,7 +733,7 @@ export function claim(
 				functionName: "finalise",
 				args: [order, [solveParam], addressToBytes32(account()), "0x"]
 			});
-		} else if (inputSettler === INPUT_SETTLER_COMPACT_LIFI) {
+		} else if (inputSettler.toLowerCase() === INPUT_SETTLER_COMPACT_LIFI.toLowerCase()) {
 			// Check whether or not we have a signature.
 			const { sponsorSignature, allocatorSignature } = orderContainer;
 			console.log({
