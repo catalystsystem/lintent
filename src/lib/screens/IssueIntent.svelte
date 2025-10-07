@@ -278,16 +278,16 @@
 						{/snippet}
 					</AwaitButton>
 				{/if}
-				{#if !balanceCheckCompact}
-					<button
-						type="button"
-						class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-						disabled
-					>
-						Low Compact Balance
-					</button>
-				{:else if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-					{#if allocatorId !== POLYMER_ALLOCATOR}
+				{#if inputSettler === INPUT_SETTLER_COMPACT_LIFI && allocatorId !== POLYMER_ALLOCATOR}
+					{#if !balanceCheckCompact}
+						<button
+							type="button"
+							class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+							disabled
+						>
+							Low Compact Balance
+						</button>
+					{:else}
 						<AwaitButton
 							buttonFunction={swap(
 								walletClient,
