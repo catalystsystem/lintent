@@ -22,7 +22,7 @@
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { getBalance, getAllowance, getCompactBalance } from "$lib/state.svelte";
-	import { connectOrderServerSocket, getOrders } from "$lib/utils/api";
+	import { connectOrderServerSocket, getOrders, getQuotes } from "$lib/utils/api";
 	import { validateOrder } from "$lib/utils/lifiintent/OrderLib";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
@@ -162,7 +162,7 @@
 	let inputNumber = $state(1); // Window number
 	let outputNumber = $state(1); // Window number
 
-	let exclusiveFor: `string` = $state("");
+	let exclusiveFor: string = $state("");
 
 	let inputTokens: Token[] = $state([coinList[0]]);
 	let inputToken = $derived(inputTokens[0]);
@@ -280,6 +280,7 @@
 				>
 					Preview by LI.FI
 				</a>
+				
 				<!-- Asset Overlay -->
 				<TokenModal
 					bind:showTokenSelector
