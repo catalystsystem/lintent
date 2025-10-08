@@ -280,7 +280,7 @@
 				>
 					Preview by LI.FI
 				</a>
-				
+
 				<!-- Asset Overlay -->
 				<TokenModal
 					bind:showTokenSelector

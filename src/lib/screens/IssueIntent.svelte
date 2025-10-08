@@ -226,7 +226,9 @@
 			</button> -->
 		</div>
 	</div>
-	<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}>Get Quotes</button>
+	<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
+		>Get Quotes</button
+	>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
 		<select id="verified-by" class="rounded border px-2 py-1">
