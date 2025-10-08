@@ -162,6 +162,8 @@
 	let inputNumber = $state(1); // Window number
 	let outputNumber = $state(1); // Window number
 
+	let exclusiveFor: `string` = $state("");
+
 	let inputTokens: Token[] = $state([coinList[0]]);
 	let inputToken = $derived(inputTokens[0]);
 	let outputToken: Token = $state(coinList[1]);
@@ -328,6 +330,7 @@
 							{scroll}
 							bind:showTokenSelector
 							{inputSettler}
+							bind:exclusiveFor
 							{allocatorId}
 							{inputAmounts}
 							{outputAmount}

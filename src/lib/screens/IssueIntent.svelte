@@ -20,6 +20,7 @@
 	let {
 		scroll,
 		showTokenSelector = $bindable(),
+		exclusiveFor = $bindable(),
 		inputSettler,
 		allocatorId,
 		inputAmounts,
@@ -42,6 +43,7 @@
 			input: boolean;
 			index: number;
 		};
+		exclusiveFor: string;
 		inputSettler: availableInputSettlers;
 		allocatorId: availableAllocators;
 		inputAmounts: bigint[];
@@ -60,6 +62,7 @@
 	} = $props();
 
 	const opts = $derived({
+		exclusiveFor,
 		allocatorId,
 		inputTokens,
 		preHook,
@@ -202,6 +205,15 @@
 			<option value="polymer" selected> Polymer </option>
 			<option value="wormhole" disabled> Wormhole </option>
 		</select>
+	</div>
+	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
+		<span class="font-medium">Exclusive For</span>
+		<input
+			type="text"
+			class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+			placeholder="0x..."
+			bind:value={exclusiveFor}
+		/>
 	</div>
 
 	<!-- Action Button -->

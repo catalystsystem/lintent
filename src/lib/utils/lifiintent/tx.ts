@@ -21,6 +21,7 @@ import {
 } from "$lib/config";
 import {
 	encodeAbiParameters,
+	encodePacked,
 	hashStruct,
 	maxUint256,
 	parseAbiParameters,
@@ -50,6 +51,7 @@ import { submitOrder, submitOrderUnsigned } from "../api";
 import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 
 export type opts = {
+	exclusiveFor: string;
 	preHook?: (chain: chain) => Promise<any>;
 	postHook?: () => Promise<any>;
 	allocatorId: string;
@@ -65,6 +67,7 @@ export type opts = {
 // --- Initiating Intents --- //
 
 export function createOrder(opts: {
+	exclusiveFor: string;
 	allocatorId: string;
 	inputTokens: Token[];
 	outputToken: Token;
@@ -75,6 +78,7 @@ export function createOrder(opts: {
 	inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
 }) {
 	const {
+		exclusiveFor,
 		allocatorId,
 		inputTokens,
 		outputToken,
@@ -84,6 +88,15 @@ export function createOrder(opts: {
 		account,
 		inputSettler
 	} = opts;
+
+	// Check if exclusiveFor has right formatting:
+	if (exclusiveFor) {
+		// Length should be 42.
+		const formattedCorrectly = exclusiveFor.length === 42 && exclusiveFor.slice(0, 2) === "0x";
+		if (!formattedCorrectly)
+			throw new Error(`ExclusiveFor not formatted correctly ${exclusiveFor}`);
+	}
+
 	const inputChain = inputTokens[0].chain;
 	const inputs: [bigint, bigint][] = [];
 	for (let i = 0; i < inputTokens.length; ++i) {
@@ -99,6 +112,19 @@ export function createOrder(opts: {
 	const outputOracle = getOracle(verifier, outputToken.chain)!;
 	const inputOracle = getOracle(verifier, inputChain)!;
 
+	// Get the current epoch timestamp:
+	const currentTime = Math.floor(Date.now() / 1000);
+	const ONE_MINUTE = 60;
+
+	let context: `0x${string}` = "0x";
+	if (exclusiveFor) {
+		const paddedExclusiveFor: `0x${string}` = `0x${exclusiveFor.replace("0x", "").padStart(64, "0")}`;
+		context = encodePacked(
+			["bytes1", "bytes32", "uint32"],
+			["0xe0", paddedExclusiveFor, currentTime + ONE_MINUTE]
+		);
+	}
+
 	// Make Outputs
 	const output: MandateOutput = {
 		oracle: addressToBytes32(outputOracle),
@@ -108,21 +134,17 @@ export function createOrder(opts: {
 		amount: outputAmount,
 		recipient: addressToBytes32(account()),
 		call: "0x",
-		context: "0x"
+		context
 	};
 	const outputs = [output];
-
-	// Get the current epoch timestamp:
-	const currentTime = Math.floor(Date.now() / 1000);
-	const ONE_MINUTE = 60;
 
 	// Make order
 	const order: StandardOrder = {
 		user: account(),
 		nonce: BigInt(Math.floor(Math.random() * 2 ** 32)), // Random nonce
 		originChainId: BigInt(chainMap[inputChain].id),
-		fillDeadline: currentTime + ONE_MINUTE * 10,
-		expires: currentTime + ONE_MINUTE * 10,
+		fillDeadline: currentTime + ONE_MINUTE * 120,
+		expires: currentTime + ONE_MINUTE * 120,
 		inputOracle: inputOracle,
 		inputs: inputs,
 		outputs: outputs
@@ -161,6 +183,7 @@ export function createOrder(opts: {
 export function swap(
 	walletClient: WC,
 	opts: {
+		exclusiveFor: string;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		allocatorId: string;
@@ -659,26 +682,26 @@ export function validate(
 			}
 		}
 
-		if (order.inputOracle === getOracle("wormhole", sourceChain)) {
-			// TODO: get sequence from event.
-			const sequence = 0;
-			// Get VAA
-			const wormholeChainId = wormholeChainIds[outputChain];
-			const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
-				"0x",
-				""
-			)}/${sequence}?network=Testnet`;
-			const response = await axios.get(requestUrl);
-			console.log(response.data);
-			// return $walletClient.writeContract({
-			// 	account: connectedAccount.address,
-			// 	address: order.inputOracle,
-			// 	abi: WROMHOLE_ORACLE_ABI,
-			// 	functionName: 'receiveMessage',
-			// 	args: [encodedOutput]
-			// });
-			return;
-		}
+		// if (order.inputOracle === getOracle("wormhole", sourceChain)) {
+		// 	// TODO: get sequence from event.
+		// 	const sequence = 0;
+		// 	// Get VAA
+		// 	const wormholeChainId = wormholeChainIds[outputChain];
+		// 	const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
+		// 		"0x",
+		// 		""
+		// 	)}/${sequence}?network=Testnet`;
+		// 	const response = await axios.get(requestUrl);
+		// 	console.log(response.data);
+		// return $walletClient.writeContract({
+		// 	account: connectedAccount.address,
+		// 	address: order.inputOracle,
+		// 	abi: WROMHOLE_ORACLE_ABI,
+		// 	functionName: 'receiveMessage',
+		// 	args: [encodedOutput]
+		// });
+		// 	return;
+		// }
 	};
 }
 
