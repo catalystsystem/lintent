@@ -32,7 +32,8 @@ export const POLYMER_ORACLE = {
 	sepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
 	baseSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
 	arbitrumSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
-	optimismSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00"
+	optimismSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
+	megaethSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00"
 } as const;
 
 export const MAINNET = PUBLIC_DEPLOY_AS_MAINNET === "true";
@@ -161,6 +162,12 @@ export const coinList = MAINNET
 				name: "weth",
 				chain: "optimismSepolia",
 				decimals: 18
+			},
+			{
+				address: `0x4eB2Bd7beE16F38B1F4a0A5796Fffd028b6040e9`,
+				name: "weth",
+				chain: "megaethSepolia",
+				decimals: 18
 			}
 		] as const);
 
@@ -182,6 +189,10 @@ export function getIndexOf(token: Token) {
 
 export type coin = (typeof coinList)[number]["address"];
 
+export const megaethSepolia = {
+	id: 6342
+}
+
 export const wormholeChainIds = {
 	sepolia: 10002,
 	arbitrumSepolia: 10003,
@@ -195,7 +206,8 @@ export const polymerChainIds = {
 	sepolia: sepolia.id,
 	arbitrumSepolia: arbitrumSepolia.id,
 	baseSepolia: baseSepolia.id,
-	optimismSepolia: optimismSepolia.id
+	optimismSepolia: optimismSepolia.id,
+	megaethSepolia: megaethSepolia.id
 } as const;
 
 export type Verifier = "wormhole" | "polymer";
@@ -206,7 +218,8 @@ export const chainMap = {
 	arbitrum,
 	sepolia,
 	optimismSepolia,
-	baseSepolia
+	baseSepolia,
+	megaethSepolia
 } as const;
 export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
@@ -323,6 +336,12 @@ export const clients = {
 		transport: fallback([
 			http("https://optimism-sepolia-rpc.publicnode.com"),
 			...optimismSepolia.rpcUrls.default.http.map((v) => http(v))
+		])
+	}),
+	megaethSepolia: createPublicClient({
+		// chain: megaethSepolia,
+		transport: fallback([
+			http("https://carrot.megaeth.com/rpc")
 		])
 	})
 } as const;
