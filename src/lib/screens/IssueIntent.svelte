@@ -227,10 +227,10 @@
 			</button> -->
 		</div>
 	</div>
-	<div class="flex items-center align-middle justify-center my-1">
+	<div class="my-1 flex items-center justify-center align-middle">
 		<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
-		>Fetch Quote</button
-	>
+			>Fetch Quote</button
+		>
 	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
