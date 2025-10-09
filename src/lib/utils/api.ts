@@ -112,7 +112,7 @@ export const getQuotes = async (options: {
 		quoteId: null;
 		metadata: {
 			exclusiveFor: `0x${string}`;
-		},
+		};
 		preview: {
 			inputs: {
 				user: `0x${string}`;
@@ -160,9 +160,9 @@ export const getQuotes = async (options: {
 	};
 
 	try {
-		console.log({rq});
+		console.log({ rq });
 		const response = await api.post("/quote/request", rq);
-		console.log({response});
+		console.log({ response });
 		return response.data;
 	} catch (error) {
 		console.error("Error submitting order:", error);

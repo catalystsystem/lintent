@@ -97,8 +97,9 @@
 				}
 			]
 		});
-		if (response) {
+		if (response?.quotes?.length ?? 0) {
 			outputAmount = BigInt(response.quotes[0].preview.outputs[0].amount);
+			exclusiveFor = response.quotes[0].metadata.exclusiveFor ?? "";
 		}
 	}
 
@@ -226,9 +227,11 @@
 			</button> -->
 		</div>
 	</div>
-	<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
-		>Get Quotes</button
+	<div class="flex items-center align-middle justify-center my-1">
+		<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
+		>Fetch Quote</button
 	>
+	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
 		<select id="verified-by" class="rounded border px-2 py-1">
