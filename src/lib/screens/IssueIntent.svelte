@@ -98,7 +98,7 @@
 			]
 		});
 		if (response) {
-			outputAmount = BigInt(response.quotes[0].metadata.outputs[0].amount);
+			outputAmount = BigInt(response.quotes[0].preview.outputs[0].amount);
 		}
 	}
 
