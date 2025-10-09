@@ -191,19 +191,19 @@ export type coin = (typeof coinList)[number]["address"];
 
 export const megaethSepolia = {
 	id: 6342,
-  name: 'MegaETH Sepolia',
-  blockTime: 10,
-  nativeCurrency: {
-    name: 'MegaETH Testnet Ether',
-    symbol: 'ETH',
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://carrot.megaeth.com/rpc'],
-    },
-  },
-  testnet: true,
+	name: "MegaETH Sepolia",
+	blockTime: 10,
+	nativeCurrency: {
+		name: "MegaETH Testnet Ether",
+		symbol: "ETH",
+		decimals: 18
+	},
+	rpcUrls: {
+		default: {
+			http: ["https://carrot.megaeth.com/rpc"]
+		}
+	},
+	testnet: true
 };
 
 export const wormholeChainIds = {
@@ -352,7 +352,7 @@ export const clients = {
 		])
 	}),
 	megaethSepolia: createPublicClient({
-		// chain: megaethSepolia,	
+		chain: megaethSepolia,
 		transport: fallback([http("https://carrot.megaeth.com/rpc")])
 	})
 } as const;
