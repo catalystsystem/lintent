@@ -224,7 +224,6 @@ export function getCoin(
 	// ensure the address is ERC20-sized.
 	const concatedAddress =
 		"0x" + address?.replace("0x", "")?.slice(address.length - 42, address.length);
-	console.log({ args, concatedAddress });
 	for (const token of coinList) {
 		// check chain first.
 		if (token.chain === chain) {
@@ -244,7 +243,6 @@ export function getCoin(
 }
 
 export function getChainName(chainId: number | bigint | string) {
-	console.log({ chainId });
 	if (typeof chainId === "string") chainId = Number(chainId);
 	if (typeof chainId === "bigint") chainId = Number(chainId);
 	for (const key of chains) {

@@ -1,9 +1,10 @@
 import axios from "axios";
 import type { Quote, StandardOrder } from "../../types";
-import { MAINNET } from "$lib/config";
+import { type chain, chainMap, MAINNET } from "$lib/config";
+import { getInteropableAddress } from "./interopable-addresses";
 
-const ORDER_SERVER_URL = MAINNET ? "http://order.li.fi" : "https://order-dev.li.fi";
-const WSS_ORDER_SERVER_URL = MAINNET ? "http://order.li.fi" : "wss://order-dev.li.fi";
+const ORDER_SERVER_URL = MAINNET ? "https://order.li.fi" : "https://order-dev.li.fi";
+const WSS_ORDER_SERVER_URL = MAINNET ? "https://order.li.fi" : "wss://order-dev.li.fi";
 // const ORDER_SERVER_URL = 'http://localhost:4444';
 // const WSS_ORDER_SERVER_URL = 'ws://localhost:4444';
 
@@ -83,6 +84,88 @@ export const getOrders = async (options?: { user?: `0x${string}`; status?: Order
 		return response.data as GetOrderResponse;
 	} catch (error) {
 		console.error("Error getting orders:", error);
+		throw error;
+	}
+};
+
+export const getQuotes = async (options: {
+	user: `0x${string}`;
+	userChain: chain;
+	inputs: {
+		sender: `0x${string}`;
+		asset: `0x${string}`;
+		chain: chain;
+		amount: bigint;
+	}[];
+	outputs: {
+		receiver: `0x${string}`;
+		asset: `0x${string}`;
+		chain: chain;
+		amount: bigint;
+	}[];
+	minValidUntil?: number;
+}): Promise<{
+	quotes: {
+		order: null;
+		eta: null;
+		validUntil: null;
+		quoteId: null;
+		metadata: {
+			exclusiveFor: `0x${string}`;
+		};
+		preview: {
+			inputs: {
+				user: `0x${string}`;
+				asset: `0x${string}`;
+				amount: string;
+			}[];
+			outputs: {
+				receiver: `0x${string}`;
+				asset: `0x${string}`;
+				amount: string;
+			}[];
+		};
+		provider: null;
+		partialFill: false;
+		failureHandling: "refund-automatic";
+	}[];
+}> => {
+	const { user, userChain, inputs, outputs, minValidUntil } = options;
+
+	const lockType: undefined | { kind: "the-compact" } = undefined;
+
+	const rq = {
+		user: getInteropableAddress(user, chainMap[userChain].id),
+		intent: {
+			intentType: "oif-swap",
+			inputs: inputs.map((input) => {
+				return {
+					user: getInteropableAddress(input.sender, chainMap[userChain].id),
+					asset: getInteropableAddress(input.asset, chainMap[userChain].id),
+					amount: input.amount.toString(),
+					lock: lockType
+				};
+			}),
+			outputs: outputs.map((output) => {
+				return {
+					receiver: getInteropableAddress(output.receiver, chainMap[output.chain].id),
+					asset: getInteropableAddress(output.asset, chainMap[output.chain].id),
+					amount: output.amount.toString()
+				};
+			}),
+			swapType: "exact-input",
+			minValidUntil
+		},
+		supportedTypes: ["oif-escrow-v0"]
+	};
+
+	try {
+		console.log({ rq });
+		const response = await api.post("/quote/request", rq);
+		console.log({ response });
+		return response.data;
+	} catch (error) {
+		console.error("Error submitting order:", error);
 		throw error;
 	}
 };

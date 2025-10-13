@@ -13,6 +13,7 @@
 		type chain,
 		INPUT_SETTLER_ESCROW_LIFI
 	} from "$lib/config";
+	import { getQuotes } from "$lib/utils/api";
 	import { compactApprove } from "$lib/utils/compact/tx";
 	import { depositAndSwap, escrowApprove, openIntent, swap } from "$lib/utils/lifiintent/tx";
 	import type { OrderContainer } from "../../types";
@@ -74,6 +75,33 @@
 		inputSettler,
 		account
 	});
+
+	async function getQuoteAndSet() {
+		const response = await getQuotes({
+			user: account(),
+			userChain: inputTokens[0].chain,
+			inputs: inputTokens.map((input, i) => {
+				return {
+					sender: account(),
+					asset: input.address,
+					chain: input.chain,
+					amount: inputAmounts[i]
+				};
+			}),
+			outputs: [
+				{
+					receiver: account(),
+					asset: outputToken.address,
+					chain: outputToken.chain,
+					amount: 0n
+				}
+			]
+		});
+		if (response?.quotes?.length ?? 0) {
+			outputAmount = BigInt(response.quotes[0].preview.outputs[0].amount);
+			exclusiveFor = response.quotes[0].metadata.exclusiveFor ?? "";
+		}
+	}
 
 	const postHookScroll = async () => {
 		await postHook();
@@ -198,6 +226,11 @@
 				+
 			</button> -->
 		</div>
+	</div>
+	<div class="my-1 flex items-center justify-center align-middle">
+		<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
+			>Fetch Quote</button
+		>
 	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
