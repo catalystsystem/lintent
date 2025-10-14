@@ -188,7 +188,14 @@
 					<div>{outputToken.chain}</div>
 				</div>
 			</button>
-			<GetQuote bind:exclusiveFor {inputAmounts} bind:outputAmount {inputTokens} {outputToken} {account}></GetQuote>
+			<GetQuote
+				bind:exclusiveFor
+				{inputAmounts}
+				bind:outputAmount
+				{inputTokens}
+				{outputToken}
+				{account}
+			></GetQuote>
 			<!-- <button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
 				onclick={() => (showTokenSelector = {

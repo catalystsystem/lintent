@@ -42,41 +42,42 @@
 		});
 		if (response?.quotes?.length ?? 0) {
 			const quote = response.quotes[0];
-			quoteExpires = quote.validUntil ?? (new Date().getTime() + 30 * 1000);
-      quoteDuration = quoteExpires - new Date().getTime();
+			quoteExpires = quote.validUntil ?? new Date().getTime() + 30 * 1000;
+			quoteDuration = quoteExpires - new Date().getTime();
 			outputAmount = BigInt(quote.preview.outputs[0].amount);
 			exclusiveFor = quote.metadata.exclusiveFor ?? "";
-      updater();
+			updater();
 		}
 	}
 
-  const updater = () => {
-    const timeLeft = quoteExpires - new Date().getTime();
-    const percentageOfOriginalQuote = timeLeft / quoteDuration;
-    const intermediatewidth =  percentageOfOriginalQuote * 100;
-    if (intermediatewidth <= 100 && intermediatewidth > 0) {width = intermediatewidth;
-    console.log(width);
-      return;
-    }
-    console.log(width);
-    width = 0;
-    updateQuote();
-  };
+	const updater = () => {
+		const timeLeft = quoteExpires - new Date().getTime();
+		const percentageOfOriginalQuote = timeLeft / quoteDuration;
+		const intermediatewidth = percentageOfOriginalQuote * 100;
+		if (intermediatewidth <= 100 && intermediatewidth > 0) {
+			width = intermediatewidth;
+			console.log(width);
+			return;
+		}
+		console.log(width);
+		width = 0;
+		updateQuote();
+	};
 
-  export function updateQuote() {
-    quoteRequest = getQuoteAndSet();
-  }
-  
-  $effect(() => {
-    quoteExpires;
-    counter.unsubscribe();
-    counter = interval(1000).subscribe(updater);
-  })
-  let quoteDuration = 30 * 1000;
-  let counter = interval(100).subscribe(updater);
+	export function updateQuote() {
+		quoteRequest = getQuoteAndSet();
+	}
+
+	$effect(() => {
+		quoteExpires;
+		counter.unsubscribe();
+		counter = interval(1000).subscribe(updater);
+	});
+	let quoteDuration = 30 * 1000;
+	let counter = interval(100).subscribe(updater);
 
 	let quoteExpires = $state(new Date().getTime() + 30 * 1000);
-  let width = $state(0);
+	let width = $state(0);
 	let quoteRequest: Promise<void> = $state(Promise.resolve());
 </script>
 
@@ -92,7 +93,7 @@
 		<button
 			class="relative h-7 cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
 			onclick={() => {
-				updateQuote
+				updateQuote;
 			}}>Fetch Quote</button
 		>
 	{/await}
