@@ -309,7 +309,6 @@
 					</button>
 				{/if}
 				<div class="flex h-full w-max flex-row">
-					<!-- TODO: Connect screen. -->
 					{#if !connectedAccount || !walletClient}
 						<ConnectWallet {onboard}></ConnectWallet>
 					{:else}

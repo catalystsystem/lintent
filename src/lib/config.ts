@@ -53,9 +53,9 @@ export type Token = {
 export const coinList = MAINNET
 	? ([
 			{
-				address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`,
+				address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`,
 				name: "usdc",
-				chain: "ethereum",
+				chain: "base",
 				decimals: 6
 			},
 			{
@@ -65,9 +65,9 @@ export const coinList = MAINNET
 				decimals: 6
 			},
 			{
-				address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`,
+				address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`,
 				name: "usdc",
-				chain: "base",
+				chain: "ethereum",
 				decimals: 6
 			},
 			{
@@ -109,9 +109,9 @@ export const coinList = MAINNET
 		] as const)
 	: ([
 			{
-				address: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`,
+				address: `0x5fd84259d66Cd46123540766Be93DFE6D43130D7`,
 				name: "usdc",
-				chain: "sepolia",
+				chain: "optimismSepolia",
 				decimals: 6
 			},
 			{
@@ -121,9 +121,9 @@ export const coinList = MAINNET
 				decimals: 6
 			},
 			{
-				address: `0x5fd84259d66Cd46123540766Be93DFE6D43130D7`,
+				address: `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`,
 				name: "usdc",
-				chain: "optimismSepolia",
+				chain: "sepolia",
 				decimals: 6
 			},
 			{
@@ -168,8 +168,9 @@ export function printToken(token: Token) {
 	return `${token.name.toUpperCase()}, ${token.chain}`;
 }
 
-export function formatTokenAmount(amount: bigint, token: Token) {
-	return Number(amount) / 10 ** token.decimals;
+export function formatTokenAmount(amount: bigint, token: Token, decimals = 4) {
+	const formattedAmount = Number(amount) / 10 ** token.decimals;
+	return formattedAmount.toFixed(decimals);
 }
 
 export function getIndexOf(token: Token) {

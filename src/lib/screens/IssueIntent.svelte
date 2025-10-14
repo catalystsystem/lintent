@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import GetQuote from "$lib/components/GetQuote.svelte";
 	import {
 		INPUT_SETTLER_COMPACT_LIFI,
 		type WC,
@@ -13,7 +14,6 @@
 		type chain,
 		INPUT_SETTLER_ESCROW_LIFI
 	} from "$lib/config";
-	import { getQuotes } from "$lib/utils/api";
 	import { compactApprove } from "$lib/utils/compact/tx";
 	import { depositAndSwap, escrowApprove, openIntent, swap } from "$lib/utils/lifiintent/tx";
 	import type { OrderContainer } from "../../types";
@@ -75,33 +75,6 @@
 		inputSettler,
 		account
 	});
-
-	async function getQuoteAndSet() {
-		const response = await getQuotes({
-			user: account(),
-			userChain: inputTokens[0].chain,
-			inputs: inputTokens.map((input, i) => {
-				return {
-					sender: account(),
-					asset: input.address,
-					chain: input.chain,
-					amount: inputAmounts[i]
-				};
-			}),
-			outputs: [
-				{
-					receiver: account(),
-					asset: outputToken.address,
-					chain: outputToken.chain,
-					amount: 0n
-				}
-			]
-		});
-		if (response?.quotes?.length ?? 0) {
-			outputAmount = BigInt(response.quotes[0].preview.outputs[0].amount);
-			exclusiveFor = response.quotes[0].metadata.exclusiveFor ?? "";
-		}
-	}
 
 	const postHookScroll = async () => {
 		await postHook();
@@ -215,6 +188,7 @@
 					<div>{outputToken.chain}</div>
 				</div>
 			</button>
+			<GetQuote bind:exclusiveFor {inputAmounts} bind:outputAmount {inputTokens} {outputToken} {account}></GetQuote>
 			<!-- <button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
 				onclick={() => (showTokenSelector = {
@@ -227,11 +201,7 @@
 			</button> -->
 		</div>
 	</div>
-	<div class="my-1 flex items-center justify-center align-middle">
-		<button class="h-7 rounded border px-2 font-bold hover:text-blue-800" onclick={getQuoteAndSet}
-			>Fetch Quote</button
-		>
-	</div>
+
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
 		<select id="verified-by" class="rounded border px-2 py-1">
