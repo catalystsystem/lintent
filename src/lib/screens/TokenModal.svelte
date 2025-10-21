@@ -86,7 +86,7 @@
 			if (showTokenSelector.active < new Date().getTime() - 200) showTokenSelector.active = 0;
 		}}
 	></div>
-	<div class="absolute top-30 left-10 h-[12rem] w-[20rem] rounded border border-gray-200 bg-sky-50">
+	<div class="absolute top-30 left-10 h-[12rem] w-[20rem] rounded border border-gray-200 bg-sky-50 z-10">
 		<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
 			{#if showTokenSelector.index === -1}
 				<h3 class="-mt-2 text-center text-xl font-medium">Add Asset</h3>
