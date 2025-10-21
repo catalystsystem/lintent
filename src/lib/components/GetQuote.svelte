@@ -43,7 +43,7 @@
 		if (response?.quotes?.length ?? 0) {
 			const quote = response.quotes[0];
 			quoteExpires = quote.validUntil ?? new Date().getTime() + 30 * 1000;
-			if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000
+			if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000;
 			quoteDuration = quoteExpires - new Date().getTime();
 			outputAmount = BigInt(quote.preview.outputs[0].amount);
 			exclusiveFor = quote.metadata.exclusiveFor ?? "";
@@ -77,7 +77,7 @@
 	let quoteDuration = 30 * 1000;
 	let counter = interval(100).subscribe(updater);
 
-	let quoteExpires = $state(new Date().getTime() + 30 * 1000);
+	let quoteExpires = $state(new Date().getTime() + 5 * 1000);
 	let width = $state(0);
 	let quoteRequest: Promise<void> = $state(Promise.resolve());
 </script>
