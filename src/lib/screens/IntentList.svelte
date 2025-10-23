@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatTokenAmount, getChainName, getCoin } from "$lib/config";
 	import { idToToken } from "$lib/utils/convert";
-	import { getOrderId } from "$lib/utils/lifiintent/OrderLib";
+	import { getOrderId } from "$lib/utils/orderLib";
 	import type { OrderContainer } from "../../types";
 
 	let {

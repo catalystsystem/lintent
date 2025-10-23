@@ -1,7 +1,7 @@
 <script lang="ts">
 	import AwaitButton from "../components/AwaitButton.svelte";
 
-	import { claim } from "$lib/utils/lifiintent/tx";
+	import { Solver } from "$lib/libraries/solver";
 	import type { OrderContainer, StandardOrder } from "../../types";
 	import {
 		COMPACT,
@@ -110,7 +110,7 @@
 					</button>
 				{:else}
 					<AwaitButton
-						buttonFunction={claim(
+						buttonFunction={Solver.claim(
 							walletClient,
 							{
 								orderContainer,
@@ -133,7 +133,7 @@
 				{/if}
 			{:catch}
 				<AwaitButton
-					buttonFunction={claim(
+					buttonFunction={Solver.claim(
 						walletClient,
 						{
 							orderContainer,

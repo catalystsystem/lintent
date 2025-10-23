@@ -11,12 +11,11 @@ const injected = injectedWalletsModule();
 const zealWalletSdk = zealWalletModule();
 const coinbaseWalletSdk = coinbaseWalletModule();
 const walletConnect = walletConnectModule({
-	projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID
+	projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
+	dappUrl: "lintent.org"
 });
 
 const wallets = [injected, walletConnect, zealWalletSdk, coinbaseWalletSdk];
-
-const INFURA_ID = "";
 
 const getChains = () => {
 	return Object.values(chainMap).map((v) => {

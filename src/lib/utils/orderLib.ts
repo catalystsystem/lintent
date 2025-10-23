@@ -1,5 +1,5 @@
 import { encodeAbiParameters, encodePacked, keccak256, parseAbiParameters } from "viem";
-import type { MandateOutput, StandardOrder } from "../../../types";
+import type { MandateOutput, StandardOrder } from "../../types";
 import { type chain, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE } from "$lib/config";
 
 export function getOrderId(orderContainer: { order: StandardOrder; inputSettler: `0x${string}` }) {

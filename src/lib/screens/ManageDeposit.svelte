@@ -16,11 +16,12 @@
 	} from "$lib/config";
 	import BalanceField from "$lib/components/BalanceField.svelte";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
-	import { compactApprove, compactDeposit, compactWithdraw } from "$lib/utils/compact/tx";
+	import { CompactLib } from "$lib/libraries/compactLib";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
 
 	let {
 		scroll,
+		mainnet = $bindable(),
 		inputSettler = $bindable(),
 		allocatorId = $bindable(),
 		inputNumber = $bindable(),
@@ -34,6 +35,7 @@
 		account
 	}: {
 		scroll: (direction: boolean | number) => () => void;
+		mainnet: boolean;
 		inputSettler: availableInputSettlers;
 		allocatorId: availableAllocators;
 		inputNumber: number;
@@ -52,6 +54,11 @@
 	let allowance = $state(0n);
 	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, inputToken.decimals));
 	$effect(() => {
+		// Check if allowances contain the chain.
+		if (!allowances[inputToken.chain]) {
+			allowance = 0n;
+			return;
+		}
 		allowances[inputToken.chain][inputToken.address].then((a) => {
 			allowance = a;
 		});
@@ -65,6 +72,25 @@
 		If you want to be using TheCompact with signatures, ensure your tokens are deposited before you
 		continue.
 	</p>
+	<div class="my-4 flex flex-row">
+		<h2 class="text-md mt-0.5 mr-4 font-medium">Network</h2>
+		<button
+			class="h-8 rounded-l border px-4"
+			class:hover:bg-gray-100={mainnet !== false}
+			class:font-bold={mainnet === false}
+			onclick={() => (mainnet = false)}
+		>
+			Testnet
+		</button>
+		<button
+			class=" h-8 rounded-r border border-l-0 px-4"
+			class:hover:bg-gray-100={mainnet !== true}
+			class:font-bold={mainnet === true}
+			onclick={() => (mainnet = true)}
+		>
+			Mainnet
+		</button>
+	</div>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
 		<!-- <button
@@ -121,9 +147,9 @@
 				<select
 					id="inputToken"
 					class="rounded border px-2 py-1"
-					bind:value={() => getIndexOf(inputToken), (v) => (inputToken = coinList[v])}
+					bind:value={() => getIndexOf(inputToken), (v) => (inputToken = coinList(mainnet)[v])}
 				>
-					{#each coinList as token, i}
+					{#each coinList(mainnet) as token, i}
 						<option value={i}>{printToken(token)}</option>
 					{/each}
 				</select>
@@ -133,7 +159,7 @@
 			<div class="flex justify-center">
 				{#if manageAssetAction === "withdraw"}
 					<AwaitButton
-						buttonFunction={compactWithdraw(walletClient, {
+						buttonFunction={CompactLib.compactWithdraw(walletClient, {
 							preHook,
 							postHook,
 							inputToken,
@@ -151,7 +177,7 @@
 					</AwaitButton>
 				{:else if allowance < inputAmount}
 					<AwaitButton
-						buttonFunction={compactApprove(walletClient, {
+						buttonFunction={CompactLib.compactApprove(walletClient, {
 							preHook,
 							postHook,
 							inputTokens: [inputToken],
@@ -168,7 +194,7 @@
 					</AwaitButton>
 				{:else}
 					<AwaitButton
-						buttonFunction={compactDeposit(walletClient!, {
+						buttonFunction={CompactLib.compactDeposit(walletClient!, {
 							preHook,
 							postHook,
 							inputToken,

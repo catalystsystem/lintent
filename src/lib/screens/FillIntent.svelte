@@ -9,9 +9,9 @@
 		type WC
 	} from "$lib/config";
 	import { bytes32ToAddress } from "$lib/utils/convert";
-	import { getOrderId, getOutputHash } from "$lib/utils/lifiintent/OrderLib";
+	import { getOrderId, getOutputHash } from "$lib/utils/orderLib";
 	import type { MandateOutput, OrderContainer } from "../../types";
-	import { fill } from "$lib/utils/lifiintent/tx";
+	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 
@@ -79,7 +79,7 @@
 		])
 	);
 
-	const fillWrapper = (func: ReturnType<typeof fill>) => {
+	const fillWrapper = (func: ReturnType<typeof Solver.fill>) => {
 		return async () => {
 			const result = await func();
 			fillTransactionHash = result;
@@ -108,7 +108,7 @@
 					<AwaitButton
 						buttonFunction={filledStatus.every((v) => v == BYTES32_ZERO)
 							? fillWrapper(
-									fill(
+									Solver.fill(
 										walletClient,
 										{
 											orderContainer,

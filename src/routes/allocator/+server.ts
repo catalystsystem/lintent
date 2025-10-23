@@ -2,29 +2,32 @@ import { json } from "@sveltejs/kit";
 import axios from "axios";
 import type { RequestHandler } from "./$types";
 import { type StandardOrder } from "../../types";
-import { MAINNET } from "$lib/config";
 import {
 	PRIVATE_POLYMER_MAINNET_ZONE_API_KEY,
 	PRIVATE_POLYMER_TESTNET_ZONE_API_KEY
 } from "$env/static/private";
 
-const PRIVATE_POLYMER_ZONE_API_KEY = MAINNET
-	? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY
-	: PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
+function getPolymerKey(mainnet: boolean) {
+	return mainnet ? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY : PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
+}
 
 export const POST: RequestHandler = async ({ request }) => {
 	const {
 		order,
 		claimHash,
 		blockNumber,
-		chainId
+		chainId,
+		mainnet
 	}: {
 		order: StandardOrder;
 		claimHash: `0x${string}`;
 		blockNumber: number;
 		chainId: number;
+		mainnet?: boolean;
 	} = await request.json();
 	console.log({ order, claimHash, blockNumber, chainId });
+
+	const PRIVATE_POLYMER_ZONE_API_KEY = getPolymerKey(mainnet ?? true);
 
 	const requestAllocation = await axios.post(
 		"https://allocator.devnet.polymer.zone/",
