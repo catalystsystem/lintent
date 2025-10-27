@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		formatTokenAmount,
-		getChainName,
-		getClient,
-		getCoin,
-		type chain,
-		type WC
-	} from "$lib/config";
+	import { formatTokenAmount, getChainName, getClient, getCoin, type chain } from "$lib/config";
 	import { addressToBytes32 } from "$lib/utils/convert";
 	import { encodeMandateOutput, getOrderId } from "$lib/utils/orderLib";
 	import { keccak256 } from "viem";
@@ -14,19 +7,18 @@
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 	import { Solver } from "$lib/libraries/solver";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import store from "$lib/state.svelte";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
 
 	let {
 		orderContainer,
-		walletClient,
 		fillTransactionHash,
 		account,
 		preHook,
 		postHook
 	}: {
 		orderContainer: OrderContainer;
-		walletClient: WC;
 		fillTransactionHash: `0x${string}`;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
@@ -114,7 +106,7 @@
 						buttonFunction={validated
 							? async () => console.log("Has already been validated")
 							: Solver.validate(
-									walletClient,
+									store.walletClient,
 									{
 										orderContainer,
 										fillTransactionHash

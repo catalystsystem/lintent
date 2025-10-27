@@ -18,9 +18,8 @@
 	} from "$lib/config";
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
-	import { getBalance, getAllowance, getCompactBalance } from "$lib/state.svelte";
+	import { getBalance, getAllowance, getCompactBalance } from "$lib/libraries/token";
 	import { OrderServer } from "$lib/libraries/orderServer";
-	import { validateOrder } from "$lib/utils/orderLib";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
 	import IntentList from "$lib/screens/IntentList.svelte";
@@ -29,6 +28,7 @@
 	import Finalise from "$lib/screens/Finalise.svelte";
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
 	import TokenModal from "$lib/screens/TokenModal.svelte";
+	import store from "$lib/state.svelte";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -42,15 +42,22 @@
 		allocatorSignature?: `0x${string}`;
 	};
 
-	let mainnet = $state(true);
-	const orderServer = $derived(new OrderServer(mainnet));
+	$effect(() => {
+		store.mainnet;
+		console.log(coinList(store.mainnet));
+		store.inputTokens = [coinList(store.mainnet)[0]];
+		store.outputTokens = [coinList(store.mainnet)[1]];
+	});
 
-	let orders = $state<OrderContainer[]>([]);
+	const orderServer = $derived(new OrderServer(store.mainnet));
 
 	let s: WebSocket;
 	function initatePage() {
 		if (s) s.close();
-		orders = [];
+		// Empty store.orders without changing the pointer:
+		store.orders.forEach(() => {
+			store.orders.pop();
+		});
 		// Connect to websocket server
 		let { socket } = orderServer.connectOrderServerSocket((order: OrderPackage) => {
 			const allocatorSignature = order.allocatorSignature
@@ -71,15 +78,15 @@
 						type: "None",
 						payload: "0x"
 					} as NoSignature);
-			orders.push({ ...order, allocatorSignature, sponsorSignature });
-			console.log({ orders, order });
+			store.orders.push({ ...order, allocatorSignature, sponsorSignature });
+			console.log({ orders: store.orders, order });
 		});
 		s = socket;
 		onDestroy(() => s.close());
 	}
 
 	$effect(() => {
-		mainnet;
+		store.mainnet;
 		initatePage();
 	});
 
@@ -88,71 +95,19 @@
 	});
 
 	// --- Wallet --- //
-	const wallets = onboard.state.select("wallets");
-	const activeWallet = $state<{ wallet?: WalletState }>({});
-	wallets.subscribe((v) => {
-		activeWallet.wallet = v?.[0];
-	});
-	const connectedAccount = $derived(activeWallet.wallet?.accounts?.[0]);
-
-	const walletClient = $derived(
-		activeWallet?.wallet?.provider
-			? createWalletClient({
-					transport: custom(activeWallet?.wallet?.provider)
-				})
-			: undefined
-	);
-
-	export async function setWalletToCorrectChain(chain: chain) {
-		try {
-			return await walletClient?.switchChain({ id: chainMap[chain].id });
-		} catch (error) {
-			console.warn(
-				`Wallet does not support switchChain or failed to switch chain: ${chainMap[chain].id}`,
-				error
-			);
-			return undefined;
-		}
-	}
 
 	export async function connect() {
 		await onboard.connectWallet();
 	}
 
 	// --- Execute Transaction Variables --- //
-	const preHook = setWalletToCorrectChain;
-	const postHook = async () => forceUpdate();
-	const account = () => connectedAccount?.address!;
-	let inputNumber = $state(1); // Window number
-	let outputNumber = $state(1); // Window number
+	const preHook = store.setWalletToCorrectChain;
+	const postHook = async () => store.forceUpdate();
+	const account = () => store.connectedAccount?.address!;
 
-	let exclusiveFor: string = $state("");
+	let selectedOrder = $state<OrderContainer | undefined>(undefined);
 
-	$effect(() => {
-		mainnet;
-		console.log(coinList(mainnet));
-		inputTokens = [coinList(mainnet)[0]];
-		outputToken = coinList(mainnet)[1];
-	});
-
-	// svelte-ignore state_referenced_locally
-	let inputTokens: Token[] = $state([coinList(mainnet)[0]]);
-	let inputToken = $derived(inputTokens[0]);
-	// svelte-ignore state_referenced_locally
-	let outputToken: Token = $state(coinList(mainnet)[1]);
-	let inputAmounts = $state([1000000n]);
-	let outputAmount = $state(1000000n);
-	// const verifier: verifier = 'polymer';
-	let allocatorId: typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR =
-		$state(POLYMER_ALLOCATOR);
-	let inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI =
-		$state(INPUT_SETTLER_ESCROW_LIFI);
-
-	let verifier: Verifier = $state("polymer");
-
-	// Filling Orders
-	let selectedOrder: OrderContainer | undefined = $state(undefined);
-	let fillTransactionHash: `0x${string}` | undefined = $state(undefined);
+	let fillTransactionHash = $state<`0x${string}` | undefined>(undefined);
 
 	let showTokenSelector: {
 		active: number;
@@ -164,68 +119,13 @@
 		index: 0
 	});
 
-	let updatedDerived = $state(0);
-	setInterval(() => {
-		updatedDerived += 1;
-	}, 10000);
-	const forceUpdate = () => {
-		updatedDerived += 1;
-	};
-
-	function mapOverCoins<T>(
-		func: (
-			user: `0x${string}` | undefined,
-			asset: `0x${string}`,
-			client: (typeof clients)[keyof typeof clients]
-		) => T,
-		isMainnet: boolean,
-		_: any
-	) {
-		const resolved: Record<chain, Record<`0x${string}`, T>> = {} as any;
-		for (const token of coinList(isMainnet)) {
-			// Check whether we have me the chain before.
-			if (!resolved[token.chain as chain]) resolved[token.chain] = {};
-
-			resolved[token.chain][token.address] = func(
-				connectedAccount?.address,
-				token.address,
-				clients[token.chain]
-			);
-		}
-		return resolved;
-	}
-
-	const balances = $derived.by(() => {
-		return mapOverCoins(getBalance, mainnet, updatedDerived);
-	});
-
-	const allowances = $derived.by(() => {
-		return mapOverCoins(
-			getAllowance(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : inputSettler),
-			mainnet,
-			updatedDerived
-		);
-	});
-
-	const compactBalances = $derived.by(() => {
-		return mapOverCoins(
-			(
-				user: `0x${string}` | undefined,
-				asset: `0x${string}`,
-				client: (typeof clients)[keyof typeof clients]
-			) => getCompactBalance(user, asset, client, allocatorId),
-			mainnet,
-			updatedDerived
-		);
-	});
-
 	let snapContainer: HTMLDivElement;
 
 	function scroll(next: boolean | number) {
 		return () => {
 			if (!snapContainer) return;
 			const scrollLeft = snapContainer.scrollLeft;
-			const width = snapContainer.clientWidth;
+			const width = snapContainer.clientWidth + 1;
 			snapContainer.scrollTo({
 				left: next ? scrollLeft + Number(next) * width : scrollLeft - width,
 				behavior: "smooth"
@@ -258,18 +158,8 @@
 				</a>
 
 				<!-- Asset Overlay -->
-				<TokenModal
-					bind:showTokenSelector
-					{mainnet}
-					{inputSettler}
-					{compactBalances}
-					{balances}
-					bind:inputTokens
-					bind:outputToken
-					bind:inputAmounts
-					bind:outputAmount
-				></TokenModal>
-				{#if !(!connectedAccount || !walletClient)}
+				<TokenModal bind:showTokenSelector></TokenModal>
+				{#if !(!store.connectedAccount || !store.walletClient)}
 					<!-- Right Button -->
 					<button
 						class="absolute top-1.5 left-[23rem] cursor-pointer rounded bg-sky-50 px-1"
@@ -286,52 +176,18 @@
 					</button>
 				{/if}
 				<div class="flex h-full w-max flex-row">
-					{#if !connectedAccount || !walletClient}
+					{#if !store.connectedAccount || !store.walletClient}
 						<ConnectWallet {onboard}></ConnectWallet>
 					{:else}
-						<ManageDeposit
-							{scroll}
-							bind:inputSettler
-							bind:allocatorId
-							bind:inputNumber
-							bind:inputToken
-							bind:mainnet
-							{compactBalances}
-							{balances}
-							{allowances}
-							{walletClient}
-							{preHook}
-							{postHook}
-							{account}
-						></ManageDeposit>
-						<IssueIntent
-							{scroll}
-							bind:showTokenSelector
-							{inputSettler}
-							bind:exclusiveFor
-							{mainnet}
-							{allocatorId}
-							{inputAmounts}
-							{outputAmount}
-							{inputTokens}
-							{outputToken}
-							{verifier}
-							{compactBalances}
-							{balances}
-							{allowances}
-							{walletClient}
-							bind:orders
-							{preHook}
-							{postHook}
-							{account}
+						<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
+						<IssueIntent {scroll} bind:showTokenSelector {preHook} {postHook} {account}
 						></IssueIntent>
-						<IntentList {scroll} bind:selectedOrder orderContainers={orders}></IntentList>
+						<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
 						{#if selectedOrder !== undefined}
 							<!-- <IntentDescription></IntentDescription> -->
 							<FillIntent
 								{scroll}
 								orderContainer={selectedOrder}
-								{walletClient}
 								{account}
 								{preHook}
 								{postHook}
@@ -340,7 +196,6 @@
 							{#if fillTransactionHash}
 								<ReceiveMessage
 									orderContainer={selectedOrder}
-									{walletClient}
 									{fillTransactionHash}
 									{account}
 									{preHook}
@@ -348,7 +203,6 @@
 								></ReceiveMessage>
 								<Finalise
 									orderContainer={selectedOrder}
-									{walletClient}
 									{fillTransactionHash}
 									{preHook}
 									{postHook}

@@ -22,9 +22,9 @@ export type CreateIntentOptions = {
 	exclusiveFor: string;
 	allocatorId: string;
 	inputTokens: Token[];
-	outputToken: Token;
+	outputTokens: Token[];
 	inputAmounts: bigint[];
-	outputAmount: bigint;
+	outputAmounts: bigint[];
 	verifier: Verifier;
 	account: () => `0x${string}`;
 	inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
@@ -55,9 +55,9 @@ export class Intent {
 			exclusiveFor,
 			allocatorId,
 			inputTokens,
-			outputToken,
+			outputTokens,
 			inputAmounts,
-			outputAmount,
+			outputAmounts,
 			verifier,
 			account,
 			inputSettler
@@ -83,7 +83,6 @@ export class Intent {
 		}
 
 		const outputSettler = COIN_FILLER;
-		const outputOracle = getOracle(verifier, outputToken.chain)!;
 		const inputOracle = getOracle(verifier, inputChain)!;
 
 		// Get the current epoch timestamp:
@@ -99,18 +98,26 @@ export class Intent {
 			);
 		}
 
-		// Make Outputs
-		const output: MandateOutput = {
-			oracle: addressToBytes32(outputOracle),
-			settler: addressToBytes32(outputSettler),
-			chainId: BigInt(chainMap[outputToken.chain].id),
-			token: addressToBytes32(outputToken.address),
-			amount: outputAmount,
-			recipient: addressToBytes32(account()),
-			call: "0x",
-			context
-		};
-		const outputs = [output];
+		const outputs: MandateOutput[] = [];
+		for (let o = 0; o < outputTokens.length; ++o) {
+			const outputToken = outputTokens[o];
+			const outputAmount = outputAmounts[o];
+
+			const outputOracle = getOracle(verifier, outputToken.chain)!;
+
+			// Make Outputs
+			const output: MandateOutput = {
+				oracle: addressToBytes32(outputOracle),
+				settler: addressToBytes32(outputSettler),
+				chainId: BigInt(chainMap[outputToken.chain].id),
+				token: addressToBytes32(outputToken.address),
+				amount: outputAmount,
+				recipient: addressToBytes32(account()),
+				call: "0x",
+				context
+			};
+			outputs.push(output);
+		}
 
 		// Make order
 		const order: StandardOrder = {

@@ -3,12 +3,6 @@
 	import GetQuote from "$lib/components/GetQuote.svelte";
 	import {
 		INPUT_SETTLER_COMPACT_LIFI,
-		type WC,
-		type availableAllocators,
-		type availableInputSettlers,
-		type balanceQuery,
-		type Token,
-		type Verifier,
 		POLYMER_ALLOCATOR,
 		formatTokenAmount,
 		type chain,
@@ -16,25 +10,11 @@
 	} from "$lib/config";
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
-	import type { OrderContainer } from "../../types";
+	import store from "$lib/state.svelte";
 
 	let {
 		scroll,
 		showTokenSelector = $bindable(),
-		exclusiveFor = $bindable(),
-		mainnet,
-		inputSettler,
-		allocatorId,
-		inputAmounts,
-		outputAmount,
-		inputTokens,
-		outputToken,
-		verifier,
-		compactBalances,
-		balances,
-		allowances,
-		walletClient,
-		orders = $bindable(),
 		preHook,
 		postHook,
 		account
@@ -45,36 +25,22 @@
 			input: boolean;
 			index: number;
 		};
-		exclusiveFor: string;
-		inputSettler: availableInputSettlers;
-		mainnet: boolean;
-		allocatorId: availableAllocators;
-		inputAmounts: bigint[];
-		outputAmount: bigint;
-		inputTokens: Token[];
-		outputToken: Token;
-		compactBalances: balanceQuery;
-		verifier: Verifier;
-		balances: balanceQuery;
-		allowances: balanceQuery;
-		walletClient: WC;
-		orders: OrderContainer[];
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();
 
 	const opts = $derived({
-		exclusiveFor,
-		allocatorId,
-		inputTokens,
+		exclusiveFor: store.exclusiveFor,
+		allocatorId: store.allocatorId,
+		inputTokens: store.inputTokens,
 		preHook,
 		postHook,
-		outputToken,
-		inputAmounts,
-		outputAmount,
-		verifier,
-		inputSettler,
+		outputTokens: store.outputTokens,
+		inputAmounts: store.inputAmounts,
+		outputAmounts: store.outputAmounts,
+		verifier: store.verifier,
+		inputSettler: store.inputSettler,
 		account
 	});
 
@@ -85,31 +51,31 @@
 
 	const intentFactory = $derived(
 		new IntentFactory({
-			mainnet,
-			walletClient,
+			mainnet: store.mainnet,
+			walletClient: store.walletClient,
 			preHook,
 			postHook: postHookScroll,
-			ordersPointer: orders
+			ordersPointer: store.orders
 		})
 	);
 
 	const approveFunction = $derived(
-		inputSettler === INPUT_SETTLER_COMPACT_LIFI
-			? CompactLib.compactApprove(walletClient, opts)
-			: escrowApprove(walletClient, opts)
+		store.inputSettler === INPUT_SETTLER_COMPACT_LIFI
+			? CompactLib.compactApprove(store.walletClient, opts)
+			: escrowApprove(store.walletClient, opts)
 	);
 
 	let allowanceCheck = $state(true);
 	$effect(() => {
 		allowanceCheck = true;
-		if (!allowances[inputTokens[0].chain]) {
+		if (!store.allowances[store.inputTokens[0].chain]) {
 			allowanceCheck = false;
 			return;
 		}
-		for (let i = 0; i < inputTokens.length; ++i) {
-			const token = inputTokens[i];
-			const inputAmount = inputAmounts[i];
-			allowances[token.chain][token.address].then((a) => {
+		for (let i = 0; i < store.inputTokens.length; ++i) {
+			const token = store.inputTokens[i];
+			const inputAmount = store.inputAmounts[i];
+			store.allowances[token.chain][token.address].then((a) => {
 				allowanceCheck = allowanceCheck && a >= inputAmount;
 			});
 		}
@@ -117,14 +83,14 @@
 	let balanceCheckWallet = $state(true);
 	$effect(() => {
 		balanceCheckWallet = true;
-		if (!balances[inputTokens[0].chain]) {
+		if (!store.balances[store.inputTokens[0].chain]) {
 			balanceCheckWallet = false;
 			return;
 		}
-		for (let i = 0; i < inputTokens.length; ++i) {
-			const token = inputTokens[i];
-			const inputAmount = inputAmounts[i];
-			balances[token.chain][token.address].then((b) => {
+		for (let i = 0; i < store.inputTokens.length; ++i) {
+			const token = store.inputTokens[i];
+			const inputAmount = store.inputAmounts[i];
+			store.balances[token.chain][token.address].then((b) => {
 				balanceCheckWallet = balanceCheckWallet && b >= inputAmount;
 			});
 		}
@@ -132,20 +98,22 @@
 	let balanceCheckCompact = $state(true);
 	$effect(() => {
 		balanceCheckCompact = true;
-		if (!compactBalances[inputTokens[0].chain]) {
+		if (!store.compactBalances[store.inputTokens[0].chain]) {
 			balanceCheckCompact = false;
 			return;
 		}
-		for (let i = 0; i < inputTokens.length; ++i) {
-			const token = inputTokens[i];
-			const inputAmount = inputAmounts[i];
-			compactBalances[token.chain][token.address].then((b) => {
+		for (let i = 0; i < store.inputTokens.length; ++i) {
+			const token = store.inputTokens[i];
+			const inputAmount = store.inputAmounts[i];
+			store.compactBalances[token.chain][token.address].then((b) => {
 				balanceCheckCompact = balanceCheckCompact && b >= inputAmount;
 			});
 		}
 	});
 
-	const allSameChains = $derived(inputTokens.every((v) => inputTokens[0].chain === v.chain));
+	const allSameChains = $derived(
+		store.inputTokens.every((v) => store.inputTokens[0].chain === v.chain)
+	);
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
@@ -156,7 +124,7 @@
 	</p>
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
-			{#each inputTokens as inputToken, i}
+			{#each store.inputTokens as inputToken, i}
 				<button
 					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
 					onclick={() =>
@@ -168,7 +136,7 @@
 				>
 					<div class="flex flex-col items-center justify-center align-middle">
 						<div class="flex flex-row space-x-1">
-							<div>{formatTokenAmount(inputAmounts[i], inputToken)}</div>
+							<div>{formatTokenAmount(store.inputAmounts[i], inputToken)}</div>
 							<div>{inputToken.name.toUpperCase()}</div>
 						</div>
 						<div>{inputToken.chain}</div>
@@ -206,19 +174,19 @@
 			>
 				<div class="flex flex-col items-center justify-center align-middle">
 					<div class="flex flex-row space-x-1">
-						<div>{formatTokenAmount(outputAmount, outputToken)}</div>
-						<div>{outputToken.name.toUpperCase()}</div>
+						<div>{formatTokenAmount(store.outputAmounts[0], store.outputTokens[0])}</div>
+						<div>{store.outputTokens[0].name.toUpperCase()}</div>
 					</div>
-					<div>{outputToken.chain}</div>
+					<div>{store.outputTokens[0].chain}</div>
 				</div>
 			</button>
 			<GetQuote
-				bind:exclusiveFor
-				{inputAmounts}
-				{mainnet}
-				bind:outputAmount
-				{inputTokens}
-				{outputToken}
+				bind:exclusiveFor={store.exclusiveFor}
+				inputAmounts={store.inputAmounts}
+				mainnet={store.mainnet}
+				bind:outputAmount={store.outputAmounts[0]}
+				inputTokens={store.inputTokens}
+				outputToken={store.outputTokens[0]}
 				{account}
 			></GetQuote>
 			<!-- <button
@@ -247,7 +215,7 @@
 			type="text"
 			class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
 			placeholder="0x..."
-			bind:value={exclusiveFor}
+			bind:value={store.exclusiveFor}
 		/>
 	</div>
 
@@ -261,7 +229,7 @@
 			>
 				Not Same Chain Inputs
 			</button>
-		{:else if inputTokens.length != 1}
+		{:else if store.inputTokens.length != 1}
 			<button
 				type="button"
 				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
@@ -288,7 +256,7 @@
 					>
 						Low Balance
 					</button>
-				{:else if inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+				{:else if store.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
 					<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
 						{#snippet name()}
 							Execute Open
@@ -297,7 +265,7 @@
 							Waiting for transaction...
 						{/snippet}
 					</AwaitButton>
-				{:else if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+				{:else if store.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
 					<AwaitButton buttonFunction={intentFactory.compactDepositAndRegister(opts)}>
 						{#snippet name()}
 							Execute Deposit and Open
@@ -307,7 +275,7 @@
 						{/snippet}
 					</AwaitButton>
 				{/if}
-				{#if inputSettler === INPUT_SETTLER_COMPACT_LIFI && allocatorId !== POLYMER_ALLOCATOR}
+				{#if store.inputSettler === INPUT_SETTLER_COMPACT_LIFI && store.allocatorId !== POLYMER_ALLOCATOR}
 					{#if !balanceCheckCompact}
 						<button
 							type="button"

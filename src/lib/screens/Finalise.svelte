@@ -17,17 +17,16 @@
 	import { COMPACT_ABI } from "$lib/abi/compact";
 	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 	import { idToToken } from "$lib/utils/convert";
+	import store from "$lib/state.svelte";
 
 	let {
 		orderContainer,
-		walletClient,
 		fillTransactionHash,
 		account,
 		preHook,
 		postHook
 	}: {
 		orderContainer: OrderContainer;
-		walletClient: WC;
 		fillTransactionHash: `0x${string}`;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
@@ -111,7 +110,7 @@
 				{:else}
 					<AwaitButton
 						buttonFunction={Solver.claim(
-							walletClient,
+							store.walletClient,
 							{
 								orderContainer,
 								fillTransactionHash
@@ -134,7 +133,7 @@
 			{:catch}
 				<AwaitButton
 					buttonFunction={Solver.claim(
-						walletClient,
+						store.walletClient,
 						{
 							orderContainer,
 							fillTransactionHash

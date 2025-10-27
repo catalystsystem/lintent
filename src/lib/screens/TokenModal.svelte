@@ -7,74 +7,54 @@
 		INPUT_SETTLER_COMPACT_LIFI,
 		INPUT_SETTLER_ESCROW_LIFI,
 		printToken,
-		type availableInputSettlers,
-		type balanceQuery,
 		type chain,
 		type Token
 	} from "$lib/config";
+	import store from "$lib/state.svelte";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
 
 	let {
-		showTokenSelector = $bindable(),
-		inputSettler,
-		compactBalances,
-		balances,
-		inputTokens = $bindable(),
-		outputToken = $bindable(),
-		inputAmounts = $bindable(),
-		outputAmount = $bindable(),
-		mainnet
+		showTokenSelector = $bindable()
 	}: {
 		showTokenSelector: {
 			active: number;
 			input: boolean;
 			index: number;
 		};
-		inputSettler: availableInputSettlers;
-		compactBalances: balanceQuery;
-		balances: balanceQuery;
-		inputTokens: Token[];
-		outputToken: Token;
-		inputAmounts: bigint[];
-		outputAmount: bigint;
-		mainnet: boolean;
 	} = $props();
 
 	$effect(() => {
 		const tkn = showTokenSelector.input
-			? (inputTokens[showTokenSelector.index] ?? coinList(mainnet)[0])
-			: outputToken;
+			? (store.inputTokens[showTokenSelector.index] ?? coinList(store.mainnet)[0])
+			: (store.outputTokens[showTokenSelector.index] ?? coinList(store.mainnet)[0]);
 		const defaultModelValue =
 			(showTokenSelector.input
-				? Number(inputAmounts[showTokenSelector.index])
-				: Number(outputAmount)) /
+				? Number(store.inputAmounts[showTokenSelector.index])
+				: Number(store.outputAmounts[showTokenSelector.index])) /
 			10 ** tkn.decimals;
 		modalNumber = (defaultModelValue ?? 0) > 0 ? defaultModelValue : 1;
 		selectedToken = tkn;
 	});
 
 	let selectedToken: Token = $state(
-		showTokenSelector.input ? inputTokens[showTokenSelector.index] : outputToken
+		showTokenSelector.input
+			? store.inputTokens[showTokenSelector.index]
+			: store.outputTokens[showTokenSelector.index]
 	);
 	let modalNumber: number = $state(1);
 
 	function submit() {
-		// Input side
-		if (showTokenSelector.input) {
-			const val = toBigIntWithDecimals(modalNumber, selectedToken.decimals);
-			if (showTokenSelector.index === -1) {
-				console.log("push");
-				inputAmounts.push(val);
-				inputTokens.push(selectedToken);
-			} else {
-				console.log("update", showTokenSelector.index);
-				inputAmounts[showTokenSelector.index] = val;
-				inputTokens[showTokenSelector.index] = selectedToken;
-			}
+		// Select pointers to the array.
+		const tokenPointer = showTokenSelector.input ? store.inputTokens : store.outputTokens;
+		const amountPointer = showTokenSelector.input ? store.inputAmounts : store.outputAmounts;
+
+		const val = toBigIntWithDecimals(modalNumber, selectedToken.decimals);
+		if (showTokenSelector.index === -1) {
+			amountPointer.push(val);
+			tokenPointer.push(selectedToken);
 		} else {
-			// Output side
-			outputToken = selectedToken;
-			outputAmount = toBigIntWithDecimals(modalNumber, outputToken.decimals);
+			amountPointer[showTokenSelector.index] = val;
+			tokenPointer[showTokenSelector.index] = selectedToken;
 		}
 		showTokenSelector.active = 0;
 	}
@@ -102,9 +82,9 @@
 				{#if showTokenSelector.input}
 					<span class="mt-0.5">of</span>
 					<BalanceField
-						value={(inputSettler === INPUT_SETTLER_COMPACT_LIFI ? compactBalances : balances)[
-							selectedToken.chain
-						][selectedToken.address]}
+						value={(store.inputSettler === INPUT_SETTLER_COMPACT_LIFI
+							? store.compactBalances
+							: store.balances)[selectedToken.chain][selectedToken.address]}
 						decimals={selectedToken.decimals}
 					/>
 				{:else}{/if}
@@ -123,11 +103,11 @@
 					}
 				>
 					{#if showTokenSelector.input}
-						{#each coinList(mainnet).filter( (v) => (inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) ) as token, i}
+						{#each coinList(store.mainnet).filter( (v) => (store.inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) ) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{:else}
-						{#each coinList(mainnet).filter((v) => v.address !== ADDRESS_ZERO) as token, i}
+						{#each coinList(store.mainnet).filter((v) => v.address !== ADDRESS_ZERO) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{/if}

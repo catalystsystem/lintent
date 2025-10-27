@@ -14,11 +14,11 @@
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import store from "$lib/state.svelte";
 
 	let {
 		scroll,
 		orderContainer,
-		walletClient,
 		fillTransactionHash = $bindable(),
 		account,
 		preHook,
@@ -26,7 +26,6 @@
 	}: {
 		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
-		walletClient: WC;
 		fillTransactionHash: `0x${string}` | undefined;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
@@ -109,7 +108,7 @@
 						buttonFunction={filledStatus.every((v) => v == BYTES32_ZERO)
 							? fillWrapper(
 									Solver.fill(
-										walletClient,
+										store.walletClient,
 										{
 											orderContainer,
 											outputs
