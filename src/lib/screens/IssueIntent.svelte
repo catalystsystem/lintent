@@ -11,24 +11,31 @@
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import store from "$lib/state.svelte";
+	import TokenModal from "./TokenModal.svelte";
+
+	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
 
 	let {
 		scroll,
-		showTokenSelector = $bindable(),
 		preHook,
 		postHook,
 		account
 	}: {
 		scroll: (direction: boolean | number) => () => void;
-		showTokenSelector: {
-			active: number;
-			input: boolean;
-			index: number;
-		};
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();
+
+	let showTokenSelector = $state<{
+		active: number;
+		input: boolean;
+		index: number;
+	}>({
+		active: 1,
+		input: true,
+		index: 0
+	});
 
 	const opts = $derived({
 		exclusiveFor: store.exclusiveFor,
@@ -114,17 +121,42 @@
 	const allSameChains = $derived(
 		store.inputTokens.every((v) => store.inputTokens[0].chain === v.chain)
 	);
+
+	const abstractInputs = $derived.by(() => {
+		const inputs: {
+			name: string;
+			amount: bigint;
+			decimals: number;
+		}[] = [];
+		// Get all unqiue tokens.
+		const allUniqueNames = [...new Set(store.inputTokens.map((v) => v.name))];
+		for (let i = 0; i < allUniqueNames.length; ++i) {
+			$inspect(store.inputTokens);
+			const name = allUniqueNames[i];
+			console.log({name, found: store.inputTokens.map((v, i) => v.name == name ? store.inputAmounts[i] : 0n)})
+			inputs[i] = {
+				name,
+				amount: bigIntSum(
+					...store.inputTokens.map((v, i) => v.name == name ? store.inputAmounts[i] : 0n)
+				),
+				decimals: store.inputTokens.find((v) => v.name == name)!.decimals
+			};
+		}
+		return inputs;
+	});
 </script>
 
-<div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
+<div class="relative h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="w-full text-center text-2xl font-medium">Intent Issuance</h1>
 	<p class="text-sm">
 		Select assets for your intent along with the verifier for the intent. Then choose your desired
 		style of execution. Your intent will be sent to the LI.FI dev order server.
 	</p>
+	<TokenModal bind:showTokenSelector></TokenModal>
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
-			{#each store.inputTokens as inputToken, i}
+			<h2 class="text-center text-sm">You Pay</h2>
+			{#each abstractInputs as input, i}
 				<button
 					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
 					onclick={() =>
@@ -136,14 +168,13 @@
 				>
 					<div class="flex flex-col items-center justify-center align-middle">
 						<div class="flex flex-row space-x-1">
-							<div>{formatTokenAmount(store.inputAmounts[i], inputToken)}</div>
-							<div>{inputToken.name.toUpperCase()}</div>
+							<div>{formatTokenAmount(input.amount, input.decimals)}</div>
 						</div>
-						<div>{inputToken.chain}</div>
+						<div>{input.name.toUpperCase()}</div>
 					</div>
 				</button>
 			{/each}
-			<button
+			<!-- <button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
 				onclick={() =>
 					(showTokenSelector = {
@@ -153,7 +184,7 @@
 					})}
 			>
 				+
-			</button>
+			</button> -->
 		</div>
 		<div class="flex flex-col justify-center">
 			<div class="flex flex-col items-center">
@@ -163,6 +194,7 @@
 			</div>
 		</div>
 		<div class="flex flex-col justify-center space-y-1">
+			<h2 class="text-center text-sm">You Receive</h2>
 			<button
 				class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
 				onclick={() =>
@@ -174,7 +206,7 @@
 			>
 				<div class="flex flex-col items-center justify-center align-middle">
 					<div class="flex flex-row space-x-1">
-						<div>{formatTokenAmount(store.outputAmounts[0], store.outputTokens[0])}</div>
+						<div>{formatTokenAmount(store.outputAmounts[0], store.outputTokens[0].decimals)}</div>
 						<div>{store.outputTokens[0].name.toUpperCase()}</div>
 					</div>
 					<div>{store.outputTokens[0].chain}</div>

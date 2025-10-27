@@ -1,9 +1,7 @@
 <script lang="ts">
 	import onboard from "$lib/utils/web3-onboard";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
-	import {
-		coinList
-	} from "$lib/config";
+	import { coinList } from "$lib/config";
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { OrderServer } from "$lib/libraries/orderServer";
@@ -96,16 +94,6 @@
 
 	let fillTransactionHash = $state<`0x${string}` | undefined>(undefined);
 
-	let showTokenSelector: {
-		active: number;
-		input: boolean;
-		index: number;
-	} = $state({
-		active: 0,
-		input: true,
-		index: 0
-	});
-
 	let snapContainer: HTMLDivElement;
 
 	function scroll(next: boolean | number) {
@@ -144,8 +132,6 @@
 					Preview by LI.FI
 				</a>
 
-				<!-- Asset Overlay -->
-				<TokenModal bind:showTokenSelector></TokenModal>
 				{#if !(!store.connectedAccount || !store.walletClient)}
 					<!-- Right Button -->
 					<button
@@ -167,8 +153,7 @@
 						<ConnectWallet {onboard}></ConnectWallet>
 					{:else}
 						<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
-						<IssueIntent {scroll} bind:showTokenSelector {preHook} {postHook} {account}
-						></IssueIntent>
+						<IssueIntent {scroll} {preHook} {postHook} {account}></IssueIntent>
 						<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
 						{#if selectedOrder !== undefined}
 							<!-- <IntentDescription></IntentDescription> -->

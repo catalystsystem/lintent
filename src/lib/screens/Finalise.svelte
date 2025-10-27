@@ -164,7 +164,7 @@
 										getCoin({
 											address: idToToken(input[0]),
 											chain: getChainName(orderContainer.order.originChainId)
-										})
+										}).decimals
 									)}
 								</div>
 								<div>

@@ -180,8 +180,8 @@ export function printToken(token: Token) {
 	return `${token.name.toUpperCase()}, ${token.chain}`;
 }
 
-export function formatTokenAmount(amount: bigint, token: Token, decimals = 4) {
-	const formattedAmount = Number(amount) / 10 ** token.decimals;
+export function formatTokenAmount(amount: bigint, tokenDecimals: number, decimals = 4) {
+	const formattedAmount = Number(amount) / 10 ** tokenDecimals;
 	return formattedAmount.toFixed(decimals);
 }
 
