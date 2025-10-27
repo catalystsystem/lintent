@@ -1,24 +1,11 @@
 <script lang="ts">
 	import onboard from "$lib/utils/web3-onboard";
-	import { createWalletClient, custom } from "viem";
-	import type { WalletState } from "@web3-onboard/core";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
 	import {
-		type Token,
-		type chain,
-		type Verifier,
-		ALWAYS_OK_ALLOCATOR,
-		POLYMER_ALLOCATOR,
-		chainMap,
-		clients,
-		INPUT_SETTLER_COMPACT_LIFI,
-		INPUT_SETTLER_ESCROW_LIFI,
-		COMPACT,
 		coinList
 	} from "$lib/config";
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
-	import { getBalance, getAllowance, getCompactBalance } from "$lib/libraries/token";
 	import { OrderServer } from "$lib/libraries/orderServer";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
