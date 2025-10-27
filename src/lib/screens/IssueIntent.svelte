@@ -133,11 +133,14 @@
 		for (let i = 0; i < allUniqueNames.length; ++i) {
 			$inspect(store.inputTokens);
 			const name = allUniqueNames[i];
-			console.log({name, found: store.inputTokens.map((v, i) => v.name == name ? store.inputAmounts[i] : 0n)})
+			console.log({
+				name,
+				found: store.inputTokens.map((v, i) => (v.name == name ? store.inputAmounts[i] : 0n))
+			});
 			inputs[i] = {
 				name,
 				amount: bigIntSum(
-					...store.inputTokens.map((v, i) => v.name == name ? store.inputAmounts[i] : 0n)
+					...store.inputTokens.map((v, i) => (v.name == name ? store.inputAmounts[i] : 0n))
 				),
 				decimals: store.inputTokens.find((v) => v.name == name)!.decimals
 			};

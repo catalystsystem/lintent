@@ -138,7 +138,10 @@
 									<div>
 										{formatTokenAmount(
 											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId).decimals })
+											getCoin({
+												address: output.token,
+												chain: getChainName(output.chainId).decimals
+											})
 										)}
 									</div>
 									<div>
@@ -159,7 +162,10 @@
 									<div>
 										{formatTokenAmount(
 											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId).decimals })
+											getCoin({
+												address: output.token,
+												chain: getChainName(output.chainId).decimals
+											})
 										)}
 									</div>
 									<div>
