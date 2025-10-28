@@ -49,6 +49,11 @@ export const chainMap = {
 } as const;
 export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
+export const chainList = (mainnet:boolean) => {
+	if (mainnet == true) {
+		return ["ethereum", "base", "arbitrum"]
+	} else return ["sepolia", "optimismSepolia", "baseSepolia"]
+}
 
 export type balanceQuery = Record<chain, Record<`0x${string}`, Promise<bigint>>>;
 

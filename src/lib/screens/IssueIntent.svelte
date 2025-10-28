@@ -11,7 +11,8 @@
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import store from "$lib/state.svelte";
-	import TokenModal from "./TokenModal.svelte";
+	import InputTokenModal from "../components/InputTokenModal.svelte";
+	import OutputTokenModal from "$lib/components/OutputTokenModal.svelte";
 
 	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
 
@@ -27,7 +28,8 @@
 		account: () => `0x${string}`;
 	} = $props();
 
-	let tokenSelectorActive = $state<boolean>(false);
+	let inputTokenSelectorActive = $state<boolean>(false);
+	let outputTokenSelectorActive = $state<boolean>(false);
 
 	const opts = $derived({
 		exclusiveFor: store.exclusiveFor,
@@ -149,12 +151,17 @@
 		Select assets for your intent along with the verifier for the intent. Then choose your desired
 		style of execution. Your intent will be sent to the LI.FI dev order server.
 	</p>
-	{#if tokenSelectorActive}
-		<TokenModal
-			bind:active={tokenSelectorActive}
-			input={true}
-			currentInputTokens={store.inputTokens}
-		></TokenModal>
+	{#if inputTokenSelectorActive}
+		<InputTokenModal
+			bind:active={inputTokenSelectorActive}
+			bind:currentInputTokens={store.inputTokens}
+		></InputTokenModal>
+	{/if}
+	{#if outputTokenSelectorActive}
+		<OutputTokenModal
+			bind:active={outputTokenSelectorActive}
+			bind:currentOutputTokens={store.outputTokens}
+		></OutputTokenModal>
 	{/if}
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
@@ -162,7 +169,7 @@
 			{#each abstractInputs as input, i}
 				<button
 					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-					onclick={() => (tokenSelectorActive = true)}
+					onclick={() => (inputTokenSelectorActive = true)}
 				>
 					<div class="flex flex-col items-center justify-center align-middle">
 						<div class="flex flex-row space-x-1">
@@ -172,17 +179,6 @@
 					</div>
 				</button>
 			{/each}
-			<!-- <button
-				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
-				onclick={() =>
-					(showTokenSelector = {
-						active: new Date().getTime(),
-						input: true,
-						index: -1
-					})}
-			>
-				+
-			</button> -->
 		</div>
 		<div class="flex flex-col justify-center">
 			<div class="flex flex-col items-center">
@@ -193,33 +189,25 @@
 		</div>
 		<div class="flex flex-col justify-center space-y-1">
 			<h2 class="text-center text-sm">You Receive</h2>
-			<button
-				class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-				onclick={() => (tokenSelectorActive = true)}
-			>
-				<div class="flex flex-col items-center justify-center align-middle">
-					<div class="flex flex-row space-x-1">
-						<div>
-							{formatTokenAmount(
-								store.outputTokens[0].amount,
-								store.outputTokens[0].token.decimals
-							)}
+			{#each store.outputTokens as outputToken}
+				<button
+					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
+					onclick={() => (outputTokenSelectorActive = true)}
+				>
+					<div class="flex flex-col items-center justify-center align-middle">
+						<div class="flex flex-row space-x-1">
+							<div>
+								{formatTokenAmount(
+									outputToken.amount,
+									outputToken.token.decimals
+								)}
+							</div>
+							<div>{outputToken.token.name.toUpperCase()}</div>
 						</div>
-						<div>{store.outputTokens[0].token.name.toUpperCase()}</div>
+						<div>{outputToken.token.chain}</div>
 					</div>
-					<div>{store.outputTokens[0].token.chain}</div>
-				</div>
-			</button>
-			<!-- <button
-				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
-				onclick={() => (showTokenSelector = {
-						active: new Date().getTime(),
-						input: false,
-						index: -1
-					})}
-			>
-				+
-			</button> -->
+				</button>
+			{/each}
 		</div>
 	</div>
 

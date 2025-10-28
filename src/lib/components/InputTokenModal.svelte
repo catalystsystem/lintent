@@ -10,11 +10,9 @@
 
 	let {
 		active = $bindable(),
-		input,
-		currentInputTokens
+		currentInputTokens = $bindable()
 	}: {
 		active: boolean;
-		input: boolean;
 		currentInputTokens: TokenContext[];
 	} = $props();
 
@@ -48,10 +46,8 @@
 			const inputValue = v(inputs[key]);
 			// The token would be:
 			const token = getTokenFor(key);
-			if (!token)
-				throw new Error(
-					`For some reason a token has been selected that we could not find: ${key} in ${tokenSet.map((v) => [v.address, v.chain])}`
-				);
+			// If we can't find the token, then it is most likely because the user changed their token.
+			if (!token) continue;
 
 			if (inputValue === 0) continue;
 			inputTokens.push({ token, amount: toBigIntWithDecimals(inputValue, token.decimals) });
@@ -62,7 +58,7 @@
 		console.log({
 			inputTokens
 		});
-		store.inputTokens = inputTokens;
+		currentInputTokens = inputTokens;
 
 		active = false;
 	}
@@ -74,6 +70,20 @@
 	const tokenSet = $derived(
 		coinList(store.mainnet).filter((v) => v.name.toLowerCase() === selectedTokenName.toLowerCase())
 	);
+
+	let circutBreaker = false;
+	$effect(() => {
+		selectedTokenName;
+		if (circutBreaker || currentInputTokens[0].token.name !== selectedTokenName) {
+			circutBreaker = true;
+			inputs = Object.fromEntries(
+			(tokenSet).map((token) => [
+				getInteropableAddress(token.address, chainMap[token.chain].id),
+				0
+			])
+		);
+		}
+	});
 
 	async function computeInputs(total: number, order: SortOrder) {
 		const tokens = tokenSet;
@@ -140,7 +150,7 @@
 		<div class="absolute top-1.5 right-2.5 h-2 w-[1px] -rotate-45 bg-black font-bold"></div>
 	</button>
 	<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
-		<h3 class="-mt-2 text-center text-xl font-medium">Select {input ? "Input" : "Output"}</h3>
+		<h3 class="-mt-2 text-center text-xl font-medium">Select Input</h3>
 		<div class="flex flex-row">
 			<select id="orderSelector" class="mr-0.5" bind:value={sortOrder}>
 				<option value="largest">↑</option>
