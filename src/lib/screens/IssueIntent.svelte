@@ -197,10 +197,7 @@
 					<div class="flex flex-col items-center justify-center align-middle">
 						<div class="flex flex-row space-x-1">
 							<div>
-								{formatTokenAmount(
-									outputToken.amount,
-									outputToken.token.decimals
-								)}
+								{formatTokenAmount(outputToken.amount, outputToken.token.decimals)}
 							</div>
 							<div>{outputToken.token.name.toUpperCase()}</div>
 						</div>

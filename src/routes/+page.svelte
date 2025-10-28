@@ -29,7 +29,7 @@
 	$effect(() => {
 		store.mainnet;
 		store.inputTokens = [{ token: coinList(store.mainnet)[0], amount: 0n }];
-		store.outputTokens = [{token: coinList(store.mainnet)[1], amount: 0n}]
+		store.outputTokens = [{ token: coinList(store.mainnet)[1], amount: 0n }];
 	});
 
 	const orderServer = $derived(new OrderServer(store.mainnet));

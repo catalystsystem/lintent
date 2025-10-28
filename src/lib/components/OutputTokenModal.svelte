@@ -52,7 +52,7 @@
 	function add() {
 		if (outputs.length == 3) return;
 		outputs.push({
-			chain: chainList(store.mainnet)[0] as chain,
+			chain: outputs[outputs.length -1].chain,
 			name: "usdc",
 			amount: 0
 		});
@@ -60,7 +60,7 @@
 
 	function remove() {
 		if (outputs.length == 1) return;
-		outputs.pop()
+		outputs.pop();
 	}
 </script>
 
@@ -109,13 +109,23 @@
 				{/each}
 			</div>
 		</div>
-		<div class="flex flex-row w-full justify-evenly">
-			<button class="w-8 font-medium bg-red-100 hover:bg-red-200 cursor-pointer rounded" onclick={remove}> - </button>
+		<div class="flex w-full flex-row justify-evenly">
+			<button
+				class="w-8 cursor-pointer rounded bg-red-100 font-medium hover:bg-red-200"
+				onclick={remove}
+			>
+				-
+			</button>
 			<button
 				class="bg-gray h-8 rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
 				onclick={save}>Save</button
 			>
-			<button class="w-8 font-medium bg-green-100 hover:bg-green-200 cursor-pointer rounded" onclick={add}> + </button>
+			<button
+				class="w-8 cursor-pointer rounded bg-green-100 font-medium hover:bg-green-200"
+				onclick={add}
+			>
+				+
+			</button>
 		</div>
 	</div>
 </div>

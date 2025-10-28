@@ -77,11 +77,8 @@
 		if (circutBreaker || currentInputTokens[0].token.name !== selectedTokenName) {
 			circutBreaker = true;
 			inputs = Object.fromEntries(
-			(tokenSet).map((token) => [
-				getInteropableAddress(token.address, chainMap[token.chain].id),
-				0
-			])
-		);
+				tokenSet.map((token) => [getInteropableAddress(token.address, chainMap[token.chain].id), 0])
+			);
 		}
 	});
 
