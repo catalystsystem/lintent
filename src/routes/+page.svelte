@@ -12,7 +12,6 @@
 	import ReceiveMessage from "$lib/screens/ReceiveMessage.svelte";
 	import Finalise from "$lib/screens/Finalise.svelte";
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
-	import TokenModal from "$lib/screens/TokenModal.svelte";
 	import store from "$lib/state.svelte";
 
 	// Fix bigint so we can json serialize it:
@@ -29,9 +28,7 @@
 
 	$effect(() => {
 		store.mainnet;
-		console.log(coinList(store.mainnet));
-		store.inputTokens = [coinList(store.mainnet)[0]];
-		store.outputTokens = [coinList(store.mainnet)[1]];
+		store.inputTokens = [{ token: coinList(store.mainnet)[0], amount: 1000000n }];
 	});
 
 	const orderServer = $derived(new OrderServer(store.mainnet));
@@ -135,14 +132,14 @@
 				{#if !(!store.connectedAccount || !store.walletClient)}
 					<!-- Right Button -->
 					<button
-						class="absolute top-1.5 left-[23rem] cursor-pointer rounded bg-sky-50 px-1"
+						class="absolute top-1.5 left-[23rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
 						onclick={scroll(true)}
 					>
 						→
 					</button>
 					<!-- Back Button -->
 					<button
-						class="absolute top-1.5 left-[1rem] cursor-pointer rounded bg-sky-50 px-1"
+						class="absolute top-1.5 left-[1rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
 						onclick={scroll(false)}
 					>
 						←

@@ -13,6 +13,7 @@ import {
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { addressToBytes32 } from "$lib/utils/convert";
 import { ERC20_ABI } from "$lib/abi/erc20";
+import type { TokenContext } from "$lib/state.svelte";
 
 export class CompactLib {
 	static compactDeposit(
@@ -20,16 +21,16 @@ export class CompactLib {
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
-			inputToken: Token;
+			inputToken: TokenContext;
 			account: () => `0x${string}`;
-			inputAmount: bigint;
 			allocatorId: string;
 		}
 	) {
 		return async () => {
-			const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
+			const { preHook, postHook, inputToken, account, allocatorId } = opts;
+			const { token, amount } = inputToken;
 			const publicClients = clients;
-			if (preHook) await preHook(inputToken.chain);
+			if (preHook) await preHook(token.chain);
 			const lockTag: `0x${string}` = `0x${toHex(
 				toId(true, ResetPeriod.OneDay, allocatorId, ADDRESS_ZERO),
 				{
@@ -41,27 +42,27 @@ export class CompactLib {
 			const recipient = ADDRESS_ZERO; // This means sender.
 
 			let transactionHash: `0x${string}`;
-			if (inputToken.address === ADDRESS_ZERO) {
+			if (token.address === ADDRESS_ZERO) {
 				transactionHash = await walletClient.writeContract({
-					chain: chainMap[inputToken.chain],
+					chain: chainMap[token.chain],
 					account: account(),
 					address: COMPACT,
 					abi: COMPACT_ABI,
 					functionName: "depositNative",
-					value: inputAmount,
+					value: amount,
 					args: [lockTag, recipient]
 				});
 			} else {
 				transactionHash = await walletClient.writeContract({
-					chain: chainMap[inputToken.chain],
+					chain: chainMap[token.chain],
 					account: account(),
 					address: COMPACT,
 					abi: COMPACT_ABI,
 					functionName: "depositERC20",
-					args: [inputToken.address, lockTag, inputAmount, recipient]
+					args: [token.address, lockTag, amount, recipient]
 				});
 			}
-			await publicClients[inputToken.chain].waitForTransactionReceipt({
+			await publicClients[token.chain].waitForTransactionReceipt({
 				hash: await transactionHash
 			});
 			if (postHook) await postHook();
@@ -74,16 +75,16 @@ export class CompactLib {
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
-			inputToken: Token;
+			inputToken: TokenContext;
 			account: () => `0x${string}`;
-			inputAmount: bigint;
 			allocatorId: string;
 		}
 	) {
 		return async () => {
-			const { preHook, postHook, inputToken, account, allocatorId, inputAmount } = opts;
+			const { preHook, postHook, inputToken, account, allocatorId } = opts;
+			const { token, amount } = inputToken;
 			const publicClients = clients;
-			const assetId = toId(true, ResetPeriod.OneDay, allocatorId, inputToken.address);
+			const assetId = toId(true, ResetPeriod.OneDay, allocatorId, token.address);
 
 			const allocatedTransferStruct: {
 				allocatorData: `0x${string}`;
@@ -102,21 +103,21 @@ export class CompactLib {
 				recipients: [
 					{
 						claimant: BigInt(addressToBytes32(account())),
-						amount: inputAmount
+						amount: amount
 					}
 				]
 			};
 
-			if (preHook) await preHook(inputToken.chain);
+			if (preHook) await preHook(token.chain);
 			const transactionHash = walletClient.writeContract({
-				chain: chainMap[inputToken.chain],
+				chain: chainMap[token.chain],
 				account: account(),
 				address: COMPACT,
 				abi: COMPACT_ABI,
 				functionName: "allocatedTransfer",
 				args: [allocatedTransferStruct]
 			});
-			await publicClients[inputToken.chain].waitForTransactionReceipt({
+			await publicClients[token.chain].waitForTransactionReceipt({
 				hash: await transactionHash
 			});
 			if (postHook) await postHook();
@@ -129,15 +130,14 @@ export class CompactLib {
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
-			inputTokens: Token[];
-			inputAmounts: bigint[];
+			inputTokens: TokenContext[];
 			account: () => `0x${string}`;
 		}
 	) {
 		return async () => {
-			const { preHook, postHook, inputTokens, inputAmounts, account } = opts;
+			const { preHook, postHook, inputTokens, account } = opts;
 			for (let i = 0; i < inputTokens.length; ++i) {
-				const inputToken = inputTokens[i];
+				const { token: inputToken, amount } = inputTokens[i];
 				if (preHook) await preHook(inputToken.chain);
 				const publicClient = clients[inputToken.chain];
 				// Check if we have sufficient allowance already.
@@ -147,7 +147,7 @@ export class CompactLib {
 					functionName: "allowance",
 					args: [account(), COMPACT]
 				});
-				if (currentAllowance >= inputAmounts[i]) continue;
+				if (currentAllowance >= amount) continue;
 				const transactionHash = walletClient.writeContract({
 					chain: chainMap[inputToken.chain],
 					account: account(),

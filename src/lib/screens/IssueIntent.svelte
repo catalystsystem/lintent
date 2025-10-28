@@ -27,25 +27,15 @@
 		account: () => `0x${string}`;
 	} = $props();
 
-	let showTokenSelector = $state<{
-		active: number;
-		input: boolean;
-		index: number;
-	}>({
-		active: 1,
-		input: true,
-		index: 0
-	});
+	let tokenSelectorActive = $state<boolean>(false);
 
 	const opts = $derived({
 		exclusiveFor: store.exclusiveFor,
 		allocatorId: store.allocatorId,
 		inputTokens: store.inputTokens,
+		outputTokens: store.outputTokens,
 		preHook,
 		postHook,
-		outputTokens: store.outputTokens,
-		inputAmounts: store.inputAmounts,
-		outputAmounts: store.outputAmounts,
 		verifier: store.verifier,
 		inputSettler: store.inputSettler,
 		account
@@ -75,51 +65,48 @@
 	let allowanceCheck = $state(true);
 	$effect(() => {
 		allowanceCheck = true;
-		if (!store.allowances[store.inputTokens[0].chain]) {
+		if (!store.allowances[store.inputTokens[0].token.chain]) {
 			allowanceCheck = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
-			const token = store.inputTokens[i];
-			const inputAmount = store.inputAmounts[i];
+			const { token, amount } = store.inputTokens[i];
 			store.allowances[token.chain][token.address].then((a) => {
-				allowanceCheck = allowanceCheck && a >= inputAmount;
+				allowanceCheck = allowanceCheck && a >= amount;
 			});
 		}
 	});
 	let balanceCheckWallet = $state(true);
 	$effect(() => {
 		balanceCheckWallet = true;
-		if (!store.balances[store.inputTokens[0].chain]) {
+		if (!store.balances[store.inputTokens[0].token.chain]) {
 			balanceCheckWallet = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
-			const token = store.inputTokens[i];
-			const inputAmount = store.inputAmounts[i];
+			const { token, amount } = store.inputTokens[i];
 			store.balances[token.chain][token.address].then((b) => {
-				balanceCheckWallet = balanceCheckWallet && b >= inputAmount;
+				balanceCheckWallet = balanceCheckWallet && b >= amount;
 			});
 		}
 	});
 	let balanceCheckCompact = $state(true);
 	$effect(() => {
 		balanceCheckCompact = true;
-		if (!store.compactBalances[store.inputTokens[0].chain]) {
+		if (!store.compactBalances[store.inputTokens[0].token.chain]) {
 			balanceCheckCompact = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
-			const token = store.inputTokens[i];
-			const inputAmount = store.inputAmounts[i];
+			const { token, amount } = store.inputTokens[i];
 			store.compactBalances[token.chain][token.address].then((b) => {
-				balanceCheckCompact = balanceCheckCompact && b >= inputAmount;
+				balanceCheckCompact = balanceCheckCompact && b >= amount;
 			});
 		}
 	});
 
 	const allSameChains = $derived(
-		store.inputTokens.every((v) => store.inputTokens[0].chain === v.chain)
+		store.inputTokens.every((v) => store.inputTokens[0].token.chain === v.token.chain)
 	);
 
 	const abstractInputs = $derived.by(() => {
@@ -129,20 +116,27 @@
 			decimals: number;
 		}[] = [];
 		// Get all unqiue tokens.
-		const allUniqueNames = [...new Set(store.inputTokens.map((v) => v.name))];
+		$inspect(store.inputTokens);
+		const allUniqueNames = [
+			...new Set(
+				store.inputTokens.map((v) => {
+					console.log("v", v);
+					return v.token.name;
+				})
+			)
+		];
 		for (let i = 0; i < allUniqueNames.length; ++i) {
-			$inspect(store.inputTokens);
 			const name = allUniqueNames[i];
 			console.log({
 				name,
-				found: store.inputTokens.map((v, i) => (v.name == name ? store.inputAmounts[i] : 0n))
+				found: store.inputTokens.map((v, i) => (v.token.name == name ? v.amount : 0n))
 			});
 			inputs[i] = {
 				name,
 				amount: bigIntSum(
-					...store.inputTokens.map((v, i) => (v.name == name ? store.inputAmounts[i] : 0n))
+					...store.inputTokens.map((v, i) => (v.token.name == name ? v.amount : 0n))
 				),
-				decimals: store.inputTokens.find((v) => v.name == name)!.decimals
+				decimals: store.inputTokens.find((v) => v.token.name == name)!.token.decimals
 			};
 		}
 		return inputs;
@@ -155,19 +149,20 @@
 		Select assets for your intent along with the verifier for the intent. Then choose your desired
 		style of execution. Your intent will be sent to the LI.FI dev order server.
 	</p>
-	<TokenModal bind:showTokenSelector></TokenModal>
+	{#if tokenSelectorActive}
+		<TokenModal
+			bind:active={tokenSelectorActive}
+			input={true}
+			currentInputTokens={store.inputTokens}
+		></TokenModal>
+	{/if}
 	<div class="my-4 flex w-full flex-row justify-evenly">
 		<div class="flex flex-col justify-center space-y-1">
 			<h2 class="text-center text-sm">You Pay</h2>
 			{#each abstractInputs as input, i}
 				<button
 					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-					onclick={() =>
-						(showTokenSelector = {
-							active: new Date().getTime(),
-							input: true,
-							index: i
-						})}
+					onclick={() => (tokenSelectorActive = true)}
 				>
 					<div class="flex flex-col items-center justify-center align-middle">
 						<div class="flex flex-row space-x-1">
@@ -200,30 +195,21 @@
 			<h2 class="text-center text-sm">You Receive</h2>
 			<button
 				class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-				onclick={() =>
-					(showTokenSelector = {
-						active: new Date().getTime(),
-						input: false,
-						index: 0
-					})}
+				onclick={() => (tokenSelectorActive = true)}
 			>
 				<div class="flex flex-col items-center justify-center align-middle">
 					<div class="flex flex-row space-x-1">
-						<div>{formatTokenAmount(store.outputAmounts[0], store.outputTokens[0].decimals)}</div>
-						<div>{store.outputTokens[0].name.toUpperCase()}</div>
+						<div>
+							{formatTokenAmount(
+								store.outputTokens[0].amount,
+								store.outputTokens[0].token.decimals
+							)}
+						</div>
+						<div>{store.outputTokens[0].token.name.toUpperCase()}</div>
 					</div>
-					<div>{store.outputTokens[0].chain}</div>
+					<div>{store.outputTokens[0].token.chain}</div>
 				</div>
 			</button>
-			<GetQuote
-				bind:exclusiveFor={store.exclusiveFor}
-				inputAmounts={store.inputAmounts}
-				mainnet={store.mainnet}
-				bind:outputAmount={store.outputAmounts[0]}
-				inputTokens={store.inputTokens}
-				outputToken={store.outputTokens[0]}
-				{account}
-			></GetQuote>
 			<!-- <button
 				class="flex h-16 w-28 cursor-pointer items-center justify-center rounded border border-dashed border-gray-200 bg-gray-100 text-center align-middle"
 				onclick={() => (showTokenSelector = {
@@ -237,6 +223,15 @@
 		</div>
 	</div>
 
+	<div class="mx-auto w-2/5">
+		<GetQuote
+			bind:exclusiveFor={store.exclusiveFor}
+			mainnet={store.mainnet}
+			inputTokens={store.inputTokens}
+			bind:outputTokens={store.outputTokens}
+			{account}
+		></GetQuote>
+	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Verified by</span>
 		<select id="verified-by" class="rounded border px-2 py-1">

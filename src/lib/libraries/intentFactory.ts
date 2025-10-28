@@ -13,6 +13,7 @@ import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/libraries/intent";
 import { OrderServer } from "$lib/libraries/orderServer";
 import type { CreateIntentOptions } from "$lib/libraries/intent";
+import type { TokenContext } from "$lib/state.svelte";
 
 /**
  * @notice Factory class for creating and managing intents. Functions called by integrators.
@@ -71,7 +72,7 @@ export class IntentFactory {
 	compact(opts: CreateIntentOptions) {
 		return async () => {
 			const { account, inputTokens } = opts;
-			const inputChain = inputTokens[0].chain;
+			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
 			const intent = new Intent(opts);
 
@@ -102,11 +103,11 @@ export class IntentFactory {
 			const publicClients = clients;
 			const intent = new Intent(opts);
 
-			if (this.preHook) await this.preHook(inputTokens[0].chain);
+			if (this.preHook) await this.preHook(inputTokens[0].token.chain);
 
 			let transactionHash = await intent.depositAndRegisterCompact(account(), this.walletClient);
 
-			const recepit = await publicClients[inputTokens[0].chain].waitForTransactionReceipt({
+			const recepit = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
 				hash: transactionHash
 			});
 
@@ -137,7 +138,7 @@ export class IntentFactory {
 			const { inputTokens, account } = opts;
 			const intent = new Intent(opts);
 
-			const inputChain = inputTokens[0].chain;
+			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
 
 			// Execute the open.
@@ -164,28 +165,27 @@ export function escrowApprove(
 	opts: {
 		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputTokens: Token[];
-		inputAmounts: bigint[];
+		inputTokens: TokenContext[];
 		account: () => `0x${string}`;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputTokens, inputAmounts, account } = opts;
+		const { preHook, postHook, inputTokens, account } = opts;
 		for (let i = 0; i < inputTokens.length; ++i) {
-			const inputToken = inputTokens[i];
-			if (preHook) await preHook(inputToken.chain);
-			const publicClient = clients[inputToken.chain];
+			const { token, amount } = inputTokens[i];
+			if (preHook) await preHook(token.chain);
+			const publicClient = clients[token.chain];
 			const currentAllowance = await publicClient.readContract({
-				address: inputToken.address,
+				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "allowance",
 				args: [account(), INPUT_SETTLER_ESCROW_LIFI]
 			});
-			if (currentAllowance >= inputAmounts[i]) continue;
+			if (currentAllowance >= amount) continue;
 			const transactionHash = walletClient.writeContract({
-				chain: chainMap[inputToken.chain],
+				chain: chainMap[token.chain],
 				account: account(),
-				address: inputToken.address,
+				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "approve",
 				args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256]

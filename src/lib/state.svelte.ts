@@ -18,6 +18,11 @@ import { getAllowance, getBalance, getCompactBalance } from "./libraries/token";
 import onboard from "./utils/web3-onboard";
 import { createWalletClient, custom } from "viem";
 
+export type TokenContext = {
+	token: Token;
+	amount: bigint;
+};
+
 class Store {
 	mainnet = $state<boolean>(true);
 	orders = $state<OrderContainer[]>([]);
@@ -35,10 +40,13 @@ class Store {
 	)!;
 
 	// --- Token --- //
-	inputTokens = $state<Token[]>([]);
-	outputTokens = $state<Token[]>([]);
-	inputAmounts = $state<bigint[]>([1000000n]);
-	outputAmounts = $state<bigint[]>([1000000n]);
+	inputTokens = $state<TokenContext[]>([]);
+	outputTokens = $state<TokenContext[]>([]);
+
+	// inputTokens = $state<Token[]>([]);
+	// outputTokens = $state<Token[]>([]);
+	// inputAmounts = $state<bigint[]>([1000000n]);
+	// outputAmounts = $state<bigint[]>([1000000n]);
 
 	balances = $derived.by(() => {
 		return this.mapOverCoins(getBalance, this.mainnet, this.updatedDerived);
@@ -115,8 +123,8 @@ class Store {
 	}
 
 	constructor() {
-		this.inputTokens = [coinList(this.mainnet)[0]];
-		this.outputTokens = [coinList(this.mainnet)[1]];
+		this.inputTokens = [{ token: coinList(this.mainnet)[0], amount: 1000000n }];
+		this.outputTokens = [{ token: coinList(this.mainnet)[1], amount: 1000000n }];
 
 		this.wallets.subscribe((v) => {
 			this.activeWallet.wallet = v?.[0];

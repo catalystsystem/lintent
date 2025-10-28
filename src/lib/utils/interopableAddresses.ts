@@ -6,7 +6,19 @@ function toHex(num: number | bigint, bytes: number = 1) {
 	return padEven(num.toString(16), bytes * 2);
 }
 
-export const getInteropableAddress = (address: `0x${string}`, chainId: number | bigint) => {
+type Version = "0001";
+type ChainType = "0000";
+type ChainReferenceLength = string;
+type ChainReference = string;
+type Address = string;
+
+export type InteropableAddress =
+	`0x${Version}${ChainType}${ChainReferenceLength}${ChainReference}${Address}`;
+
+export const getInteropableAddress = (
+	address: `0x${string}`,
+	chainId: number | bigint
+): InteropableAddress => {
 	const version = "0001";
 	const chainType = "0000";
 

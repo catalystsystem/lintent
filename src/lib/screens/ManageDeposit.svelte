@@ -35,17 +35,17 @@
 	let manageAssetAction: "deposit" | "withdraw" = $state("deposit");
 
 	let inputNumber = $state<number>(1);
-	let inputToken = $state<Token>(coinList(store.mainnet)[0]);
+	let token = $state<Token>(coinList(store.mainnet)[0]);
 
 	let allowance = $state(0n);
-	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, inputToken.decimals));
+	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, token.decimals));
 	$effect(() => {
 		// Check if allowances contain the chain.
-		if (!store.allowances[inputToken.chain]) {
+		if (!store.allowances[token.chain]) {
 			allowance = 0n;
 			return;
 		}
-		store.allowances[inputToken.chain][inputToken.address].then((a) => {
+		store.allowances[token.chain][token.address].then((a) => {
 			allowance = a;
 		});
 	});
@@ -126,16 +126,14 @@
 				<span>of</span>
 				<BalanceField
 					value={(manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[
-						inputToken.chain
-					][inputToken.address]}
-					decimals={inputToken.decimals}
+						token.chain
+					][token.address]}
+					decimals={token.decimals}
 				/>
 				<select
 					id="inputToken"
 					class="rounded border px-2 py-1"
-					bind:value={
-						() => getIndexOf(inputToken), (v) => (inputToken = coinList(store.mainnet)[v])
-					}
+					bind:value={() => getIndexOf(token), (v) => (token = coinList(store.mainnet)[v])}
 				>
 					{#each coinList(store.mainnet) as token, i}
 						<option value={i}>{printToken(token)}</option>
@@ -150,9 +148,8 @@
 						buttonFunction={CompactLib.compactWithdraw(store.walletClient, {
 							preHook,
 							postHook,
-							inputToken,
+							inputToken: { token, amount: inputAmount },
 							account,
-							inputAmount,
 							allocatorId: store.allocatorId
 						})}
 					>
@@ -168,8 +165,7 @@
 						buttonFunction={CompactLib.compactApprove(store.walletClient, {
 							preHook,
 							postHook,
-							inputTokens: [inputToken],
-							inputAmounts: [inputAmount],
+							inputTokens: [{ token, amount: inputAmount }],
 							account
 						})}
 					>
@@ -185,9 +181,8 @@
 						buttonFunction={CompactLib.compactDeposit(store.walletClient!, {
 							preHook,
 							postHook,
-							inputToken,
+							inputToken: { token, amount: inputAmount },
 							account,
-							inputAmount,
 							allocatorId: store.allocatorId
 						})}
 					>

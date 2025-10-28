@@ -140,8 +140,8 @@
 											output.amount,
 											getCoin({
 												address: output.token,
-												chain: getChainName(output.chainId).decimals
-											})
+												chain: getChainName(output.chainId)
+											}).decimals
 										)}
 									</div>
 									<div>
@@ -164,8 +164,8 @@
 											output.amount,
 											getCoin({
 												address: output.token,
-												chain: getChainName(output.chainId).decimals
-											})
+												chain: getChainName(output.chainId)
+											}).decimals
 										)}
 									</div>
 									<div>

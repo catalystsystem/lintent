@@ -17,14 +17,13 @@ import { ResetPeriod, toId } from "../utils/idLib";
 import { compact_type_hash, compactTypes } from "../utils/typedMessage";
 import { addressToBytes32 } from "../utils/convert";
 import { SETTLER_ESCROW_ABI } from "../abi/escrow";
+import type { TokenContext } from "$lib/state.svelte";
 
 export type CreateIntentOptions = {
 	exclusiveFor: string;
 	allocatorId: string;
-	inputTokens: Token[];
-	outputTokens: Token[];
-	inputAmounts: bigint[];
-	outputAmounts: bigint[];
+	inputTokens: TokenContext[];
+	outputTokens: TokenContext[];
 	verifier: Verifier;
 	account: () => `0x${string}`;
 	inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
@@ -56,8 +55,6 @@ export class Intent {
 			allocatorId,
 			inputTokens,
 			outputTokens,
-			inputAmounts,
-			outputAmounts,
 			verifier,
 			account,
 			inputSettler
@@ -71,15 +68,15 @@ export class Intent {
 				throw new Error(`ExclusiveFor not formatted correctly ${exclusiveFor}`);
 		}
 
-		const inputChain = inputTokens[0].chain;
+		const inputChain = inputTokens[0].token.chain;
 		const inputs: [bigint, bigint][] = [];
-		for (let i = 0; i < inputTokens.length; ++i) {
+		for (const { token, amount } of inputTokens) {
 			// If Compact input, then generate the tokenId otherwise cast into uint256.
 			const inputTokenId =
 				inputSettler == INPUT_SETTLER_COMPACT_LIFI
-					? toId(true, ResetPeriod.OneDay, allocatorId, inputTokens[i].address)
-					: BigInt(inputTokens[i].address);
-			inputs.push([inputTokenId, inputAmounts[i]]);
+					? toId(true, ResetPeriod.OneDay, allocatorId, token.address)
+					: BigInt(token.address);
+			inputs.push([inputTokenId, amount]);
 		}
 
 		const outputSettler = COIN_FILLER;
@@ -98,20 +95,17 @@ export class Intent {
 			);
 		}
 
+		// Make Outputs
 		const outputs: MandateOutput[] = [];
-		for (let o = 0; o < outputTokens.length; ++o) {
-			const outputToken = outputTokens[o];
-			const outputAmount = outputAmounts[o];
+		for (const { token, amount } of outputTokens) {
+			const outputOracle = getOracle(verifier, token.chain)!;
 
-			const outputOracle = getOracle(verifier, outputToken.chain)!;
-
-			// Make Outputs
 			const output: MandateOutput = {
 				oracle: addressToBytes32(outputOracle),
 				settler: addressToBytes32(outputSettler),
-				chainId: BigInt(chainMap[outputToken.chain].id),
-				token: addressToBytes32(outputToken.address),
-				amount: outputAmount,
+				chainId: BigInt(chainMap[token.chain].id),
+				token: addressToBytes32(token.address),
+				amount: amount,
 				recipient: addressToBytes32(account()),
 				call: "0x",
 				context
