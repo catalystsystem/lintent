@@ -68,14 +68,14 @@
 		onDestroy(() => s.close());
 	}
 
-	$effect(() => {
-		store.mainnet;
-		initatePage();
-	});
+	// $effect(() => {
+	// 	store.mainnet;
+	// 	initatePage();
+	// });
 
-	onMount(() => {
-		initatePage();
-	});
+	// onMount(() => {
+	// 	initatePage();
+	// });
 
 	// --- Wallet --- //
 

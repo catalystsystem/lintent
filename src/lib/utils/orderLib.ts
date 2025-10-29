@@ -1,41 +1,6 @@
 import { encodeAbiParameters, encodePacked, keccak256, parseAbiParameters } from "viem";
-import type { MandateOutput, StandardOrder } from "../../types";
+import type { MandateOutput, MultichainOrder, StandardOrder } from "../../types";
 import { type chain, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE } from "$lib/config";
-
-export function getOrderId(orderContainer: { order: StandardOrder; inputSettler: `0x${string}` }) {
-	const { order, inputSettler } = orderContainer;
-	return keccak256(
-		encodePacked(
-			[
-				"uint256",
-				"address",
-				"address",
-				"uint256",
-				"uint32",
-				"uint32",
-				"address",
-				"bytes32",
-				"bytes"
-			],
-			[
-				order.originChainId,
-				inputSettler,
-				order.user,
-				order.nonce,
-				order.expires,
-				order.fillDeadline,
-				order.inputOracle,
-				keccak256(encodePacked(["uint256[2][]"], [order.inputs])),
-				encodeAbiParameters(
-					parseAbiParameters(
-						"(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]"
-					),
-					[order.outputs]
-				)
-			]
-		)
-	);
-}
 
 export function getOutputHash(output: MandateOutput) {
 	return keccak256(

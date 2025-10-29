@@ -13,6 +13,8 @@
 	import store from "$lib/state.svelte";
 	import InputTokenModal from "../components/InputTokenModal.svelte";
 	import OutputTokenModal from "$lib/components/OutputTokenModal.svelte";
+	import { ResetPeriod } from "$lib/utils/idLib";
+	import type { CreateIntentOptions } from "$lib/libraries/intent";
 
 	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
 
@@ -33,15 +35,18 @@
 
 	const opts = $derived({
 		exclusiveFor: store.exclusiveFor,
-		allocatorId: store.allocatorId,
 		inputTokens: store.inputTokens,
 		outputTokens: store.outputTokens,
 		preHook,
 		postHook,
 		verifier: store.verifier,
-		inputSettler: store.inputSettler,
+		lock: {
+			type: store.inputSettler === INPUT_SETTLER_COMPACT_LIFI ? "compact" : "escrow",
+			allocatorId: store.allocatorId,
+			resetPeriod: ResetPeriod.OneDay
+		},
 		account
-	});
+	} as CreateIntentOptions);
 
 	const postHookScroll = async () => {
 		await postHook();
@@ -107,10 +112,6 @@
 		}
 	});
 
-	const allSameChains = $derived(
-		store.inputTokens.every((v) => store.inputTokens[0].token.chain === v.token.chain)
-	);
-
 	const abstractInputs = $derived.by(() => {
 		const inputs: {
 			name: string;
@@ -142,6 +143,12 @@
 			};
 		}
 		return inputs;
+	});
+
+	const numInputChains = $derived.by(() => {
+		const tokenChains = store.inputTokens.map(({ token }) => token.chain);
+		const uniqueChains = [...new Set(tokenChains)];
+		return uniqueChains.length;
 	});
 </script>
 
@@ -179,6 +186,9 @@
 					</div>
 				</button>
 			{/each}
+			{#if numInputChains > 1}
+				<div class="text-center font-medium text-fuchsia-500">Multichain!</div>
+			{/if}
 		</div>
 		<div class="flex flex-col justify-center">
 			<div class="flex flex-col items-center">
@@ -236,23 +246,7 @@
 
 	<!-- Action Button -->
 	<div class="flex justify-center">
-		{#if !allSameChains}
-			<button
-				type="button"
-				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-				disabled
-			>
-				Not Same Chain Inputs
-			</button>
-		{:else if store.inputTokens.length != 1}
-			<button
-				type="button"
-				class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-				disabled
-			>
-				Not supported yet
-			</button>
-		{:else if !allowanceCheck}
+		{#if !allowanceCheck}
 			<AwaitButton buttonFunction={approveFunction}>
 				{#snippet name()}
 					Set allowance
@@ -313,4 +307,10 @@
 			</div>
 		{/if}
 	</div>
+	{#if numInputChains > 1 && store.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
+		<p class="mx-auto mt-1 w-4/5 text-sm">
+			You'll need to open the order on {numInputChains} chains. Be prepared and do not interrupt the
+			process.
+		</p>
+	{/if}
 </div>

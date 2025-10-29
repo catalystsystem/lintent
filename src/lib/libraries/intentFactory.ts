@@ -8,7 +8,13 @@ import {
 	type WC
 } from "$lib/config";
 import { maxUint256 } from "viem";
-import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../../types";
+import type {
+	MultichainOrder,
+	NoSignature,
+	OrderContainer,
+	Signature,
+	StandardOrder
+} from "../../types";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/libraries/intent";
 import { OrderServer } from "$lib/libraries/orderServer";
@@ -48,8 +54,8 @@ export class IntentFactory {
 	}
 
 	private saveOrder(options: {
-		order: StandardOrder;
-		inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
+		order: StandardOrder | MultichainOrder;
+		inputSettler: `0x${string}`;
 		sponsorSignature?: Signature | NoSignature;
 		allocatorSignature?: Signature | NoSignature;
 	}) {
@@ -74,7 +80,7 @@ export class IntentFactory {
 			const { account, inputTokens } = opts;
 			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).singlechain();
 
 			const sponsorSignature = await intent.signCompact(account(), this.walletClient);
 
@@ -101,7 +107,7 @@ export class IntentFactory {
 		return async () => {
 			const { inputTokens, account } = opts;
 			const publicClients = clients;
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).singlechain();
 
 			if (this.preHook) await this.preHook(inputTokens[0].token.chain);
 
@@ -136,26 +142,28 @@ export class IntentFactory {
 	openIntent(opts: CreateIntentOptions) {
 		return async () => {
 			const { inputTokens, account } = opts;
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).order();
 
 			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
 
 			// Execute the open.
-			const transactionHash = await intent.openEscrow(account(), this.walletClient);
+			const transactionHashes = await intent.openEscrow(account(), this.walletClient);
 
-			await clients[inputChain].waitForTransactionReceipt({
-				hash: transactionHash
-			});
+			for (const hash of transactionHashes) {
+				await clients[inputChain].waitForTransactionReceipt({
+					hash: await hash
+				});
+			}
 
 			if (this.postHook) await this.postHook();
 
 			this.saveOrder({
-				order: intent.asStandardOrder(),
+				order: intent.asOrder(),
 				inputSettler: INPUT_SETTLER_ESCROW_LIFI
 			});
 
-			return transactionHash;
+			return transactionHashes;
 		};
 	}
 }

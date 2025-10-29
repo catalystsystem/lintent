@@ -17,8 +17,8 @@ import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
 import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
-import { getOrderId } from "$lib/utils/orderLib";
 import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
+import { orderToIntent } from "./intent";
 
 /**
  * @notice Class for solving intents. Functions called by solvers.
@@ -43,7 +43,8 @@ export class Solver {
 				outputs
 			} = args;
 			const publicClients = clients;
-			const orderId = getOrderId({ order, inputSettler });
+			// TODO: MULTICHAIN COMPACT fix escrow typing
+			const orderId = orderToIntent({ order, inputSettler, lock: { type: "escrow" } }).orderId();
 			//Check that only 1 output exists.
 			if (outputs.length !== 1) {
 				throw new Error("Order must have exactly one output");
@@ -106,7 +107,7 @@ export class Solver {
 
 	static validate(
 		walletClient: WC,
-		args: { orderContainer: OrderContainer; fillTransactionHash: string },
+		args: { orderContainer: OrderContainer; fillTransactionHash: string; sourceChain: chain },
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
@@ -116,10 +117,10 @@ export class Solver {
 		return async () => {
 			const { preHook, postHook, account } = opts;
 			const {
-				orderContainer: { order },
-				fillTransactionHash
+				orderContainer: { order, inputSettler },
+				fillTransactionHash,
+				sourceChain
 			} = args;
-			const sourceChain = getChainName(order.originChainId);
 			const outputChain = getChainName(order.outputs[0].chainId);
 			if (order.outputs.length !== 1) {
 				throw new Error("Order must have exactly one output");
@@ -207,6 +208,7 @@ export class Solver {
 		args: {
 			orderContainer: OrderContainer;
 			fillTransactionHash: string;
+			sourceChain: chain;
 		},
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
@@ -216,8 +218,14 @@ export class Solver {
 	) {
 		return async () => {
 			const { preHook, postHook, account } = opts;
-			const { orderContainer, fillTransactionHash } = args;
-			const { order } = orderContainer;
+			const { orderContainer, fillTransactionHash, sourceChain } = args;
+			const { order, inputSettler } = orderContainer;
+			const intent = orderToIntent({
+				inputSettler,
+				order,
+				lock: { type: inputSettler === INPUT_SETTLER_COMPACT_LIFI ? "compact" : "escrow" }
+			});
+
 			const outputChain = getChainName(order.outputs[0].chainId);
 			if (order.outputs.length !== 1) {
 				throw new Error("Order must have exactly one output");
@@ -231,50 +239,20 @@ export class Solver {
 			});
 			const fillTimestamp = block.timestamp;
 
-			const sourceChain = getChainName(order.originChainId);
 			if (preHook) await preHook(sourceChain);
-
-			const inputSettler = orderContainer.inputSettler;
-			console.log({ orderContainer });
-			let transactionHash: `0x${string}`;
-			const actionChain = chainMap[sourceChain];
 
 			const solveParam = {
 				timestamp: Number(fillTimestamp),
 				solver: addressToBytes32(account())
 			};
 
-			if (inputSettler.toLowerCase() === INPUT_SETTLER_ESCROW_LIFI.toLowerCase()) {
-				transactionHash = await walletClient.writeContract({
-					chain: actionChain,
-					account: account(),
-					address: inputSettler,
-					abi: SETTLER_ESCROW_ABI,
-					functionName: "finalise",
-					args: [order, [solveParam], addressToBytes32(account()), "0x"]
-				});
-			} else if (inputSettler.toLowerCase() === INPUT_SETTLER_COMPACT_LIFI.toLowerCase()) {
-				// Check whether or not we have a signature.
-				const { sponsorSignature, allocatorSignature } = orderContainer;
-				console.log({
-					sponsorSignature,
-					allocatorSignature
-				});
-				const combinedSignatures = encodeAbiParameters(parseAbiParameters(["bytes", "bytes"]), [
-					sponsorSignature.payload ?? "0x",
-					allocatorSignature.payload
-				]);
-				transactionHash = await walletClient.writeContract({
-					chain: actionChain,
-					account: account(),
-					address: inputSettler,
-					abi: SETTLER_COMPACT_ABI,
-					functionName: "finalise",
-					args: [order, combinedSignatures, [solveParam], addressToBytes32(account()), "0x"]
-				});
-			} else {
-				throw new Error(`Could not detect settler type ${orderContainer.inputSettler}`);
-			}
+			const transactionHash = intent.finalise({
+				sourceChain,
+				account: account(),
+				walletClient,
+				solveParam,
+				signatures: orderContainer
+			});
 			const result = await clients[sourceChain].waitForTransactionReceipt({
 				hash: transactionHash
 			});

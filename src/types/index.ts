@@ -85,7 +85,7 @@ export type Signature = {
 
 export type OrderContainer = {
 	inputSettler: `0x${string}`;
-	order: StandardOrder;
+	order: StandardOrder | MultichainOrder;
 	sponsorSignature: Signature | NoSignature;
 	allocatorSignature: Signature | NoSignature;
 };

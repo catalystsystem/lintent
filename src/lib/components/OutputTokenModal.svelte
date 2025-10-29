@@ -52,7 +52,7 @@
 	function add() {
 		if (outputs.length == 3) return;
 		outputs.push({
-			chain: outputs[outputs.length -1].chain,
+			chain: outputs[outputs.length - 1].chain,
 			name: "usdc",
 			amount: 0
 		});
