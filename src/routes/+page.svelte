@@ -1,29 +1,26 @@
 <script lang="ts">
 	import onboard from "$lib/utils/web3-onboard";
-	import { createWalletClient, custom, maxUint256 } from "viem";
+	import { createWalletClient, custom } from "viem";
 	import type { WalletState } from "@web3-onboard/core";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
 	import {
+		type Token,
+		type chain,
+		type Verifier,
 		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
 		chainMap,
-		type chain,
 		clients,
-		type Verifier,
 		INPUT_SETTLER_COMPACT_LIFI,
 		INPUT_SETTLER_ESCROW_LIFI,
 		COMPACT,
-		type Token,
-		coinList,
-		printToken,
-		getIndexOf,
-		getCoin
+		coinList
 	} from "$lib/config";
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { getBalance, getAllowance, getCompactBalance } from "$lib/state.svelte";
-	import { connectOrderServerSocket, getOrders, getQuotes } from "$lib/utils/api";
-	import { validateOrder } from "$lib/utils/lifiintent/OrderLib";
+	import { OrderServer } from "$lib/libraries/orderServer";
+	import { validateOrder } from "$lib/utils/orderLib";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
 	import IntentList from "$lib/screens/IntentList.svelte";
@@ -41,15 +38,21 @@
 	type OrderPackage = {
 		order: StandardOrder;
 		inputSettler: `0x${string}`;
-		sponsorSignature: `0x${string}`;
-		allocatorSignature: `0x${string}`;
+		sponsorSignature?: `0x${string}`;
+		allocatorSignature?: `0x${string}`;
 	};
+
+	let mainnet = $state(true);
+	const orderServer = $derived(new OrderServer(mainnet));
 
 	let orders = $state<OrderContainer[]>([]);
 
-	onMount(() => {
+	let s: WebSocket;
+	function initatePage() {
+		if (s) s.close();
+		orders = [];
 		// Connect to websocket server
-		let { socket, disconnect } = connectOrderServerSocket((order: OrderPackage) => {
+		let { socket } = orderServer.connectOrderServerSocket((order: OrderPackage) => {
 			const allocatorSignature = order.allocatorSignature
 				? ({
 						type: "ECDSA",
@@ -71,56 +74,17 @@
 			orders.push({ ...order, allocatorSignature, sponsorSignature });
 			console.log({ orders, order });
 		});
-		onDestroy(disconnect);
+		s = socket;
+		onDestroy(() => s.close());
+	}
 
-		getOrders().then((response) => {
-			const parsedOrders = response.data;
-			if (parsedOrders) {
-				if (Array.isArray(parsedOrders)) {
-					// For each order, if a field is string ending in n, convert it to bigint.
-					orders = parsedOrders
-						.filter((instance) => validateOrder(instance.order))
-						.map((instance) => {
-							instance.order.nonce = BigInt(instance.order.nonce);
-							instance.order.originChainId = BigInt(instance.order.originChainId);
-							if (instance.order.inputs) {
-								instance.order.inputs = instance.order.inputs.map((input) => {
-									return [BigInt(input[0]), BigInt(input[1])];
-								});
-							}
-							if (instance.order.outputs) {
-								instance.order.outputs = instance.order.outputs.map((output) => {
-									return {
-										...output,
-										chainId: BigInt(output.chainId),
-										amount: BigInt(output.amount)
-									};
-								});
-							}
-							const allocatorSignature = instance.allocatorSignature
-								? ({
-										type: "ECDSA",
-										payload: instance.allocatorSignature
-									} as Signature)
-								: ({
-										type: "None",
-										payload: "0x"
-									} as NoSignature);
-							const sponsorSignature = instance.sponsorSignature
-								? ({
-										type: "ECDSA",
-										payload: instance.sponsorSignature
-									} as Signature)
-								: ({
-										type: "None",
-										payload: "0x"
-									} as NoSignature);
-							return { ...instance, allocatorSignature, sponsorSignature };
-						});
-					console.log({ orders });
-				}
-			}
-		});
+	$effect(() => {
+		mainnet;
+		initatePage();
+	});
+
+	onMount(() => {
+		initatePage();
 	});
 
 	// --- Wallet --- //
@@ -164,9 +128,18 @@
 
 	let exclusiveFor: string = $state("");
 
-	let inputTokens: Token[] = $state([coinList[0]]);
+	$effect(() => {
+		mainnet;
+		console.log(coinList(mainnet));
+		inputTokens = [coinList(mainnet)[0]];
+		outputToken = coinList(mainnet)[1];
+	});
+
+	// svelte-ignore state_referenced_locally
+	let inputTokens: Token[] = $state([coinList(mainnet)[0]]);
 	let inputToken = $derived(inputTokens[0]);
-	let outputToken: Token = $state(coinList[1]);
+	// svelte-ignore state_referenced_locally
+	let outputToken: Token = $state(coinList(mainnet)[1]);
 	let inputAmounts = $state([1000000n]);
 	let outputAmount = $state(1000000n);
 	// const verifier: verifier = 'polymer';
@@ -205,10 +178,11 @@
 			asset: `0x${string}`,
 			client: (typeof clients)[keyof typeof clients]
 		) => T,
+		isMainnet: boolean,
 		_: any
 	) {
 		const resolved: Record<chain, Record<`0x${string}`, T>> = {} as any;
-		for (const token of coinList) {
+		for (const token of coinList(isMainnet)) {
 			// Check whether we have me the chain before.
 			if (!resolved[token.chain as chain]) resolved[token.chain] = {};
 
@@ -222,12 +196,13 @@
 	}
 
 	const balances = $derived.by(() => {
-		return mapOverCoins(getBalance, updatedDerived);
+		return mapOverCoins(getBalance, mainnet, updatedDerived);
 	});
 
 	const allowances = $derived.by(() => {
 		return mapOverCoins(
 			getAllowance(inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : inputSettler),
+			mainnet,
 			updatedDerived
 		);
 	});
@@ -239,6 +214,7 @@
 				asset: `0x${string}`,
 				client: (typeof clients)[keyof typeof clients]
 			) => getCompactBalance(user, asset, client, allocatorId),
+			mainnet,
 			updatedDerived
 		);
 	});
@@ -284,6 +260,7 @@
 				<!-- Asset Overlay -->
 				<TokenModal
 					bind:showTokenSelector
+					{mainnet}
 					{inputSettler}
 					{compactBalances}
 					{balances}
@@ -318,6 +295,7 @@
 							bind:allocatorId
 							bind:inputNumber
 							bind:inputToken
+							bind:mainnet
 							{compactBalances}
 							{balances}
 							{allowances}
@@ -331,6 +309,7 @@
 							bind:showTokenSelector
 							{inputSettler}
 							bind:exclusiveFor
+							{mainnet}
 							{allocatorId}
 							{inputAmounts}
 							{outputAmount}
@@ -366,6 +345,7 @@
 									{account}
 									{preHook}
 									{postHook}
+									{mainnet}
 								></ReceiveMessage>
 								<Finalise
 									orderContainer={selectedOrder}

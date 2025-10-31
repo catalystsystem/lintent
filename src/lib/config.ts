@@ -1,4 +1,3 @@
-import { PUBLIC_DEPLOY_AS_MAINNET } from "$env/static/public";
 import { createPublicClient, createWalletClient, custom, fallback, http } from "viem";
 import {
 	arbitrum,
@@ -14,11 +13,11 @@ export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000" as cons
 export const BYTES32_ZERO =
 	"0x0000000000000000000000000000000000000000000000000000000000000000" as const;
 export const COMPACT = "0x00000000000000171ede64904551eeDF3C6C9788" as const;
-export const INPUT_SETTLER_COMPACT_LIFI = "0x000000c9eC71B1a39055Ec631200ED0022140074" as const;
-export const INPUT_SETTLER_ESCROW_LIFI = "0x000001bf3F3175BD007f3889b50000c7006E72c0" as const;
+export const INPUT_SETTLER_COMPACT_LIFI = "0x0000000000cd5f7fDEc90a03a31F79E5Fbc6A9Cf" as const;
+export const INPUT_SETTLER_ESCROW_LIFI = "0x000025c3226C00B2Cdc200005a1600509f4e00C0" as const;
 export const ALWAYS_OK_ALLOCATOR = "301267367668059890006832136" as const;
 export const POLYMER_ALLOCATOR = "116450367070547927622991121" as const; // 0x02ecC89C25A5DCB1206053530c58E002a737BD11 signing by 0x934244C8cd6BeBDBd0696A659D77C9BDfE86Efe6
-export const COIN_FILLER = "0x00000000D7278408CE7a490015577c41e57143a5" as const;
+export const COIN_FILLER = "0x0000000000eC36B683C2E6AC89e9A75989C22a2e" as const;
 export const WORMHOLE_ORACLE = {
 	ethereum: "0x0000000000000000000000000000000000000000",
 	arbitrum: "0x0000000000000000000000000000000000000000",
@@ -35,12 +34,22 @@ export const POLYMER_ORACLE = {
 	optimismSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00"
 } as const;
 
-export const MAINNET = PUBLIC_DEPLOY_AS_MAINNET === "true";
-
 export type availableAllocators = typeof ALWAYS_OK_ALLOCATOR | typeof POLYMER_ALLOCATOR;
 export type availableInputSettlers =
 	| typeof INPUT_SETTLER_COMPACT_LIFI
 	| typeof INPUT_SETTLER_ESCROW_LIFI;
+
+export const chainMap = {
+	ethereum,
+	base,
+	arbitrum,
+	sepolia,
+	optimismSepolia,
+	baseSepolia
+} as const;
+export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
+export type chain = (typeof chains)[number];
+
 export type balanceQuery = Record<chain, Record<`0x${string}`, Promise<bigint>>>;
 
 export type Token = {
@@ -50,8 +59,9 @@ export type Token = {
 	decimals: number;
 };
 
-export const coinList = MAINNET
-	? ([
+export const coinList = (mainnet: boolean) => {
+	if (mainnet == true)
+		return [
 			{
 				address: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`,
 				name: "usdc",
@@ -106,8 +116,9 @@ export const coinList = MAINNET
 				chain: "arbitrum",
 				decimals: 18
 			}
-		] as const)
-	: ([
+		] as const;
+	else
+		return [
 			{
 				address: `0x5fd84259d66Cd46123540766Be93DFE6D43130D7`,
 				name: "usdc",
@@ -162,7 +173,8 @@ export const coinList = MAINNET
 				chain: "optimismSepolia",
 				decimals: 18
 			}
-		] as const);
+		] as const;
+};
 
 export function printToken(token: Token) {
 	return `${token.name.toUpperCase()}, ${token.chain}`;
@@ -175,13 +187,13 @@ export function formatTokenAmount(amount: bigint, token: Token, decimals = 4) {
 
 export function getIndexOf(token: Token) {
 	for (let i = 0; i < coinList.length; ++i) {
-		const elem = coinList[i];
+		const elem = coinList(!chainMap[token.chain].testnet)[i];
 		if (token.chain === elem.chain && token.address === elem.address) return i;
 	}
 	return -1;
 }
 
-export type coin = (typeof coinList)[number]["address"];
+export type coin = ReturnType<typeof coinList>[number]["address"];
 
 export const wormholeChainIds = {
 	sepolia: 10002,
@@ -201,17 +213,6 @@ export const polymerChainIds = {
 
 export type Verifier = "wormhole" | "polymer";
 
-export const chainMap = {
-	ethereum,
-	base,
-	arbitrum,
-	sepolia,
-	optimismSepolia,
-	baseSepolia
-} as const;
-export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
-export type chain = (typeof chains)[number];
-
 export function getCoin(
 	args:
 		| { name: string; chain: chain; address?: undefined }
@@ -225,7 +226,7 @@ export function getCoin(
 	// ensure the address is ERC20-sized.
 	const concatedAddress =
 		"0x" + address?.replace("0x", "")?.slice(address.length - 42, address.length);
-	for (const token of coinList) {
+	for (const token of coinList(!chainMap[chain].testnet)) {
 		// check chain first.
 		if (token.chain === chain) {
 			if (name === undefined) {

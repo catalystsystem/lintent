@@ -2,7 +2,7 @@ import { maxUint256 } from "viem";
 import { COMPACT_ABI } from "./abi/compact";
 import { ERC20_ABI } from "./abi/erc20";
 import { ADDRESS_ZERO, clients, COMPACT } from "./config";
-import { ResetPeriod, toId } from "./utils/compact/IdLib";
+import { ResetPeriod, toId } from "./utils/idLib";
 
 export async function getBalance(
 	user: `0x${string}` | undefined,

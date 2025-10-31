@@ -22,7 +22,8 @@
 		inputTokens = $bindable(),
 		outputToken = $bindable(),
 		inputAmounts = $bindable(),
-		outputAmount = $bindable()
+		outputAmount = $bindable(),
+		mainnet
 	}: {
 		showTokenSelector: {
 			active: number;
@@ -36,11 +37,12 @@
 		outputToken: Token;
 		inputAmounts: bigint[];
 		outputAmount: bigint;
+		mainnet: boolean;
 	} = $props();
 
 	$effect(() => {
 		const tkn = showTokenSelector.input
-			? (inputTokens[showTokenSelector.index] ?? coinList[0])
+			? (inputTokens[showTokenSelector.index] ?? coinList(mainnet)[0])
 			: outputToken;
 		const defaultModelValue =
 			(showTokenSelector.input
@@ -121,11 +123,11 @@
 					}
 				>
 					{#if showTokenSelector.input}
-						{#each coinList.filter( (v) => (inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) ) as token, i}
+						{#each coinList(mainnet).filter( (v) => (inputSettler === INPUT_SETTLER_ESCROW_LIFI ? v.address != ADDRESS_ZERO : true) ) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{:else}
-						{#each coinList.filter((v) => v.address !== ADDRESS_ZERO) as token, i}
+						{#each coinList(mainnet).filter((v) => v.address !== ADDRESS_ZERO) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{/if}

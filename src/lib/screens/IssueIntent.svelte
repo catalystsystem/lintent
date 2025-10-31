@@ -14,14 +14,15 @@
 		type chain,
 		INPUT_SETTLER_ESCROW_LIFI
 	} from "$lib/config";
-	import { compactApprove } from "$lib/utils/compact/tx";
-	import { depositAndSwap, escrowApprove, openIntent, swap } from "$lib/utils/lifiintent/tx";
+	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
+	import { CompactLib } from "$lib/libraries/compactLib";
 	import type { OrderContainer } from "../../types";
 
 	let {
 		scroll,
 		showTokenSelector = $bindable(),
 		exclusiveFor = $bindable(),
+		mainnet,
 		inputSettler,
 		allocatorId,
 		inputAmounts,
@@ -46,6 +47,7 @@
 		};
 		exclusiveFor: string;
 		inputSettler: availableInputSettlers;
+		mainnet: boolean;
 		allocatorId: availableAllocators;
 		inputAmounts: bigint[];
 		outputAmount: bigint;
@@ -81,15 +83,29 @@
 		scroll(true)();
 	};
 
+	const intentFactory = $derived(
+		new IntentFactory({
+			mainnet,
+			walletClient,
+			preHook,
+			postHook: postHookScroll,
+			ordersPointer: orders
+		})
+	);
+
 	const approveFunction = $derived(
 		inputSettler === INPUT_SETTLER_COMPACT_LIFI
-			? compactApprove(walletClient, opts)
+			? CompactLib.compactApprove(walletClient, opts)
 			: escrowApprove(walletClient, opts)
 	);
 
 	let allowanceCheck = $state(true);
 	$effect(() => {
 		allowanceCheck = true;
+		if (!allowances[inputTokens[0].chain]) {
+			allowanceCheck = false;
+			return;
+		}
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const token = inputTokens[i];
 			const inputAmount = inputAmounts[i];
@@ -101,6 +117,10 @@
 	let balanceCheckWallet = $state(true);
 	$effect(() => {
 		balanceCheckWallet = true;
+		if (!balances[inputTokens[0].chain]) {
+			balanceCheckWallet = false;
+			return;
+		}
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const token = inputTokens[i];
 			const inputAmount = inputAmounts[i];
@@ -112,6 +132,10 @@
 	let balanceCheckCompact = $state(true);
 	$effect(() => {
 		balanceCheckCompact = true;
+		if (!compactBalances[inputTokens[0].chain]) {
+			balanceCheckCompact = false;
+			return;
+		}
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const token = inputTokens[i];
 			const inputAmount = inputAmounts[i];
@@ -191,6 +215,7 @@
 			<GetQuote
 				bind:exclusiveFor
 				{inputAmounts}
+				{mainnet}
 				bind:outputAmount
 				{inputTokens}
 				{outputToken}
@@ -264,16 +289,7 @@
 						Low Balance
 					</button>
 				{:else if inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-					<AwaitButton
-						buttonFunction={openIntent(
-							walletClient,
-							{
-								...opts,
-								postHook: postHookScroll
-							},
-							orders
-						)}
-					>
+					<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
 						{#snippet name()}
 							Execute Open
 						{/snippet}
@@ -282,16 +298,7 @@
 						{/snippet}
 					</AwaitButton>
 				{:else if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-					<AwaitButton
-						buttonFunction={depositAndSwap(
-							walletClient,
-							{
-								...opts,
-								postHook: postHookScroll
-							},
-							orders
-						)}
-					>
+					<AwaitButton buttonFunction={intentFactory.compactDepositAndRegister(opts)}>
 						{#snippet name()}
 							Execute Deposit and Open
 						{/snippet}
@@ -310,16 +317,7 @@
 							Low Compact Balance
 						</button>
 					{:else}
-						<AwaitButton
-							buttonFunction={swap(
-								walletClient,
-								{
-									...opts,
-									postHook: postHookScroll
-								},
-								orders
-							)}
-						>
+						<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
 							{#snippet name()}
 								Sign Order
 							{/snippet}

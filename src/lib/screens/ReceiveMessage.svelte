@@ -8,11 +8,11 @@
 		type WC
 	} from "$lib/config";
 	import { addressToBytes32 } from "$lib/utils/convert";
-	import { encodeMandateOutput, getOrderId } from "$lib/utils/lifiintent/OrderLib";
+	import { encodeMandateOutput, getOrderId } from "$lib/utils/orderLib";
 	import { keccak256 } from "viem";
 	import type { MandateOutput, OrderContainer } from "../../types";
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
-	import { validate } from "$lib/utils/lifiintent/tx";
+	import { Solver } from "$lib/libraries/solver";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
@@ -23,7 +23,8 @@
 		fillTransactionHash,
 		account,
 		preHook,
-		postHook
+		postHook,
+		mainnet
 	}: {
 		orderContainer: OrderContainer;
 		walletClient: WC;
@@ -31,6 +32,7 @@
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
+		mainnet: boolean;
 	} = $props();
 
 	let refreshValidation = $state(0);
@@ -113,11 +115,12 @@
 						hoverClass={[validated ? "" : "hover:bg-yellow-100 cursor-pointer"]}
 						buttonFunction={validated
 							? async () => console.log("Has already been validated")
-							: validate(
+							: Solver.validate(
 									walletClient,
 									{
 										orderContainer,
-										fillTransactionHash
+										fillTransactionHash,
+										mainnet
 									},
 									{
 										preHook,

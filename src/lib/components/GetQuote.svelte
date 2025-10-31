@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from "$lib/config";
-	import { getQuotes } from "$lib/utils/api";
+	import { OrderServer } from "$lib/libraries/orderServer";
 	import { interval } from "rxjs";
 
 	let {
@@ -9,7 +9,8 @@
 		outputAmount = $bindable(),
 		inputTokens,
 		outputToken,
-		account
+		account,
+		mainnet
 	}: {
 		exclusiveFor: string;
 		inputAmounts: bigint[];
@@ -17,10 +18,13 @@
 		inputTokens: Token[];
 		outputToken: Token;
 		account: () => `0x${string}`;
+		mainnet: boolean;
 	} = $props();
 
+	const orderServer = $derived(new OrderServer(mainnet));
+
 	async function getQuoteAndSet() {
-		const response = await getQuotes({
+		const response = await orderServer.getQuotes({
 			user: account(),
 			userChain: inputTokens[0].chain,
 			inputs: inputTokens.map((input, i) => {
@@ -48,6 +52,9 @@
 			outputAmount = BigInt(quote.preview.outputs[0].amount);
 			exclusiveFor = quote.metadata.exclusiveFor ?? "";
 			updater();
+		} else {
+			quoteExpires = 0;
+			exclusiveFor = "";
 		}
 	}
 
@@ -57,10 +64,8 @@
 		const intermediatewidth = percentageOfOriginalQuote * 100;
 		if (intermediatewidth <= 100 && intermediatewidth > 0) {
 			width = intermediatewidth;
-			console.log(width);
 			return;
 		}
-		console.log(width);
 		width = 0;
 		updateQuote();
 	};
@@ -70,12 +75,24 @@
 	}
 
 	$effect(() => {
+		mainnet;
+		setTimeout(() => {
+			updateQuote();
+		}, 1000);
+	});
+
+	$effect(() => {
 		quoteExpires;
+		if (quoteExpires === 0) {
+			width = 0;
+			counter.unsubscribe();
+			return;
+		}
 		counter.unsubscribe();
 		counter = interval(1000).subscribe(updater);
 	});
 	let quoteDuration = 30 * 1000;
-	let counter = interval(100).subscribe(updater);
+	let counter = interval(1000).subscribe(updater);
 
 	let quoteExpires = $state(new Date().getTime() + 5 * 1000);
 	let width = $state(0);
@@ -84,18 +101,27 @@
 
 <div class="relative my-1 flex items-center justify-center align-middle">
 	{#await quoteRequest}
-		<div class="h-7 rounded border px-2 font-bold">...</div>
+		<div class="relative h-7 animate-pulse rounded border px-2 font-bold">Fetch Quote</div>
 	{:then _}
 		<!-- Button gradually shows how long until it is expired by fill background -->
-		<div
-			class="absolute top-0 left-0 h-7 rounded bg-blue-200 transition-all"
-			style="width: {width}%"
-		></div>
-		<button
-			class="relative h-7 cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
-			onclick={() => {
-				updateQuote;
-			}}>Fetch Quote</button
-		>
+		{#if quoteExpires !== 0}
+			<div
+				class="absolute top-0 left-0 h-7 rounded bg-blue-200 transition-all"
+				style="width: {width}%"
+			></div>
+			<button
+				class="relative h-7 w-full cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
+				onclick={updateQuote}>Fetch Quote</button
+			>
+		{:else}
+			<div
+				class="absolute top-0 left-0 h-7 rounded bg-red-200 transition-all"
+				style="width: 100%"
+			></div>
+			<button
+				class="relative h-7 w-full cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
+				onclick={updateQuote}>No Quote</button
+			>
+		{/if}
 	{/await}
 </div>

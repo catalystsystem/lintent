@@ -6,19 +6,24 @@ import {
 	PRIVATE_POLYMER_TESTNET_ZONE_API_KEY
 } from "$env/static/private";
 import { toByteArray } from "base64-js";
-import { MAINNET } from "$lib/config";
 
-const POLYMER_URL = MAINNET
-	? ("https://api.polymer.zone/v1/" as const)
-	: ("https://api.testnet.polymer.zone/v1/" as const);
+function getPolymerUrl(mainnet: boolean) {
+	return mainnet
+		? ("https://api.polymer.zone/v1/" as const)
+		: ("https://api.testnet.polymer.zone/v1/" as const);
+}
 
-const PRIVATE_POLYMER_ZONE_API_KEY = MAINNET
-	? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY
-	: PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
+function getPolymerKey(mainnet: boolean) {
+	return mainnet ? PRIVATE_POLYMER_MAINNET_ZONE_API_KEY : PRIVATE_POLYMER_TESTNET_ZONE_API_KEY;
+}
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { srcChainId, srcBlockNumber, globalLogIndex, polymerIndex } = await request.json();
-	console.log({ srcChainId, srcBlockNumber, globalLogIndex, polymerIndex });
+	const { srcChainId, srcBlockNumber, globalLogIndex, polymerIndex, mainnet } =
+		await request.json();
+	console.log({ srcChainId, srcBlockNumber, globalLogIndex, polymerIndex, mainnet });
+
+	const POLYMER_URL = getPolymerUrl(mainnet ?? true);
+	const PRIVATE_POLYMER_ZONE_API_KEY = getPolymerKey(mainnet ?? true);
 
 	let polymerRequestIndex = polymerIndex;
 	if (!polymerRequestIndex) {
@@ -96,9 +101,10 @@ export const POST: RequestHandler = async ({ request }) => {
 	} else {
 		console.log(dat);
 	}
-	// create a JSON Response using a header we received
+	// create a JSON Response
 	return json({
 		proof,
-		polymerIndex: polymerRequestIndex
+		polymerIndex: polymerRequestIndex,
+		status: dat.result.status
 	});
 };

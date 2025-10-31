@@ -1,38 +1,27 @@
-# sv
+# LI.FI Intent Demo
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The LI.FI intent demo is hosted at lintent.org. It demonstrates the entire intent flow from resource lock mangement, intent issuance, and solving intents.
 
-## Creating a project
+## Project
 
-If you're seeing this, you've probably already done this step. Congrats!
+This project uses SvelteKit and `npm`. It is configured for a deployment to Cloudflare workers, to change the deployment target modify [/svelte.config.js](/svelte.config.js) with another [adapter](https://svelte.dev/docs/kit/adapters).
 
-```bash
-# create a new project in the current directory
-npx sv create
+### Development
 
-# create a new project in my-app
-npx sv create my-app
-```
+To start development copy `.env.example` to `.env`. Then fill in the env variables by creating a [WalletConnect](https://walletconnect.com) project and [Polymer](https://polymerlabs.org) api keys.
 
-## Developing
+Install dependencies `npm install` and start `npm run dev`.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Structure
 
-```bash
-npm run dev
+Lintent is built around a single page [/src/routes/+page.svelte](/src/routes/+page.svelte).
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+The app consists of a series of screens that are displayed in a scrollable container. Each screen can be found in [/src/lib/screens/](/src/lib/screens/).
 
-## Building
+### Libraries
 
-To create a production version of your app:
+Several helper classes that acts as wrappers for external endpoints can be found in [/src/lib/libraries/](/src/lib/libraries/).
 
-```bash
-npm run build
-```
+## License
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+This project is licensed under the **[MIT License](/LICENSE)**. Any contributions to this repository is provided with a MIT License.
