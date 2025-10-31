@@ -12,7 +12,6 @@ To start development copy `.env.example` to `.env`. Then fill in the env variabl
 
 Install dependencies `npm install` and start `npm run dev`.
 
-
 ## Structure
 
 Lintent is built around a single page [/src/routes/+page.svelte](/src/routes/+page.svelte).
@@ -21,7 +20,7 @@ The app consists of a series of screens that are displayed in a scrollable conta
 
 ### Libraries
 
-Several helper classes that acts as wrappers for external endpoints can be found in [/src/lib/libraries/](/src/lib/libraries/). 
+Several helper classes that acts as wrappers for external endpoints can be found in [/src/lib/libraries/](/src/lib/libraries/).
 
 ## License
 
