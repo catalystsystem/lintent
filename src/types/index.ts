@@ -14,7 +14,7 @@ export type MandateOutput = {
 	token: `0x${string}`;
 	amount: bigint;
 	recipient: `0x${string}`;
-	call: `0x${string}`;
+	callbackData: `0x${string}`;
 	context: `0x${string}`;
 };
 

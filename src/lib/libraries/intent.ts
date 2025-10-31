@@ -107,7 +107,7 @@ export class Intent {
 			token: addressToBytes32(outputToken.address),
 			amount: outputAmount,
 			recipient: addressToBytes32(account()),
-			call: "0x",
+			callbackData: "0x",
 			context
 		};
 		const outputs = [output];

@@ -57,7 +57,7 @@ export const COIN_FILLER_ABI = [
 						internalType: "bytes32"
 					},
 					{
-						name: "call",
+						name: "callbackData",
 						type: "bytes",
 						internalType: "bytes"
 					},
@@ -133,7 +133,7 @@ export const COIN_FILLER_ABI = [
 						internalType: "bytes32"
 					},
 					{
-						name: "call",
+						name: "callbackData",
 						type: "bytes",
 						internalType: "bytes"
 					},
@@ -203,7 +203,7 @@ export const COIN_FILLER_ABI = [
 						internalType: "bytes32"
 					},
 					{
-						name: "call",
+						name: "callbackData",
 						type: "bytes",
 						internalType: "bytes"
 					},
@@ -356,7 +356,7 @@ export const COIN_FILLER_ABI = [
 						internalType: "bytes32"
 					},
 					{
-						name: "call",
+						name: "callbackData",
 						type: "bytes",
 						internalType: "bytes"
 					},
@@ -430,7 +430,7 @@ export const COIN_FILLER_ABI = [
 						internalType: "bytes32"
 					},
 					{
-						name: "call",
+						name: "callbackData",
 						type: "bytes",
 						internalType: "bytes"
 					},
@@ -515,6 +515,11 @@ export const COIN_FILLER_ABI = [
 	{
 		type: "error",
 		name: "FillDeadline",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "HasDirtyBits",
 		inputs: []
 	},
 	{
