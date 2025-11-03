@@ -17,7 +17,7 @@ function getPolymerKey(mainnet: boolean) {
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { chain_ids, mainnet }: { chain_ids?: number[]; mainnet?: boolean } = await request.json();
+	const { chainIds, mainnet }: { chainIds?: number[]; mainnet?: boolean } = await request.json();
 
 	const POLYMER_URL = getPolymerUrl(mainnet ?? true);
 	const PRIVATE_POLYMER_ZONE_API_KEY = getPolymerKey(mainnet ?? true);
@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			jsonrpc: "2.0",
 			id: 1,
 			method: "info_health",
-			params: [{ chain_ids: chain_ids ?? [] }]
+			params: [{ chain_ids: chainIds ?? [] }]
 		},
 		{
 			headers: {
