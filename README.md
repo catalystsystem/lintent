@@ -8,9 +8,12 @@ This project uses SvelteKit and `npm`. It is configured for a deployment to Clou
 
 ### Development
 
-To start development copy `.env.example` to `.env`. Then fill in the env variables by creating a [WalletConnect](https://walletconnect.com) project and [Polymer](https://polymerlabs.org) api keys.
-
-Install dependencies `npm install` and start `npm run dev`.
+To start development:
+1. Copy `.env.example` to `.env`.
+2. Then fill in the `env` variables by creating a [WalletConnect](https://walletconnect.com) project
+3. Also create an [account](https://accounts.polymerlabs.org/) with Polymer to generation [Polymer](https://polymerlabs.org) API keys.
+4. Install dependencies `npm install`.
+5. Start `npm run dev`.
 
 ## Structure
 
