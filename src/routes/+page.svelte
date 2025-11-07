@@ -1,7 +1,7 @@
 <script lang="ts">
 	import onboard from "$lib/utils/web3-onboard";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
-	import { coinList } from "$lib/config";
+	import { coinList, type chain } from "$lib/config";
 	import { onDestroy, onMount } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { OrderServer } from "$lib/libraries/orderServer";
@@ -84,7 +84,7 @@
 	}
 
 	// --- Execute Transaction Variables --- //
-	const preHook = store.setWalletToCorrectChain;
+	const preHook = (chain: chain) => store.setWalletToCorrectChain(chain);
 	const postHook = async () => store.forceUpdate();
 	const account = () => store.connectedAccount?.address!;
 
@@ -170,7 +170,7 @@
 									{account}
 									{preHook}
 									{postHook}
-									{mainnet}
+									mainnet={storemainnet}
 								></ReceiveMessage>
 								<Finalise
 									orderContainer={selectedOrder}

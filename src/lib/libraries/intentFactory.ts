@@ -19,7 +19,7 @@ import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/libraries/intent";
 import { OrderServer } from "$lib/libraries/orderServer";
 import type { CreateIntentOptions } from "$lib/libraries/intent";
-import type { TokenContext } from "$lib/state.svelte";
+import { store, type TokenContext } from "$lib/state.svelte";
 
 /**
  * @notice Factory class for creating and managing intents. Functions called by integrators.
@@ -149,12 +149,13 @@ export class IntentFactory {
 
 			// Execute the open.
 			const transactionHashes = await intent.openEscrow(account(), this.walletClient);
+			console.log({ tsh: transactionHashes });
 
-			for (const hash of transactionHashes) {
-				await clients[inputChain].waitForTransactionReceipt({
-					hash: await hash
-				});
-			}
+			// for (const hash of transactionHashes) {
+			// 	await clients[inputChain].waitForTransactionReceipt({
+			// 		hash: await hash
+			// 	});
+			// }
 
 			if (this.postHook) await this.postHook();
 
@@ -187,7 +188,7 @@ export function escrowApprove(
 				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "allowance",
-				args: [account(), INPUT_SETTLER_ESCROW_LIFI]
+				args: [account(), store.inputSettler]
 			});
 			if (currentAllowance >= amount) continue;
 			const transactionHash = walletClient.writeContract({
@@ -196,7 +197,7 @@ export function escrowApprove(
 				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "approve",
-				args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256]
+				args: [store.inputSettler, maxUint256]
 			});
 
 			await publicClient.waitForTransactionReceipt({

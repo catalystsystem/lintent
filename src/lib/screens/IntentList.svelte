@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatTokenAmount, getChainName, getCoin } from "$lib/config";
+	import { orderToIntent } from "$lib/libraries/intent";
 	import { idToToken } from "$lib/utils/convert";
-	import { getOrderId } from "$lib/utils/orderLib";
 	import type { OrderContainer } from "../../types";
 
 	let {
@@ -13,6 +13,19 @@
 		selectedOrder: OrderContainer | undefined;
 		orderContainers: OrderContainer[];
 	} = $props();
+
+	function flattenInputs(
+		inputs: { chainId: bigint; inputs: [bigint, bigint][] }[]
+	): { chainId: bigint; input: [bigint, bigint] }[] {
+		return inputs.flatMap((chainInput) => {
+			return chainInput.inputs.flatMap((i) => {
+				return {
+					chainId: chainInput.chainId,
+					input: i
+				};
+			});
+		});
+	}
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
@@ -33,37 +46,64 @@
 				<div class="flex w-full flex-row justify-evenly">
 					<div class="flex flex-col">
 						<div class="text-center font-medium">OrderId</div>
-						<div>{getOrderId(orderContainer).slice(2, 12)}</div>
+						<div>{orderToIntent(orderContainer).orderId().slice(2, 12)}</div>
 						<div class="text-center font-medium">User</div>
 						<div>{orderContainer.order.user.slice(0, 8)}...</div>
 					</div>
 					<div class="flex flex-col">
 						<div class="text-center font-medium">Inputs</div>
 						<div class="flex flex-col">
-							{#each orderContainer.order.inputs as input}
-								<div class="h-12 w-24 rounded bg-sky-100 text-center">
-									<div class="flex flex-col items-center justify-center align-middle">
-										<div class="flex flex-row space-x-1">
-											<div>
-												{formatTokenAmount(
-													input[1],
-													getCoin({
+							{#if "originChainId" in orderContainer.order}
+								{#each orderContainer.order.inputs as input}
+									<div class="h-12 w-24 rounded bg-sky-100 text-center">
+										<div class="flex flex-col items-center justify-center align-middle">
+											<div class="flex flex-row space-x-1">
+												<div>
+													{formatTokenAmount(
+														input[1],
+														getCoin({
+															address: idToToken(input[0]),
+															chain: getChainName(orderContainer.order.originChainId)
+														}).decimals
+													)}
+												</div>
+												<div>
+													{getCoin({
 														address: idToToken(input[0]),
 														chain: getChainName(orderContainer.order.originChainId)
-													}).decimals
-												)}
+													}).name}
+												</div>
 											</div>
-											<div>
-												{getCoin({
-													address: idToToken(input[0]),
-													chain: getChainName(orderContainer.order.originChainId)
-												}).name}
-											</div>
+											<div>{getChainName(orderContainer.order.originChainId)}</div>
 										</div>
-										<div>{getChainName(orderContainer.order.originChainId)}</div>
 									</div>
-								</div>
-							{/each}
+								{/each}
+							{:else}
+								{#each flattenInputs(orderContainer.order.inputs) as input}
+									<div class="h-12 w-24 rounded bg-sky-100 text-center">
+										<div class="flex flex-col items-center justify-center align-middle">
+											<div class="flex flex-row space-x-1">
+												<div>
+													{formatTokenAmount(
+														input.input[1],
+														getCoin({
+															address: idToToken(input.input[0]),
+															chain: getChainName(input.chainId)
+														}).decimals
+													)}
+												</div>
+												<div>
+													{getCoin({
+														address: idToToken(input.input[0]),
+														chain: getChainName(input.chainId)
+													}).name}
+												</div>
+											</div>
+											<div>{getChainName(input.chainId)}</div>
+										</div>
+									</div>
+								{/each}
+							{/if}
 						</div>
 					</div>
 					<div class="flex flex-col">

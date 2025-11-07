@@ -25,7 +25,8 @@ import {
 	getOracle,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
-	MULTICHAIN_INPUT_SETTLER_ESCROW_LIFI,
+	MULTICHAIN_INPUT_SETTLER_COMPACT,
+	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	type chain,
 	type Token,
 	type Verifier,
@@ -149,8 +150,7 @@ export class Intent {
 	inputSettler(multichain: boolean) {
 		if (this.lock.type === "compact" && multichain === false) return INPUT_SETTLER_COMPACT_LIFI;
 		if (this.lock.type === "escrow" && multichain === false) return INPUT_SETTLER_ESCROW_LIFI;
-		if (this.lock.type === "escrow" && multichain === true)
-			return MULTICHAIN_INPUT_SETTLER_ESCROW_LIFI;
+		if (this.lock.type === "escrow" && multichain === true) return MULTICHAIN_INPUT_SETTLER_ESCROW;
 
 		throw new Error(`Not supported ${multichain}, ${this.lock}`);
 	}
@@ -394,6 +394,7 @@ export class StandardOrderIntent {
 	 */
 	openEscrow(account: `0x${string}`, walletClient: WC): [Promise<`0x${string}`>] {
 		const chain = findChain(this.order.originChainId);
+		walletClient.switchChain({ id: Number(this.order.originChainId) });
 		if (!chain)
 			throw new Error("Chain not found for chainId " + this.order.originChainId.toString());
 		return [
@@ -511,7 +512,19 @@ export class MultichainOrderIntent {
 		this.inputSettler = inputSetter;
 		this.order = order;
 
-		this.lock = lock;
+		const isCompact =
+			this.inputSettler === INPUT_SETTLER_COMPACT_LIFI ||
+			this.inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT;
+
+		this.lock = lock ?? { type: isCompact ? "compact" : "escrow" };
+	}
+
+	selfTest() {
+		this.asOrder();
+		this.inputChains();
+		this.asComponents();
+
+		this.orderId();
 	}
 
 	/**
@@ -534,7 +547,7 @@ export class MultichainOrderIntent {
 
 		const orderId = computedOrderIds[0];
 		computedOrderIds.map((v) => {
-			if (v === orderId) throw new Error(`Order ids are not equal ${computedOrderIds}`);
+			if (v !== orderId) throw new Error(`Order ids are not equal ${computedOrderIds}`);
 		});
 		return orderId;
 	}
@@ -670,12 +683,14 @@ export class MultichainOrderIntent {
 
 	// This code is depreciated and needs to be updated.
 	async openEscrow(account: `0x${string}`, walletClient: WC) {
+		this.selfTest();
 		const components = this.asComponents();
-		const promises: Promise<`0x${string}`>[] = [];
+		const results: `0x${string}`[] = [];
 		for (const { chainId, orderComponent } of components) {
-			const chain = findChain(chainId);
-			promises.push(
-				walletClient.writeContract({
+			const chain = findChain(chainId)!;
+			walletClient.switchChain({ id: chain.id });
+			results.push(
+				await walletClient.writeContract({
 					chain,
 					account,
 					address: this.inputSettler,
@@ -684,8 +699,9 @@ export class MultichainOrderIntent {
 					args: [orderComponent]
 				})
 			);
+			console.log(results);
 		}
-		return promises;
+		return results;
 	}
 
 	async finalise(options: {
@@ -708,7 +724,7 @@ export class MultichainOrderIntent {
 		const components = this.asComponents().filter((c) => c.chainId === BigInt(actionChain.id));
 
 		for (const { orderComponent } of components) {
-			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW_LIFI.toLowerCase()) {
+			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW.toLowerCase()) {
 				return await walletClient.writeContract({
 					chain: actionChain,
 					account: account,

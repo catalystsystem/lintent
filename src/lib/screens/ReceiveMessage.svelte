@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { formatTokenAmount, getChainName, getClient, getCoin, type chain } from "$lib/config";
 	import { addressToBytes32 } from "$lib/utils/convert";
-	import { encodeMandateOutput, getOrderId } from "$lib/utils/orderLib";
+	import { encodeMandateOutput } from "$lib/utils/orderLib";
 	import { keccak256 } from "viem";
 	import type { MandateOutput, OrderContainer } from "../../types";
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 	import { Solver } from "$lib/libraries/solver";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import store from "$lib/state.svelte";
+	import { orderToIntent } from "$lib/libraries/intent";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
 
@@ -85,7 +86,7 @@
 		<hr class="my-1" />
 		<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
 			{#each orderContainer.order.outputs as output}
-				{#await isValidated(getOrderId(orderContainer), orderContainer, output, fillTransactionHash, refreshValidation)}
+				{#await isValidated(orderToIntent(orderContainer).orderId(), orderContainer, output, fillTransactionHash, refreshValidation)}
 					<div class="h-8 w-28 cursor-pointer rounded bg-slate-100 text-center">
 						<div class="flex flex-col items-center justify-center align-middle">
 							<div class="flex flex-row space-x-1">
@@ -112,6 +113,7 @@
 									{
 										orderContainer,
 										fillTransactionHash,
+										sourceChain: orderContainer.order.originChainId,
 										mainnet
 									},
 									{

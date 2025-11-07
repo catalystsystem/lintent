@@ -7,6 +7,8 @@ import {
 	COMPACT,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
+	MULTICHAIN_INPUT_SETTLER_COMPACT,
+	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	POLYMER_ALLOCATOR,
 	type availableAllocators,
 	type availableInputSettlers,
@@ -53,7 +55,12 @@ class Store {
 	});
 	allowances = $derived.by(() => {
 		return this.mapOverCoins(
-			getAllowance(this.inputSettler == INPUT_SETTLER_COMPACT_LIFI ? COMPACT : this.inputSettler),
+			getAllowance(
+				this.inputSettler === INPUT_SETTLER_COMPACT_LIFI ||
+					this.inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT
+					? COMPACT
+					: this.inputSettler
+			),
 			this.mainnet,
 			this.updatedDerived
 		);
@@ -70,8 +77,19 @@ class Store {
 		);
 	});
 
+	multichain = $derived([...new Set(this.inputTokens.map((i) => i.token.chain))].length > 1);
+
 	// --- Input Side --- //
-	inputSettler = $state<availableInputSettlers>(INPUT_SETTLER_ESCROW_LIFI);
+	inputSettler = $derived.by(() => {
+		if (this.intentType === "escrow" && !this.multichain) return INPUT_SETTLER_ESCROW_LIFI;
+		if (this.intentType === "escrow" && this.multichain) return MULTICHAIN_INPUT_SETTLER_ESCROW;
+
+		if (this.intentType === "compact" && !this.multichain) return INPUT_SETTLER_COMPACT_LIFI;
+		if (this.intentType === "compact" && this.multichain) return MULTICHAIN_INPUT_SETTLER_COMPACT;
+
+		return INPUT_SETTLER_ESCROW_LIFI;
+	});
+	intentType = $state<"escrow" | "compact">("escrow");
 	allocatorId = $state<availableAllocators>(POLYMER_ALLOCATOR);
 
 	// --- Oracle --- //

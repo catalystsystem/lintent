@@ -1,223 +1,16 @@
 export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	{
-		type: "function",
-		name: "efficientRequireProven",
-		inputs: [
-			{
-				name: "proofSeries",
-				type: "bytes",
-				internalType: "bytes"
-			}
-		],
-		outputs: [],
-		stateMutability: "view"
+		type: "constructor",
+		inputs: [],
+		stateMutability: "nonpayable"
 	},
 	{
 		type: "function",
-		name: "fill",
-		inputs: [
-			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "output",
-				type: "tuple",
-				internalType: "struct MandateOutput",
-				components: [
-					{
-						name: "oracle",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "settler",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "chainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "token",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "amount",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "recipient",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "call",
-						type: "bytes",
-						internalType: "bytes"
-					},
-					{
-						name: "context",
-						type: "bytes",
-						internalType: "bytes"
-					}
-				]
-			},
-			{
-				name: "fillDeadline",
-				type: "uint48",
-				internalType: "uint48"
-			},
-			{
-				name: "fillerData",
-				type: "bytes",
-				internalType: "bytes"
-			}
-		],
+		name: "DOMAIN_SEPARATOR",
+		inputs: [],
 		outputs: [
 			{
-				name: "fillRecordHash",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		],
-		stateMutability: "payable"
-	},
-	{
-		type: "function",
-		name: "fillOrderOutputs",
-		inputs: [
-			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "outputs",
-				type: "tuple[]",
-				internalType: "struct MandateOutput[]",
-				components: [
-					{
-						name: "oracle",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "settler",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "chainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "token",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "amount",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "recipient",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "call",
-						type: "bytes",
-						internalType: "bytes"
-					},
-					{
-						name: "context",
-						type: "bytes",
-						internalType: "bytes"
-					}
-				]
-			},
-			{
-				name: "fillDeadline",
-				type: "uint48",
-				internalType: "uint48"
-			},
-			{
-				name: "fillerData",
-				type: "bytes",
-				internalType: "bytes"
-			}
-		],
-		outputs: [],
-		stateMutability: "payable"
-	},
-	{
-		type: "function",
-		name: "getFillRecord",
-		inputs: [
-			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "output",
-				type: "tuple",
-				internalType: "struct MandateOutput",
-				components: [
-					{
-						name: "oracle",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "settler",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "chainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "token",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "amount",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "recipient",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "call",
-						type: "bytes",
-						internalType: "bytes"
-					},
-					{
-						name: "context",
-						type: "bytes",
-						internalType: "bytes"
-					}
-				]
-			}
-		],
-		outputs: [
-			{
-				name: "payloadHash",
+				name: "",
 				type: "bytes32",
 				internalType: "bytes32"
 			}
@@ -226,68 +19,663 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "function",
-		name: "getFillRecord",
-		inputs: [
+		name: "eip712Domain",
+		inputs: [],
+		outputs: [
 			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
+				name: "fields",
+				type: "bytes1",
+				internalType: "bytes1"
 			},
 			{
-				name: "outputHash",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		],
-		outputs: [
+				name: "name",
+				type: "string",
+				internalType: "string"
+			},
 			{
-				name: "payloadHash",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		],
-		stateMutability: "view"
-	},
-	{
-		type: "function",
-		name: "hasAttested",
-		inputs: [
+				name: "version",
+				type: "string",
+				internalType: "string"
+			},
 			{
-				name: "payloads",
-				type: "bytes[]",
-				internalType: "bytes[]"
-			}
-		],
-		outputs: [
-			{
-				name: "accumulator",
-				type: "bool",
-				internalType: "bool"
-			}
-		],
-		stateMutability: "view"
-	},
-	{
-		type: "function",
-		name: "isProven",
-		inputs: [
-			{
-				name: "remoteChainId",
+				name: "chainId",
 				type: "uint256",
 				internalType: "uint256"
 			},
 			{
-				name: "remoteOracle",
+				name: "verifyingContract",
+				type: "address",
+				internalType: "address"
+			},
+			{
+				name: "salt",
 				type: "bytes32",
 				internalType: "bytes32"
 			},
 			{
-				name: "application",
+				name: "extensions",
+				type: "uint256[]",
+				internalType: "uint256[]"
+			}
+		],
+		stateMutability: "view"
+	},
+	{
+		type: "function",
+		name: "finalise",
+		inputs: [
+			{
+				name: "order",
+				type: "tuple",
+				internalType: "struct MultichainOrderComponent",
+				components: [
+					{
+						name: "user",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "nonce",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
+					}
+				]
+			},
+			{
+				name: "solveParams",
+				type: "tuple[]",
+				internalType: "struct InputSettlerBase.SolveParams[]",
+				components: [
+					{
+						name: "timestamp",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "solver",
+						type: "bytes32",
+						internalType: "bytes32"
+					}
+				]
+			},
+			{
+				name: "destination",
 				type: "bytes32",
 				internalType: "bytes32"
 			},
 			{
-				name: "dataHash",
+				name: "call",
+				type: "bytes",
+				internalType: "bytes"
+			}
+		],
+		outputs: [],
+		stateMutability: "nonpayable"
+	},
+	{
+		type: "function",
+		name: "finaliseWithSignature",
+		inputs: [
+			{
+				name: "order",
+				type: "tuple",
+				internalType: "struct MultichainOrderComponent",
+				components: [
+					{
+						name: "user",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "nonce",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
+					}
+				]
+			},
+			{
+				name: "solveParams",
+				type: "tuple[]",
+				internalType: "struct InputSettlerBase.SolveParams[]",
+				components: [
+					{
+						name: "timestamp",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "solver",
+						type: "bytes32",
+						internalType: "bytes32"
+					}
+				]
+			},
+			{
+				name: "destination",
+				type: "bytes32",
+				internalType: "bytes32"
+			},
+			{
+				name: "call",
+				type: "bytes",
+				internalType: "bytes"
+			},
+			{
+				name: "orderOwnerSignature",
+				type: "bytes",
+				internalType: "bytes"
+			}
+		],
+		outputs: [],
+		stateMutability: "nonpayable"
+	},
+	{
+		type: "function",
+		name: "open",
+		inputs: [
+			{
+				name: "order",
+				type: "tuple",
+				internalType: "struct MultichainOrderComponent",
+				components: [
+					{
+						name: "user",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "nonce",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
+					}
+				]
+			}
+		],
+		outputs: [],
+		stateMutability: "nonpayable"
+	},
+	{
+		type: "function",
+		name: "openFor",
+		inputs: [
+			{
+				name: "order",
+				type: "tuple",
+				internalType: "struct MultichainOrderComponent",
+				components: [
+					{
+						name: "user",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "nonce",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
+					}
+				]
+			},
+			{
+				name: "sponsor",
+				type: "address",
+				internalType: "address"
+			},
+			{
+				name: "signature",
+				type: "bytes",
+				internalType: "bytes"
+			}
+		],
+		outputs: [],
+		stateMutability: "nonpayable"
+	},
+	{
+		type: "function",
+		name: "orderIdentifier",
+		inputs: [
+			{
+				name: "order",
+				type: "tuple",
+				internalType: "struct MultichainOrderComponent",
+				components: [
+					{
+						name: "user",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "nonce",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
+					}
+				]
+			}
+		],
+		outputs: [
+			{
+				name: "",
+				type: "bytes32",
+				internalType: "bytes32"
+			}
+		],
+		stateMutability: "view"
+	},
+	{
+		type: "function",
+		name: "orderStatus",
+		inputs: [
+			{
+				name: "orderId",
 				type: "bytes32",
 				internalType: "bytes32"
 			}
@@ -295,75 +683,112 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 		outputs: [
 			{
 				name: "",
-				type: "bool",
-				internalType: "bool"
+				type: "uint8",
+				internalType: "enum InputSettlerMultichainEscrow.OrderStatus"
 			}
 		],
 		stateMutability: "view"
 	},
 	{
 		type: "function",
-		name: "setAttestation",
+		name: "refund",
 		inputs: [
 			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "solver",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "timestamp",
-				type: "uint32",
-				internalType: "uint32"
-			},
-			{
-				name: "output",
+				name: "order",
 				type: "tuple",
-				internalType: "struct MandateOutput",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
-						name: "oracle",
-						type: "bytes32",
-						internalType: "bytes32"
+						name: "user",
+						type: "address",
+						internalType: "address"
 					},
 					{
-						name: "settler",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "chainId",
+						name: "nonce",
 						type: "uint256",
 						internalType: "uint256"
 					},
 					{
-						name: "token",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "amount",
+						name: "chainIdField",
 						type: "uint256",
 						internalType: "uint256"
 					},
 					{
-						name: "recipient",
-						type: "bytes32",
-						internalType: "bytes32"
+						name: "chainIndex",
+						type: "uint256",
+						internalType: "uint256"
 					},
 					{
-						name: "call",
-						type: "bytes",
-						internalType: "bytes"
+						name: "expires",
+						type: "uint32",
+						internalType: "uint32"
 					},
 					{
-						name: "context",
-						type: "bytes",
-						internalType: "bytes"
+						name: "fillDeadline",
+						type: "uint32",
+						internalType: "uint32"
+					},
+					{
+						name: "inputOracle",
+						type: "address",
+						internalType: "address"
+					},
+					{
+						name: "inputs",
+						type: "uint256[2][]",
+						internalType: "uint256[2][]"
+					},
+					{
+						name: "outputs",
+						type: "tuple[]",
+						internalType: "struct MandateOutput[]",
+						components: [
+							{
+								name: "oracle",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "settler",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "chainId",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "token",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "amount",
+								type: "uint256",
+								internalType: "uint256"
+							},
+							{
+								name: "recipient",
+								type: "bytes32",
+								internalType: "bytes32"
+							},
+							{
+								name: "callbackData",
+								type: "bytes",
+								internalType: "bytes"
+							},
+							{
+								name: "context",
+								type: "bytes",
+								internalType: "bytes"
+							}
+						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			}
@@ -373,7 +798,13 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "event",
-		name: "OutputFilled",
+		name: "EIP712DomainChanged",
+		inputs: [],
+		anonymous: false
+	},
+	{
+		type: "event",
+		name: "Finalised",
 		inputs: [
 			{
 				name: "orderId",
@@ -388,94 +819,41 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 				internalType: "bytes32"
 			},
 			{
-				name: "timestamp",
-				type: "uint32",
+				name: "destination",
+				type: "bytes32",
 				indexed: false,
-				internalType: "uint32"
-			},
-			{
-				name: "output",
-				type: "tuple",
-				indexed: false,
-				internalType: "struct MandateOutput",
-				components: [
-					{
-						name: "oracle",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "settler",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "chainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "token",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "amount",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "recipient",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "call",
-						type: "bytes",
-						internalType: "bytes"
-					},
-					{
-						name: "context",
-						type: "bytes",
-						internalType: "bytes"
-					}
-				]
-			},
-			{
-				name: "finalAmount",
-				type: "uint256",
-				indexed: false,
-				internalType: "uint256"
+				internalType: "bytes32"
 			}
 		],
 		anonymous: false
 	},
 	{
 		type: "event",
-		name: "OutputProven",
+		name: "Open",
 		inputs: [
 			{
-				name: "chainid",
-				type: "uint256",
-				indexed: false,
-				internalType: "uint256"
-			},
-			{
-				name: "remoteIdentifier",
+				name: "orderId",
 				type: "bytes32",
-				indexed: false,
+				indexed: true,
 				internalType: "bytes32"
 			},
 			{
-				name: "application",
-				type: "bytes32",
+				name: "order",
+				type: "bytes",
 				indexed: false,
-				internalType: "bytes32"
-			},
+				internalType: "bytes"
+			}
+		],
+		anonymous: false
+	},
+	{
+		type: "event",
+		name: "Refunded",
+		inputs: [
 			{
-				name: "payloadHash",
+				name: "orderId",
 				type: "bytes32",
-				indexed: false,
+				indexed: true,
 				internalType: "bytes32"
 			}
 		],
@@ -483,12 +861,28 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "AlreadyFilled",
+		name: "CallOutOfRange",
 		inputs: []
 	},
 	{
 		type: "error",
-		name: "CallOutOfRange",
+		name: "ChainIndexOutOfRange",
+		inputs: [
+			{
+				name: "chainIndex",
+				type: "uint256",
+				internalType: "uint256"
+			},
+			{
+				name: "numSegments",
+				type: "uint256",
+				internalType: "uint256"
+			}
+		]
+	},
+	{
+		type: "error",
+		name: "CodeSize0",
 		inputs: []
 	},
 	{
@@ -498,24 +892,35 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "ExclusiveTo",
+		name: "FillDeadlineAfterExpiry",
 		inputs: [
 			{
-				name: "solver",
-				type: "bytes32",
-				internalType: "bytes32"
+				name: "fillDeadline",
+				type: "uint32",
+				internalType: "uint32"
+			},
+			{
+				name: "expires",
+				type: "uint32",
+				internalType: "uint32"
 			}
 		]
 	},
 	{
 		type: "error",
-		name: "FailedCall",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "FillDeadline",
-		inputs: []
+		name: "FilledTooLate",
+		inputs: [
+			{
+				name: "expected",
+				type: "uint32",
+				internalType: "uint32"
+			},
+			{
+				name: "actual",
+				type: "uint32",
+				internalType: "uint32"
+			}
+		]
 	},
 	{
 		type: "error",
@@ -524,31 +929,40 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "InsufficientBalance",
-		inputs: [
-			{
-				name: "balance",
-				type: "uint256",
-				internalType: "uint256"
-			},
-			{
-				name: "needed",
-				type: "uint256",
-				internalType: "uint256"
-			}
-		]
+		name: "InvalidOrderStatus",
+		inputs: []
 	},
 	{
 		type: "error",
-		name: "InvalidAttestation",
+		name: "InvalidShortString",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "InvalidSigner",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "InvalidTimestampLength",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "NoDestination",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "OrderIdMismatch",
 		inputs: [
 			{
-				name: "storedFillRecordHash",
+				name: "provided",
 				type: "bytes32",
 				internalType: "bytes32"
 			},
 			{
-				name: "givenFillRecordHash",
+				name: "computed",
 				type: "bytes32",
 				internalType: "bytes32"
 			}
@@ -556,38 +970,7 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "InvalidContextDataLength",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "NotDivisible",
-		inputs: [
-			{
-				name: "value",
-				type: "uint256",
-				internalType: "uint256"
-			},
-			{
-				name: "divisor",
-				type: "uint256",
-				internalType: "uint256"
-			}
-		]
-	},
-	{
-		type: "error",
-		name: "NotImplemented",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "NotProven",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "PayloadTooSmall",
+		name: "ReentrancyDetected",
 		inputs: []
 	},
 	{
@@ -598,6 +981,54 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 				name: "token",
 				type: "address",
 				internalType: "address"
+			}
+		]
+	},
+	{
+		type: "error",
+		name: "SignatureAndInputsNotEqual",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "SignatureNotSupported",
+		inputs: [
+			{
+				name: "",
+				type: "bytes1",
+				internalType: "bytes1"
+			}
+		]
+	},
+	{
+		type: "error",
+		name: "StringTooLong",
+		inputs: [
+			{
+				name: "str",
+				type: "string",
+				internalType: "string"
+			}
+		]
+	},
+	{
+		type: "error",
+		name: "TimestampNotPassed",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "TimestampPassed",
+		inputs: []
+	},
+	{
+		type: "error",
+		name: "UnexpectedCaller",
+		inputs: [
+			{
+				name: "expectedCaller",
+				type: "bytes32",
+				internalType: "bytes32"
 			}
 		]
 	},
@@ -616,42 +1047,5 @@ export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 				internalType: "uint256"
 			}
 		]
-	},
-	{
-		type: "error",
-		name: "WrongOutputOracle",
-		inputs: [
-			{
-				name: "addressThis",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "expected",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		]
-	},
-	{
-		type: "error",
-		name: "WrongOutputSettler",
-		inputs: [
-			{
-				name: "addressThis",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "expected",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		]
-	},
-	{
-		type: "error",
-		name: "ZeroValue",
-		inputs: []
 	}
 ] as const;

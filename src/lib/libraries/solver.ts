@@ -186,27 +186,6 @@ export class Solver {
 					return result;
 				}
 			}
-
-			// if (order.inputOracle === getOracle("wormhole", sourceChain)) {
-			// 	// TODO: get sequence from event.
-			// 	const sequence = 0;
-			// 	// Get VAA
-			// 	const wormholeChainId = wormholeChainIds[outputChain];
-			// 	const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
-			// 		"0x",
-			// 		""
-			// 	)}/${sequence}?network=Testnet`;
-			// 	const response = await axios.get(requestUrl);
-			// 	console.log(response.data);
-			// return $walletClient.writeContract({
-			// 	account: connectedAccount.address,
-			// 	address: order.inputOracle,
-			// 	abi: WROMHOLE_ORACLE_ABI,
-			// 	functionName: 'receiveMessage',
-			// 	args: [encodedOutput]
-			// });
-			// 	return;
-			// }
 		};
 	}
 
@@ -253,7 +232,7 @@ export class Solver {
 				solver: addressToBytes32(account())
 			};
 
-			const transactionHash = intent.finalise({
+			const transactionHash = await intent.finalise({
 				sourceChain,
 				account: account(),
 				walletClient,
@@ -261,7 +240,7 @@ export class Solver {
 				signatures: orderContainer
 			});
 			const result = await clients[sourceChain].waitForTransactionReceipt({
-				hash: transactionHash
+				hash: transactionHash!
 			});
 			if (postHook) await postHook();
 			return result;

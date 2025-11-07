@@ -6,7 +6,8 @@
 		POLYMER_ALLOCATOR,
 		formatTokenAmount,
 		type chain,
-		INPUT_SETTLER_ESCROW_LIFI
+		INPUT_SETTLER_ESCROW_LIFI,
+		MULTICHAIN_INPUT_SETTLER_COMPACT
 	} from "$lib/config";
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
@@ -265,7 +266,7 @@
 					>
 						Low Balance
 					</button>
-				{:else if store.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
+				{:else if store.intentType === "escrow"}
 					<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
 						{#snippet name()}
 							Execute Open
@@ -274,7 +275,7 @@
 							Waiting for transaction...
 						{/snippet}
 					</AwaitButton>
-				{:else if store.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+				{:else if store.intentType === "compact"}
 					<AwaitButton buttonFunction={intentFactory.compactDepositAndRegister(opts)}>
 						{#snippet name()}
 							Execute Deposit and Open
@@ -284,7 +285,7 @@
 						{/snippet}
 					</AwaitButton>
 				{/if}
-				{#if store.inputSettler === INPUT_SETTLER_COMPACT_LIFI && store.allocatorId !== POLYMER_ALLOCATOR}
+				{#if store.intentType === "compact" && store.allocatorId !== POLYMER_ALLOCATOR}
 					{#if !balanceCheckCompact}
 						<button
 							type="button"

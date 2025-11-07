@@ -9,12 +9,13 @@
 		type WC
 	} from "$lib/config";
 	import { bytes32ToAddress } from "$lib/utils/convert";
-	import { getOrderId, getOutputHash } from "$lib/utils/orderLib";
+	import { getOutputHash } from "$lib/utils/orderLib";
 	import type { MandateOutput, OrderContainer } from "../../types";
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import store from "$lib/state.svelte";
+	import { Intent, orderToIntent } from "$lib/libraries/intent";
 
 	let {
 		scroll,
@@ -74,7 +75,9 @@
 	const filledStatusPromises: [bigint, Promise<`0x${string}`>[]][] = $derived(
 		sortOutputsByChain(orderContainer).map(([c, outputs]) => [
 			c,
-			outputs.map((output) => isFilled(getOrderId(orderContainer), output, refreshValidation))
+			outputs.map((output) =>
+				isFilled(orderToIntent(orderContainer).orderId(), output, refreshValidation)
+			)
 		])
 	);
 
