@@ -107,7 +107,12 @@ export class Solver {
 
 	static validate(
 		walletClient: WC,
-		args: { orderContainer: OrderContainer; fillTransactionHash: string; sourceChain: chain },
+		args: {
+			orderContainer: OrderContainer;
+			fillTransactionHash: string;
+			sourceChain: chain;
+			mainnet: boolean;
+		},
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
@@ -119,7 +124,8 @@ export class Solver {
 			const {
 				orderContainer: { order, inputSettler },
 				fillTransactionHash,
-				sourceChain
+				sourceChain,
+				mainnet
 			} = args;
 			const outputChain = getChainName(order.outputs[0].chainId);
 			if (order.outputs.length !== 1) {
@@ -144,7 +150,8 @@ export class Solver {
 						srcChainId: Number(order.outputs[0].chainId),
 						srcBlockNumber: Number(transactionReceipt.blockNumber),
 						globalLogIndex: Number(fillLog.logIndex),
-						polymerIndex
+						polymerIndex,
+						mainnet: mainnet
 					});
 					const dat = response.data as {
 						proof: undefined | string;

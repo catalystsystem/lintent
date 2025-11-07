@@ -91,7 +91,7 @@ function selectAllBut<T>(arr: T[], index: number): T[] {
 function encodeOutputs(outputs: MandateOutput[]) {
 	return encodeAbiParameters(
 		parseAbiParameters(
-			"(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes call, bytes context)[]"
+			"(bytes32 oracle, bytes32 settler, uint256 chainId, bytes32 token, uint256 amount, bytes32 recipient, bytes callbackData, bytes context)[]"
 		),
 		[outputs]
 	);
@@ -188,7 +188,7 @@ export class Intent {
 				token: addressToBytes32(token.address),
 				amount: amount,
 				recipient: addressToBytes32(this.user()),
-				call: "0x",
+				callbackData: "0x",
 				context
 			};
 		}) as MandateOutput[];

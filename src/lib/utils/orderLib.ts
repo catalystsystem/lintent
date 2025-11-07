@@ -24,8 +24,8 @@ export function getOutputHash(output: MandateOutput) {
 				output.token,
 				output.amount,
 				output.recipient,
-				output.call.replace("0x", "").length / 2,
-				output.call,
+				output.callbackData.replace("0x", "").length / 2,
+				output.callbackData,
 				output.context.replace("0x", "").length / 2,
 				output.context
 			]
@@ -59,8 +59,8 @@ export function encodeMandateOutput(
 			output.token,
 			output.amount,
 			output.recipient,
-			output.call.replace("0x", "").length / 2,
-			output.call,
+			output.callbackData.replace("0x", "").length / 2,
+			output.callbackData,
 			output.context.replace("0x", "").length / 2,
 			output.context
 		]

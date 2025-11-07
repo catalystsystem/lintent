@@ -16,13 +16,15 @@
 		fillTransactionHash,
 		account,
 		preHook,
-		postHook
+		postHook,
+		mainnet
 	}: {
 		orderContainer: OrderContainer;
 		fillTransactionHash: `0x${string}`;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
+		mainnet: boolean;
 	} = $props();
 
 	let refreshValidation = $state(0);
@@ -109,7 +111,8 @@
 									store.walletClient,
 									{
 										orderContainer,
-										fillTransactionHash
+										fillTransactionHash,
+										mainnet
 									},
 									{
 										preHook,
