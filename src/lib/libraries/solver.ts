@@ -9,7 +9,13 @@ import {
 	INPUT_SETTLER_ESCROW_LIFI,
 	type WC
 } from "$lib/config";
-import { encodeAbiParameters, maxUint256, parseAbiParameters } from "viem";
+import {
+	encodeAbiParameters,
+	hashStruct,
+	maxUint256,
+	parseAbiParameters,
+	parseEventLogs
+} from "viem";
 import type { MandateOutput, OrderContainer } from "../../types";
 import { addressToBytes32, bytes32ToAddress } from "$lib/utils/convert";
 import axios from "axios";
@@ -19,6 +25,7 @@ import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 import { orderToIntent } from "./intent";
+import { compactTypes } from "$lib/utils/typedMessage";
 
 /**
  * @notice Class for solving intents. Functions called by solvers.
@@ -45,17 +52,14 @@ export class Solver {
 			const publicClients = clients;
 			// TODO: MULTICHAIN COMPACT fix escrow typing
 			const orderId = orderToIntent({ order, inputSettler, lock: { type: "escrow" } }).orderId();
-			//Check that only 1 output exists.
-			if (outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
 
 			const outputChain = getChainName(outputs[0].chainId);
 			console.log({ outputChain });
+			let value = 0n;
 			for (const output of outputs) {
 				if (output.token === BYTES32_ZERO) {
-					// The destination asset cannot be ETH.
-					throw new Error("Output token cannot be ETH");
+					value += output.amount;
+					continue;
 				}
 				if (output.chainId != outputs[0].chainId) {
 					throw new Error("Filling outputs on multiple chains with single fill call not supported");
@@ -92,6 +96,7 @@ export class Solver {
 				chain: chainMap[outputChain],
 				account: account(),
 				address: bytes32ToAddress(outputs[0].settler),
+				value,
 				abi: COIN_FILLER_ABI,
 				functionName: "fillOrderOutputs",
 				args: [orderId, outputs, order.fillDeadline, addressToBytes32(account())]
@@ -108,6 +113,7 @@ export class Solver {
 	static validate(
 		walletClient: WC,
 		args: {
+			output: MandateOutput;
 			orderContainer: OrderContainer;
 			fillTransactionHash: string;
 			sourceChain: chain;
@@ -122,26 +128,46 @@ export class Solver {
 		return async () => {
 			const { preHook, postHook, account } = opts;
 			const {
+				output,
 				orderContainer: { order, inputSettler },
 				fillTransactionHash,
 				sourceChain,
 				mainnet
 			} = args;
 			const outputChain = getChainName(order.outputs[0].chainId);
-			if (order.outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
-			// The destination asset cannot be ETH.
-			const output = order.outputs[0];
 
 			if (order.inputOracle === getOracle("polymer", sourceChain)) {
 				const transactionReceipt = await clients[outputChain].getTransactionReceipt({
 					hash: fillTransactionHash as `0x${string}`
 				});
 
-				const numlogs = transactionReceipt.logs.length;
-				if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
-				const fillLog = transactionReceipt.logs[1]; // The first log is transfer, next is fill.
+				const logs = parseEventLogs({
+					abi: COIN_FILLER_ABI,
+					eventName: "OutputFilled",
+					logs: transactionReceipt.logs
+				});
+				// We need to search through each log until we find one matching our output.
+				console.log("logs", logs);
+				let logIndex = -1;
+				const expectedOutputHash = hashStruct({
+					types: compactTypes,
+					primaryType: "MandateOutput",
+					data: output
+				});
+				for (const log of logs) {
+					const logOutput = log.args.output;
+					// TODO: Optimise by comparing the dicts.
+					const logOutputHash = hashStruct({
+						types: compactTypes,
+						primaryType: "MandateOutput",
+						data: logOutput
+					});
+					if (logOutputHash === expectedOutputHash) {
+						logIndex = log.logIndex;
+						break;
+					}
+				}
+				if (logIndex === -1) throw Error(`Could not find matching log`);
 
 				let proof: string | undefined;
 				let polymerIndex: number | undefined;
@@ -149,7 +175,7 @@ export class Solver {
 					const response = await axios.post(`/polymer`, {
 						srcChainId: Number(order.outputs[0].chainId),
 						srcBlockNumber: Number(transactionReceipt.blockNumber),
-						globalLogIndex: Number(fillLog.logIndex),
+						globalLogIndex: Number(logIndex),
 						polymerIndex,
 						mainnet: mainnet
 					});
@@ -166,7 +192,7 @@ export class Solver {
 					// Wait while backing off before requesting again.
 					await new Promise((r) => setTimeout(r, i * 2 + 1000));
 				}
-				console.log({ proof });
+				console.log({ logIndex, proof });
 				if (proof) {
 					if (preHook) await preHook(sourceChain);
 
@@ -213,9 +239,6 @@ export class Solver {
 			});
 
 			const outputChain = getChainName(order.outputs[0].chainId);
-			if (order.outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
 			const transactionReceipts = await Promise.all(
 				fillTransactionHashes.map((fth) =>
 					clients[outputChain].getTransactionReceipt({

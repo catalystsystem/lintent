@@ -129,29 +129,28 @@
 								validated ? "bg-green-50" : "bg-yellow-50"
 							]}
 							hoverClass={[validated ? "" : "hover:bg-yellow-100 cursor-pointer"]}
-							buttonFunction={validated
-								? async () => console.log("Has already been validated")
-								: Solver.validate(
-										store.walletClient,
-										{
-											orderContainer,
-											fillTransactionHash:
-												store.fillTranscations[
-													hashStruct({
-														data: output,
-														types: compactTypes,
-														primaryType: "MandateOutput"
-													})
-												],
-											sourceChain: getChainName(inputChain),
-											mainnet: store.mainnet
-										},
-										{
-											preHook,
-											postHook: postHookRefreshValidate,
-											account
-										}
-									)}
+							buttonFunction={Solver.validate(
+								store.walletClient,
+								{
+									output,
+									orderContainer,
+									fillTransactionHash:
+										store.fillTranscations[
+											hashStruct({
+												data: output,
+												types: compactTypes,
+												primaryType: "MandateOutput"
+											})
+										],
+									sourceChain: getChainName(inputChain),
+									mainnet: store.mainnet
+								},
+								{
+									preHook,
+									postHook: postHookRefreshValidate,
+									account
+								}
+							)}
 						>
 							{#snippet name()}
 								<div class="flex flex-row items-center justify-center space-x-1 text-center">
