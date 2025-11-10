@@ -50,6 +50,8 @@ class Store {
 	// inputAmounts = $state<bigint[]>([1000000n]);
 	// outputAmounts = $state<bigint[]>([1000000n]);
 
+	fillTranscations = $state<{ [outputId: string]: `0x${string}` }>({});
+
 	balances = $derived.by(() => {
 		return this.mapOverCoins(getBalance, this.mainnet, this.updatedDerived);
 	});
@@ -80,6 +82,7 @@ class Store {
 	multichain = $derived([...new Set(this.inputTokens.map((i) => i.token.chain))].length > 1);
 
 	// --- Input Side --- //
+	// TODO: remove
 	inputSettler = $derived.by(() => {
 		if (this.intentType === "escrow" && !this.multichain) return INPUT_SETTLER_ESCROW_LIFI;
 		if (this.intentType === "escrow" && this.multichain) return MULTICHAIN_INPUT_SETTLER_ESCROW;

@@ -7,44 +7,44 @@ const BatchCompact = [
 	{ name: "expires", type: "uint256" },
 	{ name: "commitments", type: "Lock[]" },
 	{ name: "mandate", type: "Mandate" }
-];
+] as const;
 
 const MultichainCompact = [
 	{ name: "sponsor", type: "address" },
 	{ name: "nonce", type: "uint256" },
 	{ name: "expires", type: "uint256" },
 	{ name: "elements", type: "Element[]" }
-];
+] as const;
 
 const Lock = [
 	{ name: "lockTag", type: "bytes12" },
 	{ name: "token", type: "address" },
 	{ name: "amount", type: "uint256" }
-];
+] as const;
 
 const Element = [
 	{ name: "arbiter", type: "address" },
 	{ name: "chainId", type: "uint256" },
 	{ name: "commitments", type: "Lock[]" },
 	{ name: "mandate", type: "Mandate" }
-];
+] as const;
 
 const Mandate = [
 	{ name: "fillDeadline", type: "uint32" },
 	{ name: "inputOracle", type: "address" },
 	{ name: "outputs", type: "MandateOutput[]" }
-];
+] as const;
 
-const MandateOutput = [
+export const MandateOutput = [
 	{ name: "oracle", type: "bytes32" },
 	{ name: "settler", type: "bytes32" },
 	{ name: "chainId", type: "uint256" },
 	{ name: "token", type: "bytes32" },
 	{ name: "amount", type: "uint256" },
 	{ name: "recipient", type: "bytes32" },
-	{ name: "call", type: "bytes" },
+	{ name: "callbackData", type: "bytes" },
 	{ name: "context", type: "bytes" }
-];
+] as const;
 
 export const StandardOrderAbi = [
 	{ name: "user", type: "address" },
@@ -55,7 +55,7 @@ export const StandardOrderAbi = [
 	{ name: "inputOracle", type: "address" },
 	{ name: "inputs", type: "uint256[2][]" },
 	{ name: "outputs", type: "tuple[]", components: MandateOutput }
-];
+] as const;
 
 // The named list of all type definitions
 export const compactTypes = {

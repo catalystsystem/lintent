@@ -11,6 +11,8 @@
 		getCoin,
 		INPUT_SETTLER_COMPACT_LIFI,
 		INPUT_SETTLER_ESCROW_LIFI,
+		MULTICHAIN_INPUT_SETTLER_COMPACT,
+		MULTICHAIN_INPUT_SETTLER_ESCROW,
 		type chain,
 		type WC
 	} from "$lib/config";
@@ -18,16 +20,17 @@
 	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 	import { idToToken } from "$lib/utils/convert";
 	import store from "$lib/state.svelte";
+	import { orderToIntent } from "$lib/libraries/intent";
+	import { hashStruct } from "viem";
+	import { compactTypes } from "$lib/utils/typedMessage";
 
 	let {
 		orderContainer,
-		fillTransactionHash,
 		account,
 		preHook,
 		postHook
 	}: {
 		orderContainer: OrderContainer;
-		fillTransactionHash: `0x${string}`;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
@@ -39,44 +42,44 @@
 	const OrderStatus_Claimed = 2;
 	const OrderStatus_Refunded = 3;
 
-	async function isClaimed(
-		container: { order: StandardOrder; inputSettler: `0x${string}` },
-		_: any
-	) {
+	async function isClaimed(chainId: bigint, container: OrderContainer, _: any) {
 		const { order, inputSettler } = container;
-		const inputChainClient = getClient(order.originChainId);
+		const inputChainClient = getClient(chainId);
 
+		const intent = orderToIntent(container);
+		const orderId = intent.orderId();
 		// Determine the order type.
-		if (inputSettler == INPUT_SETTLER_ESCROW_LIFI) {
+		if (
+			inputSettler === INPUT_SETTLER_ESCROW_LIFI ||
+			inputSettler === MULTICHAIN_INPUT_SETTLER_ESCROW
+		) {
 			// Check order status
-			const orderId = await inputChainClient.readContract({
-				address: inputSettler,
-				abi: SETTLER_ESCROW_ABI,
-				functionName: "orderIdentifier",
-				args: [order]
-			});
 			const orderStatus = await inputChainClient.readContract({
 				address: inputSettler,
 				abi: SETTLER_ESCROW_ABI,
 				functionName: "orderStatus",
 				args: [orderId]
 			});
-			return orderStatus == OrderStatus_Claimed || orderStatus == OrderStatus_Refunded;
-		} else if (inputSettler == INPUT_SETTLER_COMPACT_LIFI) {
+			return orderStatus === OrderStatus_Claimed || orderStatus === OrderStatus_Refunded;
+		} else if (
+			inputSettler === INPUT_SETTLER_COMPACT_LIFI ||
+			inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT
+		) {
 			// Check claim status
-			const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
-				address: COMPACT,
-				abi: COMPACT_ABI,
-				functionName: "getLockDetails",
-				args: [order.inputs[0][0]]
-			});
-			// Check if nonce is spent.
-			return await inputChainClient.readContract({
-				address: COMPACT,
-				abi: COMPACT_ABI,
-				functionName: "hasConsumedAllocatorNonce",
-				args: [order.nonce, allocator]
-			});
+			return false;
+			// const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
+			// 	address: COMPACT,
+			// 	abi: COMPACT_ABI,
+			// 	functionName: "getLockDetails",
+			// 	args: [order.inputs[0][0]]
+			// });
+			// // Check if nonce is spent.
+			// return await inputChainClient.readContract({
+			// 	address: COMPACT,
+			// 	abi: COMPACT_ABI,
+			// 	functionName: "hasConsumedAllocatorNonce",
+			// 	args: [order.nonce, allocator]
+			// });
 		}
 	}
 </script>
@@ -84,36 +87,80 @@
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
 	<h1 class="mb-2 w-full text-center text-2xl font-medium">Finalise Intent</h1>
 	<p>Finalise the order to receive the inputs.</p>
-	<div class="w-full">
-		<h2 class="w-full text-center text-lg font-medium">
-			{getChainName(orderContainer.order.originChainId)}
-		</h2>
-		<hr class="my-1" />
-		<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
-			{#await isClaimed(orderContainer, "")}
-				<button
-					type="button"
-					class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
-					disabled
-				>
-					Finalise
-				</button>
-			{:then isClaimed}
-				{#if isClaimed}
+	{#each orderToIntent(orderContainer).inputChains() as inputChain}
+		<div class="w-full">
+			<h2 class="w-full text-center text-lg font-medium">
+				{getChainName(inputChain)}
+			</h2>
+			<hr class="my-1" />
+			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
+				{#await isClaimed(inputChain, orderContainer, "")}
 					<button
 						type="button"
 						class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
 						disabled
 					>
-						Finalised
+						Finalise
 					</button>
-				{:else}
+				{:then isClaimed}
+					{#if isClaimed}
+						<button
+							type="button"
+							class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
+							disabled
+						>
+							Finalised
+						</button>
+					{:else}
+						<AwaitButton
+							buttonFunction={Solver.claim(
+								store.walletClient,
+								{
+									sourceChain: getChainName(inputChain),
+									orderContainer,
+									fillTransactionHashes: orderContainer.order.outputs.map(
+										(output) =>
+											store.fillTranscations[
+												hashStruct({
+													data: output,
+													types: compactTypes,
+													primaryType: "MandateOutput"
+												})
+											] as string
+									)
+								},
+								{
+									account,
+									preHook,
+									postHook
+								}
+							)}
+						>
+							{#snippet name()}
+								Claim
+							{/snippet}
+							{#snippet awaiting()}
+								Waiting for transaction...
+							{/snippet}
+						</AwaitButton>
+					{/if}
+				{:catch}
 					<AwaitButton
 						buttonFunction={Solver.claim(
 							store.walletClient,
 							{
+								sourceChain: getChainName(inputChain),
 								orderContainer,
-								fillTransactionHash
+								fillTransactionHashes: orderContainer.order.outputs.map(
+									(output) =>
+										store.fillTranscations[
+											hashStruct({
+												data: output,
+												types: compactTypes,
+												primaryType: "MandateOutput"
+											})
+										] as string
+								)
 							},
 							{
 								account,
@@ -129,55 +176,59 @@
 							Waiting for transaction...
 						{/snippet}
 					</AwaitButton>
-				{/if}
-			{:catch}
-				<AwaitButton
-					buttonFunction={Solver.claim(
-						store.walletClient,
-						{
-							orderContainer,
-							fillTransactionHash
-						},
-						{
-							account,
-							preHook,
-							postHook
-						}
-					)}
-				>
-					{#snippet name()}
-						Claim
-					{/snippet}
-					{#snippet awaiting()}
-						Waiting for transaction...
-					{/snippet}
-				</AwaitButton>
-			{/await}
-			<div class="flex">
-				{#each orderContainer.order.inputs as input}
-					<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
-						<div class="flex flex-col items-center justify-center align-middle">
-							<div class="flex flex-row space-x-1">
-								<div>
-									{formatTokenAmount(
-										input[1],
-										getCoin({
-											address: idToToken(input[0]),
-											chain: getChainName(orderContainer.order.originChainId)
-										}).decimals
-									)}
-								</div>
-								<div>
-									{getCoin({
-										address: idToToken(input[0]),
-										chain: getChainName(orderContainer.order.originChainId)
-									}).name}
+				{/await}
+				<div class="flex">
+					{#if "originChainId" in orderContainer.order}
+						{#each orderContainer.order.inputs as input}
+							<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
+								<div class="flex flex-col items-center justify-center align-middle">
+									<div class="flex flex-row space-x-1">
+										<div>
+											{formatTokenAmount(
+												input[1],
+												getCoin({
+													address: idToToken(input[0]),
+													chain: getChainName(orderContainer.order.originChainId)
+												}).decimals
+											)}
+										</div>
+										<div>
+											{getCoin({
+												address: idToToken(input[0]),
+												chain: getChainName(orderContainer.order.originChainId)
+											}).name}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</div>
-				{/each}
+						{/each}
+					{:else}
+						{#each orderContainer.order.inputs.find((v) => v.chainId === inputChain)?.inputs as input}
+							<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
+								<div class="flex flex-col items-center justify-center align-middle">
+									<div class="flex flex-row space-x-1">
+										<div>
+											{formatTokenAmount(
+												input[1],
+												getCoin({
+													address: idToToken(input[0]),
+													chain: getChainName(inputChain)
+												}).decimals
+											)}
+										</div>
+										<div>
+											{getCoin({
+												address: idToToken(input[0]),
+												chain: getChainName(inputChain)
+											}).name}
+										</div>
+									</div>
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
 			</div>
 		</div>
-	</div>
+	{/each}
 </div>

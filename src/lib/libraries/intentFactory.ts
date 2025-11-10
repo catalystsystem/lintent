@@ -4,6 +4,7 @@ import {
 	clients,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
+	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	type Token,
 	type WC
 } from "$lib/config";
@@ -161,7 +162,7 @@ export class IntentFactory {
 
 			this.saveOrder({
 				order: intent.asOrder(),
-				inputSettler: INPUT_SETTLER_ESCROW_LIFI
+				inputSettler: store.inputSettler
 			});
 
 			return transactionHashes;
@@ -179,6 +180,8 @@ export function escrowApprove(
 	}
 ) {
 	return async () => {
+		const settler = store.multichain ? MULTICHAIN_INPUT_SETTLER_ESCROW : INPUT_SETTLER_ESCROW_LIFI;
+
 		const { preHook, postHook, inputTokens, account } = opts;
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const { token, amount } = inputTokens[i];
@@ -188,7 +191,7 @@ export function escrowApprove(
 				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "allowance",
-				args: [account(), store.inputSettler]
+				args: [account(), settler]
 			});
 			if (currentAllowance >= amount) continue;
 			const transactionHash = walletClient.writeContract({
@@ -197,7 +200,7 @@ export function escrowApprove(
 				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "approve",
-				args: [store.inputSettler, maxUint256]
+				args: [settler, maxUint256]
 			});
 
 			await publicClient.waitForTransactionReceipt({

@@ -89,14 +89,14 @@
 		</button> -->
 		<button
 			class=" h-8 rounded border px-4"
-			class:hover:bg-gray-100={store.inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
-			class:font-bold={store.inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-			onclick={() => (store.inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
+			class:hover:bg-gray-100={store.intentType !== "escrow"}
+			class:font-bold={store.intentType === "escrow"}
+			onclick={() => (store.intentType = "escrow")}
 		>
 			Escrow
 		</button>
 	</div>
-	{#if store.inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+	{#if store.intentType === "compact"}
 		<form class="w-full space-y-4 rounded-md">
 			<div class="flex flex-row">
 				<h2 class="text-md mr-4 font-medium">Allocator</h2>

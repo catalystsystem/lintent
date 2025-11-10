@@ -90,8 +90,6 @@
 
 	let selectedOrder = $state<OrderContainer | undefined>(undefined);
 
-	let fillTransactionHash = $state<`0x${string}` | undefined>(undefined);
-
 	let snapContainer: HTMLDivElement;
 
 	function scroll(next: boolean | number) {
@@ -155,31 +153,11 @@
 						<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
 						{#if selectedOrder !== undefined}
 							<!-- <IntentDescription></IntentDescription> -->
-							<FillIntent
-								{scroll}
-								orderContainer={selectedOrder}
-								{account}
-								{preHook}
-								{postHook}
-								bind:fillTransactionHash
+							<FillIntent {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
 							></FillIntent>
-							{#if fillTransactionHash}
-								<ReceiveMessage
-									orderContainer={selectedOrder}
-									{fillTransactionHash}
-									{account}
-									{preHook}
-									{postHook}
-									mainnet={storemainnet}
-								></ReceiveMessage>
-								<Finalise
-									orderContainer={selectedOrder}
-									{fillTransactionHash}
-									{preHook}
-									{postHook}
-									{account}
-								></Finalise>
-							{/if}
+							<ReceiveMessage orderContainer={selectedOrder} {account} {preHook} {postHook}
+							></ReceiveMessage>
+							<Finalise orderContainer={selectedOrder} {preHook} {postHook} {account}></Finalise>
 						{/if}
 					{/if}
 				</div>

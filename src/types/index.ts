@@ -34,7 +34,7 @@ export type BatchCompact = {
 	arbiter: `0x${string}`; // The account tasked with verifying and submitting the claim.
 	sponsor: `0x${string}`; // The account to source the tokens from.
 	nonce: bigint; // A parameter to enforce replay protection, scoped to allocator.
-	expires: number; // The time at which the claim expires.
+	expires: bigint; // The time at which the claim expires.
 	commitments: Lock[]; // The allocated token IDs and amounts.
 	mandate: CompactMandate;
 };

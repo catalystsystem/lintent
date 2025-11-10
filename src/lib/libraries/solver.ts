@@ -193,7 +193,7 @@ export class Solver {
 		walletClient: WC,
 		args: {
 			orderContainer: OrderContainer;
-			fillTransactionHash: string;
+			fillTransactionHashes: string[];
 			sourceChain: chain;
 		},
 		opts: {
@@ -204,7 +204,7 @@ export class Solver {
 	) {
 		return async () => {
 			const { preHook, postHook, account } = opts;
-			const { orderContainer, fillTransactionHash, sourceChain } = args;
+			const { orderContainer, fillTransactionHashes, sourceChain } = args;
 			const { order, inputSettler } = orderContainer;
 			const intent = orderToIntent({
 				inputSettler,
@@ -216,27 +216,36 @@ export class Solver {
 			if (order.outputs.length !== 1) {
 				throw new Error("Order must have exactly one output");
 			}
-			const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-				hash: fillTransactionHash as `0x${string}`
-			});
-			const blockHashOfFill = transactionReceipt.blockHash;
-			const block = await clients[outputChain].getBlock({
-				blockHash: blockHashOfFill
-			});
-			const fillTimestamp = block.timestamp;
+			const transactionReceipts = await Promise.all(
+				fillTransactionHashes.map((fth) =>
+					clients[outputChain].getTransactionReceipt({
+						hash: fth as `0x${string}`
+					})
+				)
+			);
+			const blocks = await Promise.all(
+				transactionReceipts.map((r) =>
+					clients[outputChain].getBlock({
+						blockHash: r.blockHash
+					})
+				)
+			);
+			const fillTimestamps = blocks.map((b) => b.timestamp);
 
 			if (preHook) await preHook(sourceChain);
 
-			const solveParam = {
-				timestamp: Number(fillTimestamp),
-				solver: addressToBytes32(account())
-			};
+			const solveParams = fillTimestamps.map((fillTimestamp) => {
+				return {
+					timestamp: Number(fillTimestamp),
+					solver: addressToBytes32(account())
+				};
+			});
 
 			const transactionHash = await intent.finalise({
 				sourceChain,
 				account: account(),
 				walletClient,
-				solveParam,
+				solveParams,
 				signatures: orderContainer
 			});
 			const result = await clients[sourceChain].waitForTransactionReceipt({

@@ -42,7 +42,7 @@
 		postHook,
 		verifier: store.verifier,
 		lock: {
-			type: store.inputSettler === INPUT_SETTLER_COMPACT_LIFI ? "compact" : "escrow",
+			type: store.intentType,
 			allocatorId: store.allocatorId,
 			resetPeriod: ResetPeriod.OneDay
 		},
@@ -65,7 +65,7 @@
 	);
 
 	const approveFunction = $derived(
-		store.inputSettler === INPUT_SETTLER_COMPACT_LIFI
+		store.intentType === "compact"
 			? CompactLib.compactApprove(store.walletClient, opts)
 			: escrowApprove(store.walletClient, opts)
 	);
@@ -308,7 +308,7 @@
 			</div>
 		{/if}
 	</div>
-	{#if numInputChains > 1 && store.inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
+	{#if numInputChains > 1 && store.intentType !== "compact"}
 		<p class="mx-auto mt-1 w-4/5 text-sm">
 			You'll need to open the order on {numInputChains} chains. Be prepared and do not interrupt the
 			process.

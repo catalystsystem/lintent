@@ -25,9 +25,7 @@ export const getInteropableAddress = (
 	const chainReference = padEven(chainId.toString(16));
 	const chainReferenceLength = toHex(chainReference.length / 2);
 
-	const interopableAddress = `0x${version}${chainType}${chainReferenceLength}${chainReference}${toHex(
+	return `0x${version}${chainType}${chainReferenceLength}${chainReference}${toHex(
 		address.replace("0x", "").length / 2
 	)}${address.replace("0x", "")}`;
-
-	return interopableAddress;
 };

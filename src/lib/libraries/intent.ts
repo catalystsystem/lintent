@@ -14,6 +14,7 @@ import type {
 	MultichainOrder,
 	MultichainOrderComponent,
 	NoSignature,
+	OrderContainer,
 	Signature,
 	StandardOrder
 } from "../../types";
@@ -345,7 +346,7 @@ export class StandardOrderIntent {
 			arbiter: INPUT_SETTLER_COMPACT_LIFI,
 			sponsor: order.user,
 			nonce: order.nonce,
-			expires: order.expires,
+			expires: BigInt(order.expires),
 			commitments,
 			mandate
 		};
@@ -454,13 +455,13 @@ export class StandardOrderIntent {
 		sourceChain: chain;
 		account: `0x${string}`;
 		walletClient: WC;
-		solveParam: { timestamp: number; solver: `0x${string}` };
+		solveParams: { timestamp: number; solver: `0x${string}` }[];
 		signatures: {
 			sponsorSignature: Signature | NoSignature;
 			allocatorSignature: Signature | NoSignature;
 		};
 	}) {
-		const { sourceChain, account, walletClient, solveParam, signatures } = options;
+		const { sourceChain, account, walletClient, solveParams, signatures } = options;
 		const actionChain = chainMap[sourceChain];
 		if (actionChain.id !== Number(this.order.originChainId))
 			throw new Error(
@@ -474,7 +475,7 @@ export class StandardOrderIntent {
 				address: this.inputSettler,
 				abi: SETTLER_ESCROW_ABI,
 				functionName: "finalise",
-				args: [this.order, [solveParam], addressToBytes32(account), "0x"]
+				args: [this.order, solveParams, addressToBytes32(account), "0x"]
 			});
 		} else if (this.inputSettler.toLowerCase() === INPUT_SETTLER_COMPACT_LIFI.toLowerCase()) {
 			// Check whether or not we have a signature.
@@ -493,7 +494,7 @@ export class StandardOrderIntent {
 				address: this.inputSettler,
 				abi: SETTLER_COMPACT_ABI,
 				functionName: "finalise",
-				args: [this.order, combinedSignatures, [solveParam], addressToBytes32(account), "0x"]
+				args: [this.order, combinedSignatures, solveParams, addressToBytes32(account), "0x"]
 			});
 		} else {
 			throw new Error(`Could not detect settler type ${this.inputSettler}`);
@@ -708,13 +709,13 @@ export class MultichainOrderIntent {
 		sourceChain: chain;
 		account: `0x${string}`;
 		walletClient: WC;
-		solveParam: { timestamp: number; solver: `0x${string}` };
+		solveParams: { timestamp: number; solver: `0x${string}` }[];
 		signatures: {
 			sponsorSignature: Signature | NoSignature;
 			allocatorSignature: Signature | NoSignature;
 		};
 	}) {
-		const { sourceChain, account, walletClient, solveParam, signatures } = options;
+		const { sourceChain, account, walletClient, solveParams, signatures } = options;
 		const actionChain = chainMap[sourceChain];
 		if (actionChain.id in this.inputChains().map((v) => Number(v)))
 			throw new Error(
@@ -723,6 +724,7 @@ export class MultichainOrderIntent {
 		// Get all components for our chain.
 		const components = this.asComponents().filter((c) => c.chainId === BigInt(actionChain.id));
 
+		console.log({ a: this.inputSettler, b: MULTICHAIN_INPUT_SETTLER_ESCROW });
 		for (const { orderComponent } of components) {
 			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW.toLowerCase()) {
 				return await walletClient.writeContract({
@@ -731,7 +733,7 @@ export class MultichainOrderIntent {
 					address: this.inputSettler,
 					abi: MULTICHAIN_SETTLER_ESCROW_ABI,
 					functionName: "finalise",
-					args: [orderComponent, [solveParam], addressToBytes32(account), "0x"]
+					args: [orderComponent, solveParams, addressToBytes32(account), "0x"]
 				});
 			} else {
 				throw new Error(`Could not detect settler type ${this.inputSettler}`);

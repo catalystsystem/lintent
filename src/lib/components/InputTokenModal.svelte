@@ -86,9 +86,9 @@
 		const tokens = tokenSet;
 		const balancePromises = tokenSet.map(
 			(tkn) =>
-				(store.inputSettler === INPUT_SETTLER_COMPACT_LIFI
-					? store.compactBalances
-					: store.balances)[tkn.chain][tkn.address]
+				(store.intentType === "escrow" ? store.compactBalances : store.balances)[tkn.chain][
+					tkn.address
+				]
 		);
 		const balances = await Promise.all(balancePromises);
 
@@ -185,9 +185,9 @@
 						/>
 						<span class="mt-0.5">of</span>
 						<BalanceField
-							value={(store.inputSettler === INPUT_SETTLER_COMPACT_LIFI
-								? store.compactBalances
-								: store.balances)[tkn.chain][tkn.address]}
+							value={(store.intentType === "compact" ? store.compactBalances : store.balances)[
+								tkn.chain
+							][tkn.address]}
 							decimals={tkn.decimals}
 						/>
 					</div>
