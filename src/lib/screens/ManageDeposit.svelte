@@ -35,7 +35,6 @@
 	let manageAssetAction: "deposit" | "withdraw" = $state("deposit");
 
 	let inputNumber = $state<number>(1);
-	let token = $state<Token>(coinList(store.mainnet)[0]);
 
 	let allowance = $state(0n);
 	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, token.decimals));
@@ -49,6 +48,9 @@
 			allowance = a;
 		});
 	});
+
+	let selectedTokenIndex = $state<number>(0);
+	const token = $derived<Token>(coinList(store.mainnet)[selectedTokenIndex]);
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
@@ -79,16 +81,16 @@
 	</div>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
-		<!-- <button
+		<button
 			class="h-8 rounded-l border px-4"
-			class:hover:bg-gray-100={inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
-			class:font-bold={inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-			onclick={() => (inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
+			class:hover:bg-gray-100={store.intentType !== "compact"}
+			class:font-bold={store.intentType === "compact"}
+			onclick={() => (store.intentType = "compact")}
 		>
 			Compact Lock
-		</button> -->
+		</button>
 		<button
-			class=" h-8 rounded border px-4"
+			class=" h-8 rounded-r border border-l-0 px-4"
 			class:hover:bg-gray-100={store.intentType !== "escrow"}
 			class:font-bold={store.intentType === "escrow"}
 			onclick={() => (store.intentType = "escrow")}
@@ -124,19 +126,17 @@
 				</select>
 				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={inputNumber} />
 				<span>of</span>
-				<BalanceField
-					value={(manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[
-						token.chain
-					][token.address]}
-					decimals={token.decimals}
-				/>
-				<select
-					id="inputToken"
-					class="rounded border px-2 py-1"
-					bind:value={() => getIndexOf(token), (v) => (token = coinList(store.mainnet)[v])}
-				>
-					{#each coinList(store.mainnet) as token, i}
-						<option value={i}>{printToken(token)}</option>
+				{#if (manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[token.chain]}
+					<BalanceField
+						value={(manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[
+							token.chain
+						][token.address]}
+						decimals={token.decimals}
+					/>
+				{/if}
+				<select id="inputToken" class="rounded border px-2 py-1" bind:value={selectedTokenIndex}>
+					{#each coinList(store.mainnet) as tkn, i}
+						<option value={i}>{printToken(tkn)}</option>
 					{/each}
 				</select>
 			</div>

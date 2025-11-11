@@ -1,16 +1,20 @@
 import {
+	concat,
 	encodeAbiParameters,
 	encodePacked,
+	getTypesForEIP712Domain,
+	hashDomain,
 	hashStruct,
 	hashTypedData,
 	keccak256,
-	parseAbiParameters,
-	toHex
+	parseAbiParameters
 } from "viem";
 import type {
 	BatchCompact,
 	CompactMandate,
+	Element,
 	MandateOutput,
+	MultichainCompact,
 	MultichainOrder,
 	MultichainOrderComponent,
 	NoSignature,
@@ -21,8 +25,10 @@ import type {
 import { COMPACT_ABI } from "../abi/compact";
 import {
 	chainMap,
+	clients,
 	COIN_FILLER,
 	COMPACT,
+	getChainName,
 	getOracle,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
@@ -40,6 +46,8 @@ import { SETTLER_ESCROW_ABI } from "../abi/escrow";
 import type { TokenContext } from "$lib/state.svelte";
 import { MULTICHAIN_SETTLER_ESCROW_ABI } from "$lib/abi/multichain_escrow";
 import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
+import { toHex } from "$lib/utils/interopableAddresses";
+import { MULTICHAIN_SETTLER_COMPACT_ABI } from "$lib/abi/multichain_compact";
 
 type Lock = {
 	lockTag: `0x${string}`;
@@ -150,10 +158,12 @@ export class Intent {
 
 	inputSettler(multichain: boolean) {
 		if (this.lock.type === "compact" && multichain === false) return INPUT_SETTLER_COMPACT_LIFI;
+		if (this.lock.type === "compact" && multichain === true)
+			return MULTICHAIN_INPUT_SETTLER_COMPACT;
 		if (this.lock.type === "escrow" && multichain === false) return INPUT_SETTLER_ESCROW_LIFI;
 		if (this.lock.type === "escrow" && multichain === true) return MULTICHAIN_INPUT_SETTLER_ESCROW;
 
-		throw new Error(`Not supported ${multichain}, ${this.lock}`);
+		throw new Error(`Not supported | multichain: ${multichain}, type: ${this.lock.type}`);
 	}
 
 	encodeOutputs(currentTime: number) {
@@ -240,7 +250,12 @@ export class Intent {
 
 			return {
 				chainId: BigInt(chainMap[chain].id),
-				inputs: chainInputs.map(({ token, amount }) => [BigInt(token.address), amount])
+				inputs: chainInputs.map(({ token, amount }) => [
+					this.lock.type === "compact"
+						? toId(true, this.lock.resetPeriod, this.lock.allocatorId, token.address)
+						: BigInt(token.address),
+					amount
+				])
 			};
 		});
 
@@ -330,12 +345,8 @@ export class StandardOrderIntent {
 			outputs: order.outputs
 		};
 		const commitments = order.inputs.map(([tokenId, amount]) => {
-			const lockTag: `0x${string}` = `0x${toHex(tokenId)
-				.replace("0x", "")
-				.slice(0, 12 * 2)}`;
-			const token: `0x${string}` = `0x${toHex(tokenId)
-				.replace("0x", "")
-				.slice(12 * 2, 32 * 2)}`;
+			const lockTag: `0x${string}` = `0x${toHex(tokenId, 32).slice(0, 12 * 2)}`;
+			const token: `0x${string}` = `0x${toHex(tokenId, 32).slice(12 * 2, 32 * 2)}`;
 			return {
 				lockTag,
 				token,
@@ -543,17 +554,51 @@ export class MultichainOrderIntent {
 		// We need a random order components.
 		const components = this.asComponents();
 		const computedOrderIds = components.map((c) =>
-			MultichainOrderIntent.escrowOrderId(this.inputSettler, c.orderComponent)
+			this.lock?.type === "escrow"
+				? MultichainOrderIntent.escrowOrderId(this.inputSettler, c.orderComponent, c.chainId)
+				: MultichainOrderIntent.compactOrderid(this.inputSettler, c.orderComponent, c.chainId)
 		);
 
 		const orderId = computedOrderIds[0];
 		computedOrderIds.map((v) => {
 			if (v !== orderId) throw new Error(`Order ids are not equal ${computedOrderIds}`);
 		});
+		if (this.lock?.type === "compact") {
+			const multichainCompactHash = hashStruct({
+				data: this.asMultichainBatchCompact(),
+				types: compactTypes,
+				primaryType: "MultichainCompact"
+			});
+			if (multichainCompactHash !== orderId)
+				throw new Error(
+					`MultichainCompact does not match orderId, ${multichainCompactHash} ${orderId}`
+				);
+		}
 		return orderId;
 	}
 
-	static escrowOrderId(inputSettler: `0x${string}`, orderComponent: MultichainOrderComponent) {
+	async orderIdCheck() {
+		const components = this.asComponents();
+		const computedOrderId = this.orderId();
+		const onChainOrderIds = await Promise.all(
+			components.map(async (component) => {
+				const onChainId = await clients[getChainName(component.chainId)].readContract({
+					address: this.inputSettler,
+					abi: MULTICHAIN_SETTLER_COMPACT_ABI,
+					functionName: "orderIdentifier",
+					args: [component.orderComponent]
+				});
+				return onChainId;
+			})
+		);
+		console.log({ computedOrderId, onChainOrderIds });
+	}
+
+	static escrowOrderId(
+		inputSettler: `0x${string}`,
+		orderComponent: MultichainOrderComponent,
+		_: bigint
+	) {
 		return keccak256(
 			encodePacked(
 				["address", "address", "uint256", "uint32", "uint32", "address", "bytes32", "bytes"],
@@ -571,6 +616,58 @@ export class MultichainOrderIntent {
 						orderComponent.additionalChains
 					),
 					encodeOutputs(orderComponent.outputs)
+				]
+			)
+		);
+	}
+
+	static compactOrderid(
+		inputSettler: `0x${string}`,
+		orderComponent: MultichainOrderComponent,
+		chainId: bigint
+	) {
+		const MULTICHAIN_COMPACT_TYPEHASH_WITH_WITNESS = keccak256(
+			encodePacked(
+				["string"],
+				[
+					"MultichainCompact(address sponsor,uint256 nonce,uint256 expires,Element[] elements)Element(address arbiter,uint256 chainId,Lock[] commitments,Mandate mandate)Lock(bytes12 lockTag,address token,uint256 amount)Mandate(uint32 fillDeadline,address inputOracle,MandateOutput[] outputs)MandateOutput(bytes32 oracle,bytes32 settler,uint256 chainId,bytes32 token,uint256 amount,bytes32 recipient,bytes callbackData,bytes context)"
+				]
+			)
+		);
+		const { fillDeadline, inputOracle, outputs, inputs } = orderComponent;
+		const mandate: CompactMandate = {
+			fillDeadline,
+			inputOracle,
+			outputs
+		};
+		const element: Element = {
+			arbiter: inputSettler,
+			chainId: chainId,
+			commitments: MultichainOrderIntent.inputsToLocks(inputs),
+			mandate
+		};
+
+		const elementHash = hashStruct({
+			types: compactTypes,
+			primaryType: "Element",
+			data: element
+		});
+
+		const elementHashes = [
+			...orderComponent.additionalChains.slice(0, Number(orderComponent.chainIndex)),
+			elementHash,
+			...orderComponent.additionalChains.slice(Number(orderComponent.chainIndex))
+		];
+
+		return keccak256(
+			encodeAbiParameters(
+				parseAbiParameters(["bytes32", "address", "uint256", "uint256", "bytes32"]),
+				[
+					MULTICHAIN_COMPACT_TYPEHASH_WITH_WITNESS,
+					orderComponent.user,
+					orderComponent.nonce,
+					BigInt(orderComponent.expires),
+					keccak256(encodePacked(["bytes32[]"], [elementHashes]))
 				]
 			)
 		);
@@ -602,7 +699,7 @@ export class MultichainOrderIntent {
 
 	static inputsToLocks(inputs: [bigint, bigint][]): Lock[] {
 		return inputs.map((input) => {
-			const bytes32 = toHex(input[0]).replace("0x", "");
+			const bytes32 = toHex(input[0], 32);
 			return {
 				lockTag: `0x${bytes32.slice(0, 12 * 2)}`,
 				token: `0x${bytes32.slice(12 * 2, 32 * 2)}`,
@@ -623,30 +720,33 @@ export class MultichainOrderIntent {
 		});
 	}
 
-	secondariesCompact(): { chainIdField: bigint; additionalChains: `0x${string}`[] }[] {
+	asCompactElements() {
 		const { fillDeadline, inputOracle, outputs, inputs } = this.order;
 		const mandate: CompactMandate = {
 			fillDeadline,
 			inputOracle,
 			outputs
 		};
-		const elements = inputs.map((inputs) => {
-			const element: {
-				arbiter: `0x${string}`;
-				chainId: bigint;
-				commitments: Lock[];
-				mandate: CompactMandate;
-			} = {
+		return inputs.map((inputs) => {
+			const element: Element = {
 				arbiter: this.inputSettler,
 				chainId: inputs.chainId,
 				commitments: MultichainOrderIntent.inputsToLocks(inputs.inputs),
 				mandate
 			};
-			return hashTypedData({
+			return element;
+		});
+	}
+
+	secondariesCompact(): { chainIdField: bigint; additionalChains: `0x${string}`[] }[] {
+		const { inputs } = this.order;
+		const elements = this.asCompactElements().map((element) => {
+			const hash = hashStruct({
 				types: compactTypes,
 				primaryType: "Element",
-				message: element
+				data: element
 			});
+			return hash;
 		});
 		return inputs.map((_, i) => {
 			return {
@@ -682,6 +782,66 @@ export class MultichainOrderIntent {
 		return components;
 	}
 
+	// -- Compact Helpers -- //
+
+	asMultichainBatchCompact(): MultichainCompact {
+		const { order } = this;
+		const mandate: CompactMandate = {
+			fillDeadline: order.fillDeadline,
+			inputOracle: order.inputOracle,
+			outputs: order.outputs
+		};
+		const result = {
+			sponsor: order.user,
+			nonce: order.nonce,
+			expires: BigInt(order.expires),
+			elements: this.asCompactElements(),
+			mandate
+		};
+		return result;
+	}
+
+	compactClaimHash(): `0x${string}` {
+		const claimHash = hashStruct({
+			data: this.asMultichainBatchCompact(),
+			types: compactTypes,
+			primaryType: "MultichainCompact"
+		});
+		return claimHash;
+	}
+
+	signCompact(account: `0x${string}`, walletClient: WC): Promise<`0x${string}`> {
+		this.selfTest();
+		const chainId = this.order.inputs[0].chainId;
+		console.log("chainId", chainId);
+		console.log(
+			"hash",
+			hashTypedData({
+				domain: {
+					name: "The Compact",
+					version: "1",
+					chainId,
+					verifyingContract: COMPACT
+				} as const,
+				types: compactTypes,
+				primaryType: "MultichainCompact",
+				message: this.asMultichainBatchCompact()
+			})
+		);
+		return walletClient.signTypedData({
+			account,
+			domain: {
+				name: "The Compact",
+				version: "1",
+				chainId,
+				verifyingContract: COMPACT
+			} as const,
+			types: compactTypes,
+			primaryType: "MultichainCompact",
+			message: this.asMultichainBatchCompact()
+		});
+	}
+
 	// This code is depreciated and needs to be updated.
 	async openEscrow(account: `0x${string}`, walletClient: WC) {
 		this.selfTest();
@@ -715,6 +875,7 @@ export class MultichainOrderIntent {
 			allocatorSignature: Signature | NoSignature;
 		};
 	}) {
+		this.asMultichainBatchCompact();
 		const { sourceChain, account, walletClient, solveParams, signatures } = options;
 		const actionChain = chainMap[sourceChain];
 		if (actionChain.id in this.inputChains().map((v) => Number(v)))
@@ -724,8 +885,7 @@ export class MultichainOrderIntent {
 		// Get all components for our chain.
 		const components = this.asComponents().filter((c) => c.chainId === BigInt(actionChain.id));
 
-		console.log({ a: this.inputSettler, b: MULTICHAIN_INPUT_SETTLER_ESCROW });
-		for (const { orderComponent } of components) {
+		for (const { orderComponent, chainId } of components) {
 			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW.toLowerCase()) {
 				return await walletClient.writeContract({
 					chain: actionChain,
@@ -734,6 +894,28 @@ export class MultichainOrderIntent {
 					abi: MULTICHAIN_SETTLER_ESCROW_ABI,
 					functionName: "finalise",
 					args: [orderComponent, solveParams, addressToBytes32(account), "0x"]
+				});
+			} else if (
+				this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_COMPACT.toLowerCase()
+			) {
+				const { sponsorSignature, allocatorSignature } = signatures;
+				console.log({
+					orderComponent,
+					sponsorSignature,
+					allocatorSignature
+				});
+
+				const combinedSignatures = encodeAbiParameters(parseAbiParameters(["bytes", "bytes"]), [
+					sponsorSignature.payload ?? "0x",
+					allocatorSignature.payload
+				]);
+				return await walletClient.writeContract({
+					chain: actionChain,
+					account: account,
+					address: this.inputSettler,
+					abi: MULTICHAIN_SETTLER_COMPACT_ABI,
+					functionName: "finalise",
+					args: [orderComponent, combinedSignatures, solveParams, addressToBytes32(account), "0x"]
 				});
 			} else {
 				throw new Error(`Could not detect settler type ${this.inputSettler}`);

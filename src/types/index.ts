@@ -39,6 +39,20 @@ export type BatchCompact = {
 	mandate: CompactMandate;
 };
 
+export type Element = {
+	arbiter: `0x${string}`;
+	chainId: bigint;
+	commitments: Lock[];
+	mandate: CompactMandate;
+};
+export type MultichainCompact = {
+	sponsor: `0x${string}`; // The account tasked with verifying and submitting the claim.
+	nonce: bigint; // A parameter to enforce replay protection, scoped to allocator.
+	expires: bigint; // The time at which the claim expires.
+	elements: Element[];
+	mandate: CompactMandate;
+};
+
 export type StandardOrder = {
 	user: `0x${string}`;
 	nonce: bigint;

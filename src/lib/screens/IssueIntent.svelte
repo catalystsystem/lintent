@@ -120,21 +120,15 @@
 			decimals: number;
 		}[] = [];
 		// Get all unqiue tokens.
-		$inspect(store.inputTokens);
 		const allUniqueNames = [
 			...new Set(
 				store.inputTokens.map((v) => {
-					console.log("v", v);
 					return v.token.name;
 				})
 			)
 		];
 		for (let i = 0; i < allUniqueNames.length; ++i) {
 			const name = allUniqueNames[i];
-			console.log({
-				name,
-				found: store.inputTokens.map((v, i) => (v.token.name == name ? v.amount : 0n))
-			});
 			inputs[i] = {
 				name,
 				amount: bigIntSum(
@@ -295,7 +289,7 @@
 							Low Compact Balance
 						</button>
 					{:else}
-						<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
+						<AwaitButton buttonFunction={intentFactory.compact(opts)}>
 							{#snippet name()}
 								Sign Order
 							{/snippet}

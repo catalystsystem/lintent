@@ -46,17 +46,6 @@ export const MandateOutput = [
 	{ name: "context", type: "bytes" }
 ] as const;
 
-export const StandardOrderAbi = [
-	{ name: "user", type: "address" },
-	{ name: "nonce", type: "uint256" },
-	{ name: "originChainId", type: "uint256" },
-	{ name: "expires", type: "uint32" },
-	{ name: "fillDeadline", type: "uint32" },
-	{ name: "inputOracle", type: "address" },
-	{ name: "inputs", type: "uint256[2][]" },
-	{ name: "outputs", type: "tuple[]", components: MandateOutput }
-] as const;
-
 // The named list of all type definitions
 export const compactTypes = {
 	BatchCompact,
@@ -75,5 +64,16 @@ const compact_type_hash_contract =
 if (compact_type_hash != compact_type_hash_contract) {
 	throw Error(
 		`Computed typehash ${compact_type_hash} does not match expected ${compact_type_hash_contract}`
+	);
+}
+
+const multichain_compact_type =
+	"MultichainCompact(address sponsor,uint256 nonce,uint256 expires,Element[] elements)Element(address arbiter,uint256 chainId,Lock[] commitments,Mandate mandate)Lock(bytes12 lockTag,address token,uint256 amount)Mandate(uint32 fillDeadline,address inputOracle,MandateOutput[] outputs)MandateOutput(bytes32 oracle,bytes32 settler,uint256 chainId,bytes32 token,uint256 amount,bytes32 recipient,bytes callbackData,bytes context)" as const;
+export const multichain_compact_type_hash = keccak256(toHex(multichain_compact_type));
+const multichain_compact_type_hash_contract =
+	"0x6bc0624272798c7a3ff97563d8a009ea96cffd8ea74a971b2946ca790fc50319";
+if (multichain_compact_type_hash != multichain_compact_type_hash_contract) {
+	throw Error(
+		`Computed multichain typehash ${multichain_compact_type_hash} does not match expected ${multichain_compact_type_hash_contract}`
 	);
 }

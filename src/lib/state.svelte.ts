@@ -133,7 +133,6 @@ class Store {
 		for (const token of coinList(isMainnet)) {
 			// Check whether we have me the chain before.
 			if (!resolved[token.chain as chain]) resolved[token.chain] = {};
-
 			resolved[token.chain][token.address] = func(
 				this.connectedAccount?.address,
 				token.address,

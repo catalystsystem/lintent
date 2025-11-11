@@ -50,8 +50,7 @@ export class Solver {
 				outputs
 			} = args;
 			const publicClients = clients;
-			// TODO: MULTICHAIN COMPACT fix escrow typing
-			const orderId = orderToIntent({ order, inputSettler, lock: { type: "escrow" } }).orderId();
+			const orderId = orderToIntent({ order, inputSettler }).orderId();
 
 			const outputChain = getChainName(outputs[0].chainId);
 			console.log({ outputChain });
@@ -234,8 +233,7 @@ export class Solver {
 			const { order, inputSettler } = orderContainer;
 			const intent = orderToIntent({
 				inputSettler,
-				order,
-				lock: { type: inputSettler === INPUT_SETTLER_COMPACT_LIFI ? "compact" : "escrow" }
+				order
 			});
 
 			const outputChain = getChainName(order.outputs[0].chainId);

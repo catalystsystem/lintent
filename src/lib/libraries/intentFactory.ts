@@ -81,24 +81,32 @@ export class IntentFactory {
 			const { account, inputTokens } = opts;
 			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
-			const intent = new Intent(opts).singlechain();
+			const intent = new Intent(opts).order();
 
 			const sponsorSignature = await intent.signCompact(account(), this.walletClient);
 
 			console.log({
-				order: intent.asStandardOrder(),
-				batchCompact: intent.asBatchCompact(),
+				order: intent.asOrder(),
 				sponsorSignature
 			});
 
-			const signedOrder = await this.orderServer.submitOrder({
-				orderType: "CatalystCompactOrder",
-				order: intent.asStandardOrder(),
-				inputSettler: INPUT_SETTLER_COMPACT_LIFI,
-				sponsorSignature,
-				allocatorSignature: "0x"
+			this.saveOrder({
+				order: intent.asOrder(),
+				inputSettler: intent.inputSettler,
+				sponsorSignature: {
+					type: "ECDSA",
+					payload: sponsorSignature
+				}
 			});
-			console.log("signedOrder", signedOrder);
+
+			// const signedOrder = await this.orderServer.submitOrder({
+			// 	orderType: "CatalystCompactOrder",
+			// 	order: intent.asStandardOrder(),
+			// 	inputSettler: INPUT_SETTLER_COMPACT_LIFI,
+			// 	sponsorSignature,
+			// 	allocatorSignature: "0x"
+			// });
+			// console.log("signedOrder", signedOrder);
 
 			if (this.postHook) await this.postHook();
 		};

@@ -2,8 +2,13 @@ function padEven(s: string, minimal = 2, pad: string = "0") {
 	return s.padStart(((Math.max(s.length + 1, minimal) / 2) | 0) * 2, pad);
 }
 
-function toHex(num: number | bigint, bytes: number = 1) {
-	return padEven(num.toString(16), bytes * 2);
+export function toHex<T extends string = "">(
+	num: number | bigint,
+	bytes: number = 1,
+	prefix?: T
+): `${T}${string}` {
+	const p = (prefix ?? "") as T;
+	return `${p}${padEven(num.toString(16), bytes * 2)}` as `${T}${string}`;
 }
 
 type Version = "0001";

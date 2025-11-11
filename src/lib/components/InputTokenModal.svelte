@@ -55,9 +55,6 @@
 		if (inputTokens.length === 0) {
 			inputTokens.push({ token: tokenSet[0], amount: 0n });
 		}
-		console.log({
-			inputTokens
-		});
 		currentInputTokens = inputTokens;
 
 		active = false;

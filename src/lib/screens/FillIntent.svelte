@@ -49,7 +49,6 @@
 			functionName: "getFillRecord",
 			args: [orderId, outputHash]
 		});
-		console.log({ orderId, output, result, outputHash });
 		return result;
 	}
 
