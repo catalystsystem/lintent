@@ -1,22 +1,18 @@
 <script lang="ts">
-	import type { Token } from "$lib/config";
 	import { OrderServer } from "$lib/libraries/orderServer";
+	import type { TokenContext } from "$lib/state.svelte";
 	import { interval } from "rxjs";
 
 	let {
 		exclusiveFor = $bindable(),
-		inputAmounts,
-		outputAmount = $bindable(),
 		inputTokens,
-		outputToken,
+		outputTokens = $bindable(),
 		account,
 		mainnet
 	}: {
 		exclusiveFor: string;
-		inputAmounts: bigint[];
-		outputAmount: bigint;
-		inputTokens: Token[];
-		outputToken: Token;
+		inputTokens: TokenContext[];
+		outputTokens: TokenContext[];
 		account: () => `0x${string}`;
 		mainnet: boolean;
 	} = $props();
@@ -24,37 +20,42 @@
 	const orderServer = $derived(new OrderServer(mainnet));
 
 	async function getQuoteAndSet() {
-		const response = await orderServer.getQuotes({
-			user: account(),
-			userChain: inputTokens[0].chain,
-			inputs: inputTokens.map((input, i) => {
-				return {
-					sender: account(),
-					asset: input.address,
-					chain: input.chain,
-					amount: inputAmounts[i]
-				};
-			}),
-			outputs: [
-				{
-					receiver: account(),
-					asset: outputToken.address,
-					chain: outputToken.chain,
-					amount: 0n
-				}
-			]
-		});
-		if (response?.quotes?.length ?? 0) {
-			const quote = response.quotes[0];
-			quoteExpires = quote.validUntil ?? new Date().getTime() + 30 * 1000;
-			if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000;
-			quoteDuration = quoteExpires - new Date().getTime();
-			outputAmount = BigInt(quote.preview.outputs[0].amount);
-			exclusiveFor = quote.metadata.exclusiveFor ?? "";
-			updater();
-		} else {
-			quoteExpires = 0;
-			exclusiveFor = "";
+		try {
+			const response = await orderServer.getQuotes({
+				user: account(),
+				userChain: inputTokens[0].token.chain,
+				inputs: inputTokens.map(({ token, amount }) => {
+					return {
+						sender: account(),
+						asset: token.address,
+						chain: token.chain,
+						amount: amount
+					};
+				}),
+				outputs: outputTokens.map(({ token }) => {
+					return {
+						receiver: account(),
+						asset: token.address,
+						chain: token.chain,
+						amount: 0n
+					};
+				})
+			});
+			if (response?.quotes?.length ?? 0) {
+				const quote = response.quotes[0];
+				quoteExpires = quote.validUntil ?? new Date().getTime() + 30 * 1000;
+				if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000;
+				quoteDuration = quoteExpires - new Date().getTime();
+				outputTokens[0].amount = BigInt(quote.preview.outputs[0].amount);
+				exclusiveFor = quote.metadata.exclusiveFor ?? "";
+				updater();
+			} else {
+				quoteExpires = 0;
+				exclusiveFor = "";
+			}
+		} catch (e) {
+			console.log("Could not fetch a quote", e);
+			return;
 		}
 	}
 
@@ -99,9 +100,9 @@
 	let quoteRequest: Promise<void> = $state(Promise.resolve());
 </script>
 
-<div class="relative my-1 flex items-center justify-center align-middle">
+<div class="relative my-1 flex w-full items-center justify-center text-center align-middle">
 	{#await quoteRequest}
-		<div class="relative h-7 animate-pulse rounded border px-2 font-bold">Fetch Quote</div>
+		<div class="relative h-7 w-full animate-pulse rounded border px-2 font-bold">Fetch Quote</div>
 	{:then _}
 		<!-- Button gradually shows how long until it is expired by fill background -->
 		{#if quoteExpires !== 0}

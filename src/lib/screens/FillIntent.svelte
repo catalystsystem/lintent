@@ -9,25 +9,25 @@
 		type WC
 	} from "$lib/config";
 	import { bytes32ToAddress } from "$lib/utils/convert";
-	import { getOrderId, getOutputHash } from "$lib/utils/orderLib";
+	import { getOutputHash } from "$lib/utils/orderLib";
 	import type { MandateOutput, OrderContainer } from "../../types";
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import store from "$lib/state.svelte";
+	import { Intent, orderToIntent } from "$lib/libraries/intent";
+	import { compactTypes } from "$lib/utils/typedMessage";
+	import { hashStruct } from "viem";
 
 	let {
 		scroll,
 		orderContainer,
-		walletClient,
-		fillTransactionHash = $bindable(),
 		account,
 		preHook,
 		postHook
 	}: {
 		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
-		walletClient: WC;
-		fillTransactionHash: `0x${string}` | undefined;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
@@ -49,7 +49,6 @@
 			functionName: "getFillRecord",
 			args: [orderId, outputHash]
 		});
-		console.log({ orderId, output, result, outputHash });
 		return result;
 	}
 
@@ -68,21 +67,30 @@
 			}
 			arrMap[position][1].push(output);
 		}
-		console.log(arrMap);
 		return arrMap;
 	}
 
 	const filledStatusPromises: [bigint, Promise<`0x${string}`>[]][] = $derived(
 		sortOutputsByChain(orderContainer).map(([c, outputs]) => [
 			c,
-			outputs.map((output) => isFilled(getOrderId(orderContainer), output, refreshValidation))
+			outputs.map((output) =>
+				isFilled(orderToIntent(orderContainer).orderId(), output, refreshValidation)
+			)
 		])
 	);
 
-	const fillWrapper = (func: ReturnType<typeof Solver.fill>) => {
+	const fillWrapper = (outputs: MandateOutput[], func: ReturnType<typeof Solver.fill>) => {
 		return async () => {
 			const result = await func();
-			fillTransactionHash = result;
+
+			for (const output of outputs) {
+				const outputHash = hashStruct({
+					data: output,
+					types: compactTypes,
+					primaryType: "MandateOutput"
+				});
+				store.fillTranscations[outputHash] = result;
+			}
 		};
 	};
 </script>
@@ -94,9 +102,9 @@
 		hash in the input box.
 	</p>
 	<div class="w-full">
-		{#each sortOutputsByChain(orderContainer) as [chainId, outputs], c}
+		{#each sortOutputsByChain(orderContainer) as chainIdAndOutputs, c}
 			<h2 class="w-full text-center text-lg font-medium">
-				{getChainName(chainId)}
+				{getChainName(chainIdAndOutputs[0])}
 			</h2>
 			<hr class="my-1" />
 			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
@@ -108,11 +116,12 @@
 					<AwaitButton
 						buttonFunction={filledStatus.every((v) => v == BYTES32_ZERO)
 							? fillWrapper(
+									chainIdAndOutputs[1],
 									Solver.fill(
-										walletClient,
+										store.walletClient,
 										{
 											orderContainer,
-											outputs
+											outputs: chainIdAndOutputs[1]
 										},
 										{
 											preHook,
@@ -131,7 +140,7 @@
 						{/snippet}
 					</AwaitButton>
 				{/await}
-				{#each outputs as output, i}
+				{#each chainIdAndOutputs[1] as output, i}
 					{#await filledStatusPromises[c][1][i]}
 						<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
 							<div class="flex flex-col items-center justify-center align-middle">
@@ -139,7 +148,10 @@
 									<div>
 										{formatTokenAmount(
 											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId) })
+											getCoin({
+												address: output.token,
+												chain: getChainName(output.chainId)
+											}).decimals
 										)}
 									</div>
 									<div>
@@ -160,7 +172,10 @@
 									<div>
 										{formatTokenAmount(
 											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId) })
+											getCoin({
+												address: output.token,
+												chain: getChainName(output.chainId)
+											}).decimals
 										)}
 									</div>
 									<div>
@@ -172,12 +187,22 @@
 					{/await}
 				{/each}
 			</div>
+			<!-- <input
+				class="w-20 rounded border px-2 py-1"
+				placeholder="fillTransactionHash"
+				bind:value={
+					store.fillTranscations[
+						hashStruct({
+							data: { outputs: chainIdAndOutputs.outputs },
+							types: {
+								...compactTypes,
+								Outputs
+							},
+							primaryType: "Outputs"
+						})
+					]
+				}
+			/> -->
 		{/each}
-
-		<input
-			class="w-20 rounded border px-2 py-1"
-			placeholder="fillTransactionHash"
-			bind:value={fillTransactionHash}
-		/>
 	</div>
 </div>

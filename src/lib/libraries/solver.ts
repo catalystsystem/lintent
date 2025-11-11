@@ -9,7 +9,13 @@ import {
 	INPUT_SETTLER_ESCROW_LIFI,
 	type WC
 } from "$lib/config";
-import { encodeAbiParameters, maxUint256, parseAbiParameters } from "viem";
+import {
+	encodeAbiParameters,
+	hashStruct,
+	maxUint256,
+	parseAbiParameters,
+	parseEventLogs
+} from "viem";
 import type { MandateOutput, OrderContainer } from "../../types";
 import { addressToBytes32, bytes32ToAddress } from "$lib/utils/convert";
 import axios from "axios";
@@ -17,8 +23,9 @@ import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 import { SETTLER_COMPACT_ABI } from "$lib/abi/settlercompact";
 import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
-import { getOrderId } from "$lib/utils/orderLib";
 import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
+import { orderToIntent } from "./intent";
+import { compactTypes } from "$lib/utils/typedMessage";
 
 /**
  * @notice Class for solving intents. Functions called by solvers.
@@ -43,18 +50,15 @@ export class Solver {
 				outputs
 			} = args;
 			const publicClients = clients;
-			const orderId = getOrderId({ order, inputSettler });
-			//Check that only 1 output exists.
-			if (outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
+			const orderId = orderToIntent({ order, inputSettler }).orderId();
 
 			const outputChain = getChainName(outputs[0].chainId);
 			console.log({ outputChain });
+			let value = 0n;
 			for (const output of outputs) {
 				if (output.token === BYTES32_ZERO) {
-					// The destination asset cannot be ETH.
-					throw new Error("Output token cannot be ETH");
+					value += output.amount;
+					continue;
 				}
 				if (output.chainId != outputs[0].chainId) {
 					throw new Error("Filling outputs on multiple chains with single fill call not supported");
@@ -91,6 +95,7 @@ export class Solver {
 				chain: chainMap[outputChain],
 				account: account(),
 				address: bytes32ToAddress(outputs[0].settler),
+				value,
 				abi: COIN_FILLER_ABI,
 				functionName: "fillOrderOutputs",
 				args: [orderId, outputs, order.fillDeadline, addressToBytes32(account())]
@@ -106,7 +111,13 @@ export class Solver {
 
 	static validate(
 		walletClient: WC,
-		args: { orderContainer: OrderContainer; fillTransactionHash: string; mainnet: boolean },
+		args: {
+			output: MandateOutput;
+			orderContainer: OrderContainer;
+			fillTransactionHash: string;
+			sourceChain: chain;
+			mainnet: boolean;
+		},
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
 			postHook?: () => Promise<any>;
@@ -116,26 +127,46 @@ export class Solver {
 		return async () => {
 			const { preHook, postHook, account } = opts;
 			const {
-				orderContainer: { order },
+				output,
+				orderContainer: { order, inputSettler },
 				fillTransactionHash,
+				sourceChain,
 				mainnet
 			} = args;
-			const sourceChain = getChainName(order.originChainId);
 			const outputChain = getChainName(order.outputs[0].chainId);
-			if (order.outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
-			// The destination asset cannot be ETH.
-			const output = order.outputs[0];
 
 			if (order.inputOracle === getOracle("polymer", sourceChain)) {
 				const transactionReceipt = await clients[outputChain].getTransactionReceipt({
 					hash: fillTransactionHash as `0x${string}`
 				});
 
-				const numlogs = transactionReceipt.logs.length;
-				if (numlogs !== 2) throw Error(`Unexpected Logs count ${numlogs}`);
-				const fillLog = transactionReceipt.logs[1]; // The first log is transfer, next is fill.
+				const logs = parseEventLogs({
+					abi: COIN_FILLER_ABI,
+					eventName: "OutputFilled",
+					logs: transactionReceipt.logs
+				});
+				// We need to search through each log until we find one matching our output.
+				console.log("logs", logs);
+				let logIndex = -1;
+				const expectedOutputHash = hashStruct({
+					types: compactTypes,
+					primaryType: "MandateOutput",
+					data: output
+				});
+				for (const log of logs) {
+					const logOutput = log.args.output;
+					// TODO: Optimise by comparing the dicts.
+					const logOutputHash = hashStruct({
+						types: compactTypes,
+						primaryType: "MandateOutput",
+						data: logOutput
+					});
+					if (logOutputHash === expectedOutputHash) {
+						logIndex = log.logIndex;
+						break;
+					}
+				}
+				if (logIndex === -1) throw Error(`Could not find matching log`);
 
 				let proof: string | undefined;
 				let polymerIndex: number | undefined;
@@ -143,7 +174,7 @@ export class Solver {
 					const response = await axios.post(`/polymer`, {
 						srcChainId: Number(order.outputs[0].chainId),
 						srcBlockNumber: Number(transactionReceipt.blockNumber),
-						globalLogIndex: Number(fillLog.logIndex),
+						globalLogIndex: Number(logIndex),
 						polymerIndex,
 						mainnet: mainnet
 					});
@@ -160,7 +191,7 @@ export class Solver {
 					// Wait while backing off before requesting again.
 					await new Promise((r) => setTimeout(r, i * 2 + 1000));
 				}
-				console.log({ proof });
+				console.log({ logIndex, proof });
 				if (proof) {
 					if (preHook) await preHook(sourceChain);
 
@@ -180,27 +211,6 @@ export class Solver {
 					return result;
 				}
 			}
-
-			// if (order.inputOracle === getOracle("wormhole", sourceChain)) {
-			// 	// TODO: get sequence from event.
-			// 	const sequence = 0;
-			// 	// Get VAA
-			// 	const wormholeChainId = wormholeChainIds[outputChain];
-			// 	const requestUrl = `https://api.testnet.wormholescan.io/v1/signed_vaa/${wormholeChainId}/${output.oracle.replace(
-			// 		"0x",
-			// 		""
-			// 	)}/${sequence}?network=Testnet`;
-			// 	const response = await axios.get(requestUrl);
-			// 	console.log(response.data);
-			// return $walletClient.writeContract({
-			// 	account: connectedAccount.address,
-			// 	address: order.inputOracle,
-			// 	abi: WROMHOLE_ORACLE_ABI,
-			// 	functionName: 'receiveMessage',
-			// 	args: [encodedOutput]
-			// });
-			// 	return;
-			// }
 		};
 	}
 
@@ -208,7 +218,8 @@ export class Solver {
 		walletClient: WC,
 		args: {
 			orderContainer: OrderContainer;
-			fillTransactionHash: string;
+			fillTransactionHashes: string[];
+			sourceChain: chain;
 		},
 		opts: {
 			preHook?: (chain: chain) => Promise<any>;
@@ -218,67 +229,48 @@ export class Solver {
 	) {
 		return async () => {
 			const { preHook, postHook, account } = opts;
-			const { orderContainer, fillTransactionHash } = args;
-			const { order } = orderContainer;
-			const outputChain = getChainName(order.outputs[0].chainId);
-			if (order.outputs.length !== 1) {
-				throw new Error("Order must have exactly one output");
-			}
-			const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-				hash: fillTransactionHash as `0x${string}`
+			const { orderContainer, fillTransactionHashes, sourceChain } = args;
+			const { order, inputSettler } = orderContainer;
+			const intent = orderToIntent({
+				inputSettler,
+				order
 			});
-			const blockHashOfFill = transactionReceipt.blockHash;
-			const block = await clients[outputChain].getBlock({
-				blockHash: blockHashOfFill
-			});
-			const fillTimestamp = block.timestamp;
 
-			const sourceChain = getChainName(order.originChainId);
+			const outputChain = getChainName(order.outputs[0].chainId);
+			const transactionReceipts = await Promise.all(
+				fillTransactionHashes.map((fth) =>
+					clients[outputChain].getTransactionReceipt({
+						hash: fth as `0x${string}`
+					})
+				)
+			);
+			const blocks = await Promise.all(
+				transactionReceipts.map((r) =>
+					clients[outputChain].getBlock({
+						blockHash: r.blockHash
+					})
+				)
+			);
+			const fillTimestamps = blocks.map((b) => b.timestamp);
+
 			if (preHook) await preHook(sourceChain);
 
-			const inputSettler = orderContainer.inputSettler;
-			console.log({ orderContainer });
-			let transactionHash: `0x${string}`;
-			const actionChain = chainMap[sourceChain];
+			const solveParams = fillTimestamps.map((fillTimestamp) => {
+				return {
+					timestamp: Number(fillTimestamp),
+					solver: addressToBytes32(account())
+				};
+			});
 
-			const solveParam = {
-				timestamp: Number(fillTimestamp),
-				solver: addressToBytes32(account())
-			};
-
-			if (inputSettler.toLowerCase() === INPUT_SETTLER_ESCROW_LIFI.toLowerCase()) {
-				transactionHash = await walletClient.writeContract({
-					chain: actionChain,
-					account: account(),
-					address: inputSettler,
-					abi: SETTLER_ESCROW_ABI,
-					functionName: "finalise",
-					args: [order, [solveParam], addressToBytes32(account()), "0x"]
-				});
-			} else if (inputSettler.toLowerCase() === INPUT_SETTLER_COMPACT_LIFI.toLowerCase()) {
-				// Check whether or not we have a signature.
-				const { sponsorSignature, allocatorSignature } = orderContainer;
-				console.log({
-					sponsorSignature,
-					allocatorSignature
-				});
-				const combinedSignatures = encodeAbiParameters(parseAbiParameters(["bytes", "bytes"]), [
-					sponsorSignature.payload ?? "0x",
-					allocatorSignature.payload
-				]);
-				transactionHash = await walletClient.writeContract({
-					chain: actionChain,
-					account: account(),
-					address: inputSettler,
-					abi: SETTLER_COMPACT_ABI,
-					functionName: "finalise",
-					args: [order, combinedSignatures, [solveParam], addressToBytes32(account()), "0x"]
-				});
-			} else {
-				throw new Error(`Could not detect settler type ${orderContainer.inputSettler}`);
-			}
+			const transactionHash = await intent.finalise({
+				sourceChain,
+				account: account(),
+				walletClient,
+				solveParams,
+				signatures: orderContainer
+			});
 			const result = await clients[sourceChain].waitForTransactionReceipt({
-				hash: transactionHash
+				hash: transactionHash!
 			});
 			if (postHook) await postHook();
 			return result;
