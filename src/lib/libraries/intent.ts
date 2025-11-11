@@ -813,21 +813,6 @@ export class MultichainOrderIntent {
 	signCompact(account: `0x${string}`, walletClient: WC): Promise<`0x${string}`> {
 		this.selfTest();
 		const chainId = this.order.inputs[0].chainId;
-		console.log("chainId", chainId);
-		console.log(
-			"hash",
-			hashTypedData({
-				domain: {
-					name: "The Compact",
-					version: "1",
-					chainId,
-					verifyingContract: COMPACT
-				} as const,
-				types: compactTypes,
-				primaryType: "MultichainCompact",
-				message: this.asMultichainBatchCompact()
-			})
-		);
 		return walletClient.signTypedData({
 			account,
 			domain: {
