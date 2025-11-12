@@ -404,13 +404,13 @@ export class StandardOrderIntent {
 	 * @param walletClient Wallet client for sending the call to.
 	 * @returns transactionHash for the on-chain call.
 	 */
-	openEscrow(account: `0x${string}`, walletClient: WC): [Promise<`0x${string}`>] {
+	async openEscrow(account: `0x${string}`, walletClient: WC): Promise<[`0x${string}`]> {
 		const chain = findChain(this.order.originChainId);
 		walletClient.switchChain({ id: Number(this.order.originChainId) });
 		if (!chain)
 			throw new Error("Chain not found for chainId " + this.order.originChainId.toString());
 		return [
-			walletClient.writeContract({
+			await walletClient.writeContract({
 				chain,
 				account,
 				address: INPUT_SETTLER_ESCROW_LIFI,

@@ -83,7 +83,7 @@
 		const tokens = tokenSet;
 		const balancePromises = tokenSet.map(
 			(tkn) =>
-				(store.intentType === "escrow" ? store.compactBalances : store.balances)[tkn.chain][
+				(store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][
 					tkn.address
 				]
 		);

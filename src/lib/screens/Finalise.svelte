@@ -36,6 +36,12 @@
 		account: () => `0x${string}`;
 	} = $props();
 
+	let refreshClaimed = $state(0);
+	const postHookRefreshValidate = async () => {
+		if (postHook) await postHook();
+		refreshClaimed += 1;
+	};
+
 	// Order status enum
 	const OrderStatus_None = 0;
 	const OrderStatus_Deposited = 1;
@@ -66,20 +72,21 @@
 			inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT
 		) {
 			// Check claim status
-			return false;
-			// const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
-			// 	address: COMPACT,
-			// 	abi: COMPACT_ABI,
-			// 	functionName: "getLockDetails",
-			// 	args: [order.inputs[0][0]]
-			// });
-			// // Check if nonce is spent.
-			// return await inputChainClient.readContract({
-			// 	address: COMPACT,
-			// 	abi: COMPACT_ABI,
-			// 	functionName: "hasConsumedAllocatorNonce",
-			// 	args: [order.nonce, allocator]
-			// });
+			const flattenedInputs = "originChainId" in order ? order.inputs : order.inputs[0].inputs;
+
+			const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
+				address: COMPACT,
+				abi: COMPACT_ABI,
+				functionName: "getLockDetails",
+				args: [flattenedInputs[0][0]]
+			});
+			// Check if nonce is spent.
+			return await inputChainClient.readContract({
+				address: COMPACT,
+				abi: COMPACT_ABI,
+				functionName: "hasConsumedAllocatorNonce",
+				args: [order.nonce, allocator]
+			});
 		}
 	}
 </script>
@@ -132,7 +139,7 @@
 								{
 									account,
 									preHook,
-									postHook
+									postHook: postHookRefreshValidate
 								}
 							)}
 						>
@@ -165,7 +172,7 @@
 							{
 								account,
 								preHook,
-								postHook
+								postHook: postHookRefreshValidate
 							}
 						)}
 					>
