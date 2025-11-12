@@ -1,6 +1,7 @@
 import type { WalletState } from "@web3-onboard/core";
 import type { OrderContainer } from "../types";
 import {
+	ALWAYS_OK_ALLOCATOR,
 	chainMap,
 	clients,
 	coinList,
@@ -93,7 +94,7 @@ class Store {
 		return INPUT_SETTLER_ESCROW_LIFI;
 	});
 	intentType = $state<"escrow" | "compact">("escrow");
-	allocatorId = $state<availableAllocators>(POLYMER_ALLOCATOR);
+	allocatorId = $state<availableAllocators>(ALWAYS_OK_ALLOCATOR);
 
 	// --- Oracle --- //
 	verifier = $state<Verifier>("polymer");

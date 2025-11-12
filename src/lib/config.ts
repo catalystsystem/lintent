@@ -48,6 +48,7 @@ export const chainMap = {
 	base,
 	arbitrum,
 	sepolia,
+	arbitrumSepolia,
 	optimismSepolia,
 	baseSepolia
 } as const;
@@ -56,7 +57,7 @@ export type chain = (typeof chains)[number];
 export const chainList = (mainnet: boolean) => {
 	if (mainnet == true) {
 		return ["ethereum", "base", "arbitrum"];
-	} else return ["sepolia", "optimismSepolia", "baseSepolia"];
+	} else return ["sepolia", "optimismSepolia", "baseSepolia", "arbitrumSepolia"];
 };
 
 export type balanceQuery = Record<chain, Record<`0x${string}`, Promise<bigint>>>;
@@ -147,6 +148,12 @@ export const coinList = (mainnet: boolean) => {
 				decimals: 6
 			},
 			{
+				address: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+				name: "usdc",
+				chain: "arbitrumSepolia",
+				decimals: 6
+			},
+			{
 				address: ADDRESS_ZERO,
 				name: "eth",
 				chain: "sepolia",
@@ -163,6 +170,12 @@ export const coinList = (mainnet: boolean) => {
 				name: "eth",
 				chain: "optimismSepolia",
 				decimals: 18
+			},
+			{
+				address: ADDRESS_ZERO,
+				name: "eth",
+				chain: "arbitrumSepolia",
+				decimals: 6
 			},
 			{
 				address: `0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14`,
@@ -180,6 +193,12 @@ export const coinList = (mainnet: boolean) => {
 				address: `0x4200000000000000000000000000000000000006`,
 				name: "weth",
 				chain: "optimismSepolia",
+				decimals: 18
+			},
+			{
+				address: `0x980B62Da83eFf3D4576C647993b0c1D7faf17c73`,
+				name: "weth",
+				chain: "arbitrumSepolia",
 				decimals: 18
 			}
 		] as const;

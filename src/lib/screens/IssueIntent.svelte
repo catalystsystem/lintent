@@ -269,15 +269,6 @@
 							Waiting for transaction...
 						{/snippet}
 					</AwaitButton>
-				{:else if store.intentType === "compact"}
-					<AwaitButton buttonFunction={intentFactory.compactDepositAndRegister(opts)}>
-						{#snippet name()}
-							Execute Deposit and Open
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
 				{/if}
 				{#if store.intentType === "compact" && store.allocatorId !== POLYMER_ALLOCATOR}
 					{#if !balanceCheckCompact}
