@@ -127,7 +127,7 @@
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{:else}
-						{#each coinList(mainnet).filter((v) => v.address !== ADDRESS_ZERO) as token, i}
+						{#each coinList(mainnet) as token, i}
 							<option value={`${token.address},${token.chain}`}>{printToken(token)}</option>
 						{/each}
 					{/if}
