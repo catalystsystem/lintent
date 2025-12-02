@@ -82,9 +82,11 @@ export class Intent {
 			inputs.push([inputTokenId, inputAmounts[i]]);
 		}
 
+		const sameChain = inputTokens[0].chain === outputToken.chain;
+
 		const outputSettler = COIN_FILLER;
-		const outputOracle = getOracle(verifier, outputToken.chain)!;
-		const inputOracle = getOracle(verifier, inputChain)!;
+		const outputOracle = sameChain ? outputSettler : getOracle(verifier, outputToken.chain)!;
+		const inputOracle = sameChain ? outputSettler : getOracle(verifier, inputChain)!;
 
 		// Get the current epoch timestamp:
 		const currentTime = Math.floor(Date.now() / 1000);

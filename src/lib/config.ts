@@ -229,7 +229,7 @@ export const polymerChainIds = {
 	optimismSepolia: optimismSepolia.id
 } as const;
 
-export type Verifier = "wormhole" | "polymer";
+export type Verifier = "wormhole" | "polymer" | "samechain";
 
 export function getCoin(
 	args:

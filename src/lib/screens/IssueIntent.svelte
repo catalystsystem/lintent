@@ -234,13 +234,24 @@
 		</div>
 	</div>
 
-	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
-		<span class="font-medium">Verified by</span>
-		<select id="verified-by" class="rounded border px-2 py-1">
-			<option value="polymer" selected> Polymer </option>
-			<option value="wormhole" disabled> Wormhole </option>
-		</select>
-	</div>
+	{#if outputToken.chain === inputTokens[0].chain}
+		<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
+			<span class="font-medium">Verified by</span>
+			<select id="verified-by" class="rounded border px-2 py-1">
+				<option value="polymer" selected> Oracleless </option>
+				<option value="polymer" disabled> Polymer </option>
+				<option value="wormhole" disabled> Wormhole </option>
+			</select>
+		</div>
+	{:else}
+		<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
+			<span class="font-medium">Verified by</span>
+			<select id="verified-by" class="rounded border px-2 py-1">
+				<option value="polymer" selected> Polymer </option>
+				<option value="wormhole" disabled> Wormhole </option>
+			</select>
+		</div>
+	{/if}
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Exclusive For</span>
 		<input
