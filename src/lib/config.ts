@@ -43,6 +43,7 @@ export const chainMap = {
 	ethereum,
 	base,
 	arbitrum,
+	arbitrumSepolia,
 	sepolia,
 	optimismSepolia,
 	baseSepolia
