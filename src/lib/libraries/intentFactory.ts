@@ -122,7 +122,7 @@ export class IntentFactory {
 
 			let transactionHash = await intent.depositAndRegisterCompact(account(), this.walletClient);
 
-			const recepit = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
+			const receipt = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
 				hash: transactionHash
 			});
 

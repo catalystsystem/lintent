@@ -11,7 +11,7 @@ export class AssetSelection {
 		return bigIntSum(...values);
 	}
 
-	static feasable(goal: bigint, values: bigint[]) {
+	static feasible(goal: bigint, values: bigint[]) {
 		if (bigIntSum(...values) < goal)
 			throw Error(`Values makes ${bigIntSum(...values)} cannot sum ${goal}`);
 	}
@@ -37,7 +37,7 @@ export class AssetSelection {
 	}
 
 	constructor(opts: { goal: bigint; values: bigint[]; weights?: bigint[] }) {
-		AssetSelection.feasable(opts.goal, opts.values);
+		AssetSelection.feasible(opts.goal, opts.values);
 		this.goal = opts.goal;
 		this.values = opts.values;
 		this.weights = opts.weights;
@@ -51,7 +51,7 @@ export class AssetSelection {
 		return this.sortedValues;
 	}
 
-	asIndicies() {
+	asIndices() {
 		const zipped = AssetSelection.zip(this.sortedValues);
 		return zipped.filter((v) => v[0] > 0);
 	}

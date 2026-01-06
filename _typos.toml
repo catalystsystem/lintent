@@ -1,0 +1,3 @@
+[default.extend-words]
+oif = "oif"
+OIF = "OIF"

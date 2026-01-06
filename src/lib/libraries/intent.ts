@@ -1,14 +1,4 @@
-import {
-	concat,
-	encodeAbiParameters,
-	encodePacked,
-	getTypesForEIP712Domain,
-	hashDomain,
-	hashStruct,
-	hashTypedData,
-	keccak256,
-	parseAbiParameters
-} from "viem";
+import { encodeAbiParameters, encodePacked, hashStruct, keccak256, parseAbiParameters } from "viem";
 import type {
 	BatchCompact,
 	CompactMandate,
@@ -18,7 +8,6 @@ import type {
 	MultichainOrder,
 	MultichainOrderComponent,
 	NoSignature,
-	OrderContainer,
 	Signature,
 	StandardOrder
 } from "../../types";
@@ -35,7 +24,6 @@ import {
 	MULTICHAIN_INPUT_SETTLER_COMPACT,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	type chain,
-	type Token,
 	type Verifier,
 	type WC
 } from "../config";
@@ -296,7 +284,7 @@ export class Intent {
 	}
 }
 
-/// @notice Helper function that allows you to provide an order and it will correctly generate the appropiate order.
+/// @notice Helper function that allows you to provide an order and it will correctly generate the appropriate order.
 export function orderToIntent(options: {
 	inputSettler: `0x${string}`;
 	order: StandardOrder;

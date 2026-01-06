@@ -35,7 +35,7 @@
 	const orderServer = $derived(new OrderServer(store.mainnet));
 
 	let s: WebSocket;
-	function initatePage() {
+	function initiatePage() {
 		if (s) s.close();
 		// Empty store.orders without changing the pointer:
 		store.orders.forEach(() => {
@@ -70,11 +70,11 @@
 
 	// $effect(() => {
 	// 	store.mainnet;
-	// 	initatePage();
+	// 	initiatePage();
 	// });
 
 	// onMount(() => {
-	// 	initatePage();
+	// 	initiatePage();
 	// });
 
 	// --- Wallet --- //

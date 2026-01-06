@@ -127,7 +127,7 @@
 									orderContainer,
 									fillTransactionHashes: orderContainer.order.outputs.map(
 										(output) =>
-											store.fillTranscations[
+											store.fillTransactions[
 												hashStruct({
 													data: output,
 													types: compactTypes,
@@ -160,7 +160,7 @@
 								orderContainer,
 								fillTransactionHashes: orderContainer.order.outputs.map(
 									(output) =>
-										store.fillTranscations[
+										store.fillTransactions[
 											hashStruct({
 												data: output,
 												types: compactTypes,

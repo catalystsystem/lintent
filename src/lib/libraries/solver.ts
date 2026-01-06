@@ -104,7 +104,7 @@ export class Solver {
 			await clients[outputChain].waitForTransactionReceipt({
 				hash: transactionHash
 			});
-			// orderInputs.validate[index] = transcationHash;
+			// orderInputs.validate[index] = transactionHash;
 			if (postHook) await postHook();
 			return transactionHash;
 		};
@@ -197,7 +197,7 @@ export class Solver {
 				if (proof) {
 					if (preHook) await preHook(sourceChain);
 
-					const transcationHash = await walletClient.writeContract({
+					const transactionHash = await walletClient.writeContract({
 						chain: chainMap[sourceChain],
 						account: account(),
 						address: order.inputOracle,
@@ -207,14 +207,14 @@ export class Solver {
 					});
 
 					const result = await clients[sourceChain].waitForTransactionReceipt({
-						hash: transcationHash
+						hash: transactionHash
 					});
 					if (postHook) await postHook();
 					return result;
 				}
 			} else if (order.inputOracle === COIN_FILLER) {
 				const log = logs.find((log) => log.logIndex === logIndex)!;
-				const transcationHash = await walletClient.writeContract({
+				const transactionHash = await walletClient.writeContract({
 					chain: chainMap[sourceChain],
 					account: account(),
 					address: order.inputOracle,
@@ -224,7 +224,7 @@ export class Solver {
 				});
 
 				const result = await clients[sourceChain].waitForTransactionReceipt({
-					hash: transcationHash
+					hash: transactionHash
 				});
 				if (postHook) await postHook();
 				return result;

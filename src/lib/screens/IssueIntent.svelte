@@ -119,7 +119,7 @@
 			amount: bigint;
 			decimals: number;
 		}[] = [];
-		// Get all unqiue tokens.
+		// Get all unique tokens.
 		const allUniqueNames = [
 			...new Set(
 				store.inputTokens.map((v) => {

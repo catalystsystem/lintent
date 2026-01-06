@@ -51,7 +51,7 @@ class Store {
 	// inputAmounts = $state<bigint[]>([1000000n]);
 	// outputAmounts = $state<bigint[]>([1000000n]);
 
-	fillTranscations = $state<{ [outputId: string]: `0x${string}` }>({});
+	fillTransactions = $state<{ [outputId: string]: `0x${string}` }>({});
 
 	balances = $derived.by(() => {
 		return this.mapOverCoins(getBalance, this.mainnet, this.updatedDerived);

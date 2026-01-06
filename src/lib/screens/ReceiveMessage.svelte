@@ -81,7 +81,7 @@
 	// 					inputChain,
 	// 					orderContainer,
 	// 					output,
-	// 					store.fillTranscations[
+	// 					store.fillTransactions[
 	// 						hashStruct({ data: output, types: compactTypes, primaryType: "MandateOutput" })
 	// 					],
 	// 					refreshValidation
@@ -105,7 +105,7 @@
 			<hr class="my-1" />
 			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
 				{#each orderContainer.order.outputs as output}
-					{#await isValidated(orderToIntent(orderContainer).orderId(), inputChain, orderContainer, output, store.fillTranscations[hashStruct( { data: output, types: compactTypes, primaryType: "MandateOutput" } )], refreshValidation)}
+					{#await isValidated(orderToIntent(orderContainer).orderId(), inputChain, orderContainer, output, store.fillTransactions[hashStruct( { data: output, types: compactTypes, primaryType: "MandateOutput" } )], refreshValidation)}
 						<div class="h-8 w-28 cursor-pointer rounded bg-slate-100 text-center">
 							<div class="flex flex-col items-center justify-center align-middle">
 								<div class="flex flex-row space-x-1">
@@ -135,7 +135,7 @@
 									output,
 									orderContainer,
 									fillTransactionHash:
-										store.fillTranscations[
+										store.fillTransactions[
 											hashStruct({
 												data: output,
 												types: compactTypes,

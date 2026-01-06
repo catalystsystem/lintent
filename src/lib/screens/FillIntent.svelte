@@ -54,15 +54,15 @@
 
 	function sortOutputsByChain(orderContainer: OrderContainer) {
 		const outputs = orderContainer.order.outputs;
-		const postionMap: { [chainId: string]: number } = {};
+		const positionMap: { [chainId: string]: number } = {};
 		const arrMap: [bigint, MandateOutput[]][] = [];
 		for (const output of outputs) {
 			const chainId = output.chainId;
 			// Check if chainId exists.
-			let position = postionMap[chainId.toString()];
+			let position = positionMap[chainId.toString()];
 			if (position == undefined) {
 				position = arrMap.length;
-				postionMap[chainId.toString()] = position;
+				positionMap[chainId.toString()] = position;
 				arrMap.push([chainId, []]);
 			}
 			arrMap[position][1].push(output);
@@ -89,7 +89,7 @@
 					types: compactTypes,
 					primaryType: "MandateOutput"
 				});
-				store.fillTranscations[outputHash] = result;
+				store.fillTransactions[outputHash] = result;
 			}
 		};
 	};
@@ -191,7 +191,7 @@
 				class="w-20 rounded border px-2 py-1"
 				placeholder="fillTransactionHash"
 				bind:value={
-					store.fillTranscations[
+					store.fillTransactions[
 						hashStruct({
 							data: { outputs: chainIdAndOutputs.outputs },
 							types: {

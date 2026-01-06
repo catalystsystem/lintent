@@ -60,7 +60,7 @@
 		active = false;
 	}
 
-	const unqiueTokens = $derived([...new Set(coinList(store.mainnet).map((v) => v.name))]);
+	const uniqueTokens = $derived([...new Set(coinList(store.mainnet).map((v) => v.name))]);
 
 	// svelte-ignore state_referenced_locally
 	let selectedTokenName = $state<string>(currentInputTokens[0].token.name);
@@ -68,11 +68,11 @@
 		coinList(store.mainnet).filter((v) => v.name.toLowerCase() === selectedTokenName.toLowerCase())
 	);
 
-	let circutBreaker = false;
+	let circuitBreaker = false;
 	$effect(() => {
 		selectedTokenName;
-		if (circutBreaker || currentInputTokens[0].token.name !== selectedTokenName) {
-			circutBreaker = true;
+		if (circuitBreaker || currentInputTokens[0].token.name !== selectedTokenName) {
+			circuitBreaker = true;
 			inputs = Object.fromEntries(
 				tokenSet.map((token) => [getInteropableAddress(token.address, chainMap[token.chain].id), 0])
 			);
@@ -160,7 +160,7 @@
 				class="rounded rounded-l-none border border-gray-400 px-2 py-1"
 				bind:value={selectedTokenName}
 			>
-				{#each unqiueTokens as token}
+				{#each uniqueTokens as token}
 					<option value={token}>{token.toUpperCase()}</option>
 				{/each}
 			</select>
