@@ -150,6 +150,20 @@ export class Intent {
 		return this.numInputChains() > 1;
 	}
 
+	isSameChain() {
+		// Multichain intents cannot be same chain. Normal "Output oracle" will be used.
+		if (this.isMultichain()) return false;
+
+		// Only 1 input chain is used.
+		const inputChain = this.inputs[0].token.chain;
+		const outputChains = this.outputs.map((o) => o.token.chain);
+		const numOutputChains = [...new Set(outputChains)].length;
+		if (numOutputChains > 1) return false;
+		// Only 1 output chain is used.
+		const outputChain = this.outputs[0].token.chain;
+		return inputChain === outputChain;
+	}
+
 	nonce() {
 		if (this._nonce) return this._nonce;
 		this._nonce = BigInt(Math.floor(Math.random() * 2 ** 32));
@@ -190,10 +204,14 @@ export class Intent {
 		}
 
 		const outputSettler = COIN_FILLER;
+		const sameChain = this.isSameChain();
 
 		return this.outputs.map(({ token, amount }) => {
+			const outputOracle = sameChain
+				? addressToBytes32(outputSettler)
+				: addressToBytes32(getOracle(this.verifier, token.chain)!);
 			return {
-				oracle: addressToBytes32(getOracle(this.verifier, token.chain)!),
+				oracle: outputOracle,
 				settler: addressToBytes32(outputSettler),
 				chainId: BigInt(chainMap[token.chain].id),
 				token: addressToBytes32(token.address),
@@ -220,7 +238,7 @@ export class Intent {
 
 		const currentTime = Math.floor(Date.now() / 1000);
 
-		const inputOracle = getOracle(this.verifier, inputChain)!;
+		const inputOracle = this.isSameChain() ? COIN_FILLER : getOracle(this.verifier, inputChain)!;
 
 		const order: StandardOrder = {
 			user: this.user(),

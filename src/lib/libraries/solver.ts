@@ -3,6 +3,7 @@ import {
 	type chain,
 	chainMap,
 	clients,
+	COIN_FILLER,
 	getChainName,
 	getOracle,
 	INPUT_SETTLER_COMPACT_LIFI,
@@ -135,39 +136,40 @@ export class Solver {
 			} = args;
 			const outputChain = getChainName(order.outputs[0].chainId);
 
-			if (order.inputOracle === getOracle("polymer", sourceChain)) {
-				const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-					hash: fillTransactionHash as `0x${string}`
-				});
+			// Get the output filled event.
+			const transactionReceipt = await clients[outputChain].getTransactionReceipt({
+				hash: fillTransactionHash as `0x${string}`
+			});
 
-				const logs = parseEventLogs({
-					abi: COIN_FILLER_ABI,
-					eventName: "OutputFilled",
-					logs: transactionReceipt.logs
-				});
-				// We need to search through each log until we find one matching our output.
-				console.log("logs", logs);
-				let logIndex = -1;
-				const expectedOutputHash = hashStruct({
+			const logs = parseEventLogs({
+				abi: COIN_FILLER_ABI,
+				eventName: "OutputFilled",
+				logs: transactionReceipt.logs
+			});
+			// We need to search through each log until we find one matching our output.
+			console.log("logs", logs);
+			let logIndex = -1;
+			const expectedOutputHash = hashStruct({
+				types: compactTypes,
+				primaryType: "MandateOutput",
+				data: output
+			});
+			for (const log of logs) {
+				const logOutput = log.args.output;
+				// TODO: Optimise by comparing the dicts.
+				const logOutputHash = hashStruct({
 					types: compactTypes,
 					primaryType: "MandateOutput",
-					data: output
+					data: logOutput
 				});
-				for (const log of logs) {
-					const logOutput = log.args.output;
-					// TODO: Optimise by comparing the dicts.
-					const logOutputHash = hashStruct({
-						types: compactTypes,
-						primaryType: "MandateOutput",
-						data: logOutput
-					});
-					if (logOutputHash === expectedOutputHash) {
-						logIndex = log.logIndex;
-						break;
-					}
+				if (logOutputHash === expectedOutputHash) {
+					logIndex = log.logIndex;
+					break;
 				}
-				if (logIndex === -1) throw Error(`Could not find matching log`);
+			}
+			if (logIndex === -1) throw Error(`Could not find matching log`);
 
+			if (order.inputOracle === getOracle("polymer", sourceChain)) {
 				let proof: string | undefined;
 				let polymerIndex: number | undefined;
 				for (let i = 0; i < 5; ++i) {
@@ -210,6 +212,22 @@ export class Solver {
 					if (postHook) await postHook();
 					return result;
 				}
+			} else if (order.inputOracle === COIN_FILLER) {
+				const log = logs.find((log) => log.logIndex === logIndex)!;
+				const transcationHash = await walletClient.writeContract({
+					chain: chainMap[sourceChain],
+					account: account(),
+					address: order.inputOracle,
+					abi: COIN_FILLER_ABI,
+					functionName: "setAttestation",
+					args: [log.args.orderId, log.args.solver, log.args.timestamp, log.args.output]
+				});
+
+				const result = await clients[sourceChain].waitForTransactionReceipt({
+					hash: transcationHash
+				});
+				if (postHook) await postHook();
+				return result;
 			}
 		};
 	}

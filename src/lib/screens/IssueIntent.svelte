@@ -145,6 +145,18 @@
 		const uniqueChains = [...new Set(tokenChains)];
 		return uniqueChains.length;
 	});
+
+	const sameChain = $derived.by(() => {
+		if (numInputChains > 1) return false;
+
+		// Only 1 input chain is used.
+		const inputChain = store.inputTokens[0].token.chain;
+		const outputChains = store.outputTokens.map((o) => o.token.chain);
+		const numOutputChains = [...new Set(outputChains)].length;
+		if (numOutputChains > 1) return false;
+		const outputChain = outputChains[0];
+		return inputChain === outputChain;
+	});
 </script>
 
 <div class="relative h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
@@ -183,6 +195,9 @@
 			{/each}
 			{#if numInputChains > 1}
 				<div class="text-center font-medium text-fuchsia-500">Multichain!</div>
+			{/if}
+			{#if sameChain}
+				<div class="text-center font-medium text-violet-500">SameChain!</div>
 			{/if}
 		</div>
 		<div class="flex flex-col justify-center">
@@ -223,11 +238,18 @@
 		></GetQuote>
 	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
-		<span class="font-medium">Verified by</span>
-		<select id="verified-by" class="rounded border px-2 py-1">
-			<option value="polymer" selected> Polymer </option>
-			<option value="wormhole" disabled> Wormhole </option>
-		</select>
+		{#if sameChain}
+			<span class="font-medium">Verified by</span>
+			<select class="rounded border px-2 py-1 text-gray-400" disabled>
+				<option selected disabled> Settler </option>
+			</select>
+		{:else}
+			<span class="font-medium">Verified by</span>
+			<select id="verified-by" class="rounded border px-2 py-1">
+				<option value="polymer" selected> Polymer </option>
+				<option value="wormhole" disabled> Wormhole </option>
+			</select>
+		{/if}
 	</div>
 	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
 		<span class="font-medium">Exclusive For</span>
