@@ -38,44 +38,48 @@
 	function initiatePage() {
 		if (s) s.close();
 		// Empty store.orders without changing the pointer:
-		store.orders.forEach(() => {
-			store.orders.pop();
-		});
+		// store.orders.forEach(() => {
+		// 	store.orders.pop();
+		// });
 		// Connect to websocket server
 		let { socket } = orderServer.connectOrderServerSocket((order: OrderPackage) => {
-			const allocatorSignature = order.allocatorSignature
-				? ({
-						type: "ECDSA",
-						payload: order.allocatorSignature
-					} as Signature)
-				: ({
-						type: "None",
-						payload: "0x"
-					} as NoSignature);
-			const sponsorSignature = order.sponsorSignature
-				? ({
-						type: "ECDSA",
-						payload: order.sponsorSignature
-					} as Signature)
-				: ({
-						type: "None",
-						payload: "0x"
-					} as NoSignature);
-			store.orders.push({ ...order, allocatorSignature, sponsorSignature });
-			console.log({ orders: store.orders, order });
+			try {
+				const allocatorSignature = order.allocatorSignature
+					? ({
+							type: "ECDSA",
+							payload: order.allocatorSignature
+						} as Signature)
+					: ({
+							type: "None",
+							payload: "0x"
+						} as NoSignature);
+				const sponsorSignature = order.sponsorSignature
+					? ({
+							type: "ECDSA",
+							payload: order.sponsorSignature
+						} as Signature)
+					: ({
+							type: "None",
+							payload: "0x"
+						} as NoSignature);
+				store.orders.push({ ...order, allocatorSignature, sponsorSignature });
+				console.log({ orders: store.orders, order });
+			} catch (error) {
+				console.error(error);
+			}
 		});
 		s = socket;
 		onDestroy(() => s.close());
 	}
 
-	// $effect(() => {
-	// 	store.mainnet;
-	// 	initiatePage();
-	// });
+	$effect(() => {
+		store.mainnet;
+		initiatePage();
+	});
 
-	// onMount(() => {
-	// 	initiatePage();
-	// });
+	onMount(() => {
+		initiatePage();
+	});
 
 	// --- Wallet --- //
 
