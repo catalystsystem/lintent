@@ -6,7 +6,11 @@ import {
 	baseSepolia,
 	mainnet as ethereum,
 	optimismSepolia,
-	sepolia
+	sepolia,
+	polygon,
+	bsc,
+	katana,
+	megaeth
 } from "viem/chains";
 
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000" as const;
@@ -31,6 +35,10 @@ export const POLYMER_ORACLE = {
 	ethereum: "0x0000006ea400569c0040d6e5ba651c00848409be",
 	arbitrum: "0x0000006ea400569c0040d6e5ba651c00848409be",
 	base: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	megaeth: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	katana: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	polygon: "0x0000006ea400569c0040d6e5ba651c00848409be",
+	bsc: "0x0000006ea400569c0040d6e5ba651c00848409be",
 	// testnet
 	sepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
 	baseSepolia: "0x00d5b500ECa100F7cdeDC800eC631Aca00BaAC00",
@@ -50,13 +58,17 @@ export const chainMap = {
 	sepolia,
 	arbitrumSepolia,
 	optimismSepolia,
-	baseSepolia
+	baseSepolia,
+	katana,
+	megaeth,
+	bsc,
+	polygon
 } as const;
 export const chains = Object.keys(chainMap) as (keyof typeof chainMap)[];
 export type chain = (typeof chains)[number];
 export const chainList = (mainnet: boolean) => {
 	if (mainnet == true) {
-		return ["ethereum", "base", "arbitrum"];
+		return ["ethereum", "base", "arbitrum", "megaeth", "katana", "polygon", "bsc"];
 	} else return ["sepolia", "optimismSepolia", "baseSepolia", "arbitrumSepolia"];
 };
 
@@ -125,6 +137,54 @@ export const coinList = (mainnet: boolean) => {
 				name: "weth",
 				chain: "arbitrum",
 				decimals: 18
+			},
+			{
+				address: `0x4200000000000000000000000000000000000006`,
+				name: "weth",
+				chain: "megaeth",
+				decimals: 18
+			},
+			{
+				address: `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`,
+				name: "usdm",
+				chain: "megaeth",
+				decimals: 18
+			},
+			{
+				address: `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`,
+				name: "usdc-b",
+				chain: "bsc",
+				decimals: 18
+			},
+			{
+				address: `0x55d398326f99059ff775485246999027b3197955`,
+				name: "usdt-b",
+				chain: "bsc",
+				decimals: 18
+			},
+			{
+				address: `0x203a662b0bd271a6ed5a60edfbd04bfce608fd36`,
+				name: "vbUSDC",
+				chain: "katana",
+				decimals: 6
+			},
+			{
+				address: `0x7ceb23fd6bc0add59e62ac25578270cff1b9f619`,
+				name: "weth",
+				chain: "polygon",
+				decimals: 18
+			},
+			{
+				address: `0x3c499c542cef5e3811e1192ce70d8cc03d5c3359`,
+				name: "usdc",
+				chain: "polygon",
+				decimals: 6
+			},
+			{
+				address: `0x2791bca1f2de4661ed88a30c99a7a9449aa84174`,
+				name: "usdc.e",
+				chain: "polygon",
+				decimals: 6
 			}
 		] as const;
 	else
@@ -236,7 +296,11 @@ export const polymerChainIds = {
 	sepolia: sepolia.id,
 	arbitrumSepolia: arbitrumSepolia.id,
 	baseSepolia: baseSepolia.id,
-	optimismSepolia: optimismSepolia.id
+	optimismSepolia: optimismSepolia.id,
+	megaeth: megaeth.id,
+	katana: katana.id,
+	bsc: bsc.id,
+	polygon: polygon.id
 } as const;
 
 export type Verifier = "wormhole" | "polymer";
@@ -325,6 +389,22 @@ export const clients = {
 			http("https://base-rpc.publicnode.com"),
 			...base.rpcUrls.default.http.map((v) => http(v))
 		])
+	}),
+	bsc: createPublicClient({
+		chain: bsc,
+		transport: fallback([...bsc.rpcUrls.default.http.map((v) => http(v))])
+	}),
+	polygon: createPublicClient({
+		chain: base,
+		transport: fallback([...polygon.rpcUrls.default.http.map((v) => http(v))])
+	}),
+	megaeth: createPublicClient({
+		chain: megaeth,
+		transport: fallback([...megaeth.rpcUrls.default.http.map((v) => http(v))])
+	}),
+	katana: createPublicClient({
+		chain: katana,
+		transport: fallback([...katana.rpcUrls.default.http.map((v) => http(v))])
 	}),
 	// Testnet
 	sepolia: createPublicClient({

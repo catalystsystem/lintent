@@ -60,7 +60,13 @@
 		active = false;
 	}
 
-	const uniqueTokens = $derived([...new Set(coinList(store.mainnet).map((v) => v.name))]);
+	const uniqueInputTokens = $derived([
+		...new Set(
+			coinList(store.mainnet)
+				.map((v) => v.name)
+				.filter((v) => v !== "eth")
+		)
+	]);
 
 	// svelte-ignore state_referenced_locally
 	let selectedTokenName = $state<string>(currentInputTokens[0].token.name);
@@ -160,7 +166,7 @@
 				class="rounded rounded-l-none border border-gray-400 px-2 py-1"
 				bind:value={selectedTokenName}
 			>
-				{#each uniqueTokens as token}
+				{#each uniqueInputTokens as token}
 					<option value={token}>{token.toUpperCase()}</option>
 				{/each}
 			</select>
