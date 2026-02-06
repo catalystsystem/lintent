@@ -1,4 +1,4 @@
-export const SETTLER_ESCROW_ABI = [
+export const MULTICHAIN_SETTLER_ESCROW_ABI = [
 	{
 		type: "constructor",
 		inputs: [],
@@ -67,7 +67,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -80,7 +80,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -150,6 +155,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			},
@@ -191,7 +201,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -204,7 +214,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -274,6 +289,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			},
@@ -320,7 +340,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -333,7 +353,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -403,6 +428,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			}
@@ -417,7 +447,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -430,7 +460,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -500,6 +535,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			},
@@ -510,123 +550,6 @@ export const SETTLER_ESCROW_ABI = [
 			},
 			{
 				name: "signature",
-				type: "bytes",
-				internalType: "bytes"
-			}
-		],
-		outputs: [],
-		stateMutability: "nonpayable"
-	},
-	{
-		type: "function",
-		name: "openForAndFinalise",
-		inputs: [
-			{
-				name: "order",
-				type: "tuple",
-				internalType: "struct StandardOrder",
-				components: [
-					{
-						name: "user",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "nonce",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "originChainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "expires",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "fillDeadline",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "inputOracle",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "inputs",
-						type: "uint256[2][]",
-						internalType: "uint256[2][]"
-					},
-					{
-						name: "outputs",
-						type: "tuple[]",
-						internalType: "struct MandateOutput[]",
-						components: [
-							{
-								name: "oracle",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "settler",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "chainId",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "token",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "amount",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "recipient",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "callbackData",
-								type: "bytes",
-								internalType: "bytes"
-							},
-							{
-								name: "context",
-								type: "bytes",
-								internalType: "bytes"
-							}
-						]
-					}
-				]
-			},
-			{
-				name: "sponsor",
-				type: "address",
-				internalType: "address"
-			},
-			{
-				name: "signature",
-				type: "bytes",
-				internalType: "bytes"
-			},
-			{
-				name: "destination",
-				type: "address",
-				internalType: "address"
-			},
-			{
-				name: "call",
 				type: "bytes",
 				internalType: "bytes"
 			}
@@ -641,7 +564,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -654,7 +577,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -724,6 +652,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			}
@@ -751,185 +684,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "",
 				type: "uint8",
-				internalType: "enum InputSettlerEscrow.OrderStatus"
-			}
-		],
-		stateMutability: "view"
-	},
-	{
-		type: "function",
-		name: "purchaseOrder",
-		inputs: [
-			{
-				name: "orderPurchase",
-				type: "tuple",
-				internalType: "struct OrderPurchase",
-				components: [
-					{
-						name: "orderId",
-						type: "bytes32",
-						internalType: "bytes32"
-					},
-					{
-						name: "destination",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "callData",
-						type: "bytes",
-						internalType: "bytes"
-					},
-					{
-						name: "discount",
-						type: "uint64",
-						internalType: "uint64"
-					},
-					{
-						name: "timeToBuy",
-						type: "uint32",
-						internalType: "uint32"
-					}
-				]
-			},
-			{
-				name: "order",
-				type: "tuple",
-				internalType: "struct StandardOrder",
-				components: [
-					{
-						name: "user",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "nonce",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "originChainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "expires",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "fillDeadline",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "inputOracle",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "inputs",
-						type: "uint256[2][]",
-						internalType: "uint256[2][]"
-					},
-					{
-						name: "outputs",
-						type: "tuple[]",
-						internalType: "struct MandateOutput[]",
-						components: [
-							{
-								name: "oracle",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "settler",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "chainId",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "token",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "amount",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "recipient",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "callbackData",
-								type: "bytes",
-								internalType: "bytes"
-							},
-							{
-								name: "context",
-								type: "bytes",
-								internalType: "bytes"
-							}
-						]
-					}
-				]
-			},
-			{
-				name: "orderSolvedByIdentifier",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "purchaser",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "expiryTimestamp",
-				type: "uint256",
-				internalType: "uint256"
-			},
-			{
-				name: "solverSignature",
-				type: "bytes",
-				internalType: "bytes"
-			}
-		],
-		outputs: [],
-		stateMutability: "nonpayable"
-	},
-	{
-		type: "function",
-		name: "purchasedOrders",
-		inputs: [
-			{
-				name: "solver",
-				type: "bytes32",
-				internalType: "bytes32"
-			},
-			{
-				name: "orderId",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		],
-		outputs: [
-			{
-				name: "lastOrderTimestamp",
-				type: "uint32",
-				internalType: "uint32"
-			},
-			{
-				name: "purchaser",
-				type: "bytes32",
-				internalType: "bytes32"
+				internalType: "enum InputSettlerMultichainEscrow.OrderStatus"
 			}
 		],
 		stateMutability: "view"
@@ -941,7 +696,7 @@ export const SETTLER_ESCROW_ABI = [
 			{
 				name: "order",
 				type: "tuple",
-				internalType: "struct StandardOrder",
+				internalType: "struct MultichainOrderComponent",
 				components: [
 					{
 						name: "user",
@@ -954,7 +709,12 @@ export const SETTLER_ESCROW_ABI = [
 						internalType: "uint256"
 					},
 					{
-						name: "originChainId",
+						name: "chainIdField",
+						type: "uint256",
+						internalType: "uint256"
+					},
+					{
+						name: "chainIndex",
 						type: "uint256",
 						internalType: "uint256"
 					},
@@ -1024,6 +784,11 @@ export const SETTLER_ESCROW_ABI = [
 								internalType: "bytes"
 							}
 						]
+					},
+					{
+						name: "additionalChains",
+						type: "bytes32[]",
+						internalType: "bytes32[]"
 					}
 				]
 			}
@@ -1074,118 +839,9 @@ export const SETTLER_ESCROW_ABI = [
 			},
 			{
 				name: "order",
-				type: "tuple",
+				type: "bytes",
 				indexed: false,
-				internalType: "struct StandardOrder",
-				components: [
-					{
-						name: "user",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "nonce",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "originChainId",
-						type: "uint256",
-						internalType: "uint256"
-					},
-					{
-						name: "expires",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "fillDeadline",
-						type: "uint32",
-						internalType: "uint32"
-					},
-					{
-						name: "inputOracle",
-						type: "address",
-						internalType: "address"
-					},
-					{
-						name: "inputs",
-						type: "uint256[2][]",
-						internalType: "uint256[2][]"
-					},
-					{
-						name: "outputs",
-						type: "tuple[]",
-						internalType: "struct MandateOutput[]",
-						components: [
-							{
-								name: "oracle",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "settler",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "chainId",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "token",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "amount",
-								type: "uint256",
-								internalType: "uint256"
-							},
-							{
-								name: "recipient",
-								type: "bytes32",
-								internalType: "bytes32"
-							},
-							{
-								name: "callbackData",
-								type: "bytes",
-								internalType: "bytes"
-							},
-							{
-								name: "context",
-								type: "bytes",
-								internalType: "bytes"
-							}
-						]
-					}
-				]
-			}
-		],
-		anonymous: false
-	},
-	{
-		type: "event",
-		name: "OrderPurchased",
-		inputs: [
-			{
-				name: "orderId",
-				type: "bytes32",
-				indexed: true,
-				internalType: "bytes32"
-			},
-			{
-				name: "solver",
-				type: "bytes32",
-				indexed: false,
-				internalType: "bytes32"
-			},
-			{
-				name: "purchaser",
-				type: "bytes32",
-				indexed: false,
-				internalType: "bytes32"
+				internalType: "bytes"
 			}
 		],
 		anonymous: false
@@ -1205,13 +861,24 @@ export const SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "AlreadyPurchased",
+		name: "CallOutOfRange",
 		inputs: []
 	},
 	{
 		type: "error",
-		name: "CallOutOfRange",
-		inputs: []
+		name: "ChainIndexOutOfRange",
+		inputs: [
+			{
+				name: "chainIndex",
+				type: "uint256",
+				internalType: "uint256"
+			},
+			{
+				name: "numSegments",
+				type: "uint256",
+				internalType: "uint256"
+			}
+		]
 	},
 	{
 		type: "error",
@@ -1225,11 +892,6 @@ export const SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "Expired",
-		inputs: []
-	},
-	{
-		type: "error",
 		name: "FillDeadlineAfterExpiry",
 		inputs: [
 			{
@@ -1246,29 +908,19 @@ export const SETTLER_ESCROW_ABI = [
 	},
 	{
 		type: "error",
-		name: "FillDeadlineAfterExpiry",
+		name: "FilledTooLate",
 		inputs: [
 			{
-				name: "fillDeadline",
+				name: "expected",
 				type: "uint32",
 				internalType: "uint32"
 			},
 			{
-				name: "expires",
+				name: "actual",
 				type: "uint32",
 				internalType: "uint32"
 			}
 		]
-	},
-	{
-		type: "error",
-		name: "GovernanceFeeChangeNotReady",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "GovernanceFeeTooHigh",
-		inputs: []
 	},
 	{
 		type: "error",
@@ -1278,11 +930,6 @@ export const SETTLER_ESCROW_ABI = [
 	{
 		type: "error",
 		name: "InvalidOrderStatus",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "InvalidPurchaser",
 		inputs: []
 	},
 	{
@@ -1303,11 +950,6 @@ export const SETTLER_ESCROW_ABI = [
 	{
 		type: "error",
 		name: "NoDestination",
-		inputs: []
-	},
-	{
-		type: "error",
-		name: "NotOrderOwner",
 		inputs: []
 	},
 	{
