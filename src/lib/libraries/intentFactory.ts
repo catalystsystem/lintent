@@ -62,7 +62,7 @@ export class IntentFactory {
 	}) {
 		const { order, inputSettler, sponsorSignature, allocatorSignature } = options;
 
-		this.orders.push({
+		const orderContainer: OrderContainer = {
 			order,
 			inputSettler,
 			sponsorSignature: sponsorSignature ?? {
@@ -73,7 +73,9 @@ export class IntentFactory {
 				type: "None",
 				payload: "0x"
 			}
-		});
+		};
+		this.orders.push(orderContainer);
+		store.saveOrderToDb(orderContainer).catch((e) => console.warn("saveOrderToDb error", e));
 	}
 
 	compact(opts: CreateIntentOptions) {
@@ -99,14 +101,14 @@ export class IntentFactory {
 				}
 			});
 
-			// const signedOrder = await this.orderServer.submitOrder({
-			// 	orderType: "CatalystCompactOrder",
-			// 	order: intent.asStandardOrder(),
-			// 	inputSettler: INPUT_SETTLER_COMPACT_LIFI,
-			// 	sponsorSignature,
-			// 	allocatorSignature: "0x"
-			// });
-			// console.log("signedOrder", signedOrder);
+			const signedOrder = await this.orderServer.submitOrder({
+				orderType: "CatalystCompactOrder",
+				order: intent.asOrder() as StandardOrder,
+				inputSettler: INPUT_SETTLER_COMPACT_LIFI,
+				sponsorSignature,
+				allocatorSignature: "0x"
+			});
+			console.log("signedOrder", signedOrder);
 
 			if (this.postHook) await this.postHook();
 		};

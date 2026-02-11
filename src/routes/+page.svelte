@@ -2,7 +2,7 @@
 	import onboard from "$lib/utils/web3-onboard";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
 	import { coinList, type chain } from "$lib/config";
-	import { onDestroy, onMount } from "svelte";
+	import { onDestroy } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { OrderServer } from "$lib/libraries/orderServer";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
@@ -13,6 +13,7 @@
 	import Finalise from "$lib/screens/Finalise.svelte";
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
 	import store from "$lib/state.svelte";
+	import { orderToIntent } from "$lib/libraries/intent";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -34,15 +35,16 @@
 
 	const orderServer = $derived(new OrderServer(store.mainnet));
 
-	let s: WebSocket;
-	function initiatePage() {
-		if (s) s.close();
-		// Empty store.orders without changing the pointer:
-		// store.orders.forEach(() => {
-		// 	store.orders.pop();
-		// });
+	let disconnectWs: (() => void) | undefined;
+
+	async function initiatePage() {
+		if (disconnectWs) disconnectWs();
+
+		// Wait for DB to finish loading so WS orders don't race with DB load
+		await store.dbReady;
+
 		// Connect to websocket server
-		let { socket } = orderServer.connectOrderServerSocket((order: OrderPackage) => {
+		const connection = orderServer.connectOrderServerSocket((order: OrderPackage) => {
 			try {
 				const allocatorSignature = order.allocatorSignature
 					? ({
@@ -62,14 +64,21 @@
 							type: "None",
 							payload: "0x"
 						} as NoSignature);
-				store.orders.push({ ...order, allocatorSignature, sponsorSignature });
+				const orderContainer = { ...order, allocatorSignature, sponsorSignature };
+
+				// Deduplicate: only add if not already present
+				const orderId = orderToIntent(orderContainer).orderId();
+				const alreadyExists = store.orders.some((o) => orderToIntent(o).orderId() === orderId);
+				if (alreadyExists) return;
+
+				store.orders.push(orderContainer);
+				store.saveOrderToDb(orderContainer).catch((e) => console.warn("saveOrderToDb error", e));
 				console.log({ orders: store.orders, order });
 			} catch (error) {
 				console.error(error);
 			}
 		});
-		s = socket;
-		onDestroy(() => s.close());
+		disconnectWs = connection.disconnect;
 	}
 
 	$effect(() => {
@@ -77,8 +86,8 @@
 		initiatePage();
 	});
 
-	onMount(() => {
-		initiatePage();
+	onDestroy(() => {
+		if (disconnectWs) disconnectWs();
 	});
 
 	// --- Wallet --- //

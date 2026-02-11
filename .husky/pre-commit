@@ -1,1 +1,1 @@
-npx prettier --write .
+bunx lint-staged

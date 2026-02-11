@@ -50,10 +50,14 @@ export async function getCompactBalance(
 ) {
 	if (!user) return 0n;
 	const assetId = toId(true, ResetPeriod.OneDay, allocatorId, asset);
-	return client.readContract({
-		address: COMPACT,
-		abi: COMPACT_ABI,
-		functionName: "balanceOf",
-		args: [user, assetId]
-	});
+	try {
+		return await client.readContract({
+			address: COMPACT,
+			abi: COMPACT_ABI,
+			functionName: "balanceOf",
+			args: [user, assetId]
+		});
+	} catch {
+		return 0n;
+	}
 }

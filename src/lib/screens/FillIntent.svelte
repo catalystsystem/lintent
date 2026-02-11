@@ -90,6 +90,9 @@
 					primaryType: "MandateOutput"
 				});
 				store.fillTransactions[outputHash] = result;
+				store
+					.saveFillTransaction(outputHash, result)
+					.catch((e) => console.warn("saveFillTransaction error", e));
 			}
 		};
 	};

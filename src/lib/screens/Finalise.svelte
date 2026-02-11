@@ -210,7 +210,7 @@
 							</div>
 						{/each}
 					{:else}
-						{#each orderContainer.order.inputs.find((v) => v.chainId === inputChain)?.inputs as input}
+						{#each orderContainer.order.inputs.find((v) => v.chainId === inputChain)?.inputs ?? [] as input}
 							<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
 								<div class="flex flex-col items-center justify-center align-middle">
 									<div class="flex flex-row space-x-1">

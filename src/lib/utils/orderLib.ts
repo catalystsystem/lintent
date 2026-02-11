@@ -84,8 +84,12 @@ export function validateOrder(order: StandardOrder): boolean {
 	})?.[0] as chain | undefined;
 	if (!inputChain) return false;
 	// Polymer?
-	const isPolymer = POLYMER_ORACLE[inputChain] !== order.inputOracle;
-	const isWormhole = WORMHOLE_ORACLE[inputChain] !== order.inputOracle;
+	const isPolymer =
+		inputChain in POLYMER_ORACLE &&
+		POLYMER_ORACLE[inputChain as keyof typeof POLYMER_ORACLE] !== order.inputOracle;
+	const isWormhole =
+		inputChain in WORMHOLE_ORACLE &&
+		WORMHOLE_ORACLE[inputChain as keyof typeof WORMHOLE_ORACLE] !== order.inputOracle;
 	const whitelistedOracle = isPolymer || isWormhole;
 	if (!whitelistedOracle) return false;
 

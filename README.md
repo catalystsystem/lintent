@@ -4,7 +4,7 @@ The LI.FI intent demo is hosted at lintent.org. It demonstrates the entire inten
 
 ## Project
 
-This project uses SvelteKit and `npm`. It is configured for a deployment to Cloudflare workers, to change the deployment target modify [/svelte.config.js](/svelte.config.js) with another [adapter](https://svelte.dev/docs/kit/adapters).
+This project uses SvelteKit and `bun`. It is configured for a deployment to Cloudflare workers, to change the deployment target modify [/svelte.config.js](/svelte.config.js) with another [adapter](https://svelte.dev/docs/kit/adapters).
 
 ### Development
 
@@ -13,8 +13,8 @@ To start development:
 1. Copy `.env.example` to `.env`.
 2. Then fill in the `env` variables by creating a [WalletConnect](https://walletconnect.com) project
 3. Also create an [account](https://accounts.polymerlabs.org/) with Polymer to generation [Polymer](https://polymerlabs.org) API keys.
-4. Install dependencies `npm install`.
-5. Start `npm run dev`.
+4. Install dependencies `bun install`.
+5. Start `bun run dev`.
 
 ## Structure
 

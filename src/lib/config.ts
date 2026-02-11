@@ -151,7 +151,7 @@ export const coinList = (mainnet: boolean) => {
 				decimals: 18
 			},
 			{
-				address: `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`,
+				address: `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d`,
 				name: "usdc-b",
 				chain: "bsc",
 				decimals: 18

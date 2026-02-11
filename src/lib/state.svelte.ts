@@ -20,6 +20,11 @@ import {
 import { getAllowance, getBalance, getCompactBalance } from "./libraries/token";
 import onboard from "./utils/web3-onboard";
 import { createWalletClient, custom } from "viem";
+import { browser } from "$app/environment";
+import { initDb, db } from "./db";
+import { intents, fillTransactions as fillTransactionsTable } from "./schema";
+import { eq } from "drizzle-orm";
+import { orderToIntent } from "./libraries/intent";
 
 export type TokenContext = {
 	token: Token;
@@ -29,6 +34,91 @@ export type TokenContext = {
 class Store {
 	mainnet = $state<boolean>(true);
 	orders = $state<OrderContainer[]>([]);
+
+	// Load orders from PGLite/Drizzle-backed DB instead of only keeping them in memory
+	async loadOrdersFromDb() {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const rows = await db!.select().from(intents);
+		this.orders = rows.map((r: any) => JSON.parse(r.data) as OrderContainer);
+	}
+
+	async saveOrderToDb(order: OrderContainer) {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const orderId = orderToIntent(order).orderId();
+		const now = Date.now();
+		const id =
+			(order as any).id ?? (typeof crypto !== "undefined" ? crypto.randomUUID() : String(now));
+		const intentType = (order as any).intentType ?? "escrow";
+		await db!
+			.insert(intents)
+			.values({
+				id,
+				orderId: orderId,
+				intentType,
+				data: JSON.stringify(order),
+				createdAt: now
+			})
+			.onConflictDoUpdate({
+				target: intents.orderId,
+				set: {
+					intentType,
+					data: JSON.stringify(order)
+				}
+			});
+		// Update in-memory too
+		const idx = this.orders.findIndex((o) => orderToIntent(o).orderId() === orderId);
+		if (idx >= 0) {
+			this.orders[idx] = order;
+		} else {
+			this.orders.push(order);
+		}
+	}
+
+	async deleteOrderFromDb(orderId: string) {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		await db!.delete(intents).where(eq(intents.orderId, orderId));
+		await this.loadOrdersFromDb();
+	}
+
+	async loadFillTransactionsFromDb() {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const rows = await db!.select().from(fillTransactionsTable);
+		const loaded: { [outputId: string]: `0x${string}` } = {};
+		for (const row of rows) {
+			loaded[row.outputHash] = row.txHash as `0x${string}`;
+		}
+		this.fillTransactions = loaded;
+	}
+
+	async saveFillTransaction(outputHash: string, txHash: `0x${string}`) {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const existing = await db!
+			.select()
+			.from(fillTransactionsTable)
+			.where(eq(fillTransactionsTable.outputHash, outputHash));
+		if (existing.length > 0) {
+			await db!
+				.update(fillTransactionsTable)
+				.set({ txHash })
+				.where(eq(fillTransactionsTable.outputHash, outputHash));
+		} else {
+			await db!.insert(fillTransactionsTable).values({
+				id: typeof crypto !== "undefined" ? crypto.randomUUID() : String(Date.now()),
+				outputHash,
+				txHash
+			});
+		}
+	}
 
 	// --- Wallet --- //
 	wallets = onboard.state.select("wallets");
@@ -109,6 +199,24 @@ class Store {
 		this.updatedDerived += 1;
 	};
 
+	// Background sync settings
+	syncIntervalMs = 5000;
+	_syncHandle?: ReturnType<typeof setInterval>;
+
+	startSync(intervalMs?: number) {
+		this.stopSync();
+		this._syncHandle = setInterval(() => {
+			this.loadOrdersFromDb().catch((e) => console.warn("sync error", e));
+		}, intervalMs ?? this.syncIntervalMs);
+	}
+
+	stopSync() {
+		if (this._syncHandle) {
+			clearInterval(this._syncHandle);
+			this._syncHandle = undefined;
+		}
+	}
+
 	async setWalletToCorrectChain(chain: chain) {
 		try {
 			return await this.walletClient?.switchChain({ id: chainMap[chain].id });
@@ -143,6 +251,8 @@ class Store {
 		return resolved;
 	}
 
+	dbReady: Promise<void> | undefined;
+
 	constructor() {
 		this.inputTokens = [{ token: coinList(this.mainnet)[0], amount: 1000000n }];
 		this.outputTokens = [{ token: coinList(this.mainnet)[1], amount: 1000000n }];
@@ -153,6 +263,16 @@ class Store {
 		setInterval(() => {
 			this.updatedDerived += 1;
 		}, 10000);
+
+		// Initial load from DB — expose as a promise so callers can await readiness
+		this.dbReady = browser
+			? Promise.all([
+					this.loadOrdersFromDb().catch((e) => console.warn("loadOrdersFromDb error", e)),
+					this.loadFillTransactionsFromDb().catch((e) =>
+						console.warn("loadFillTransactionsFromDb error", e)
+					)
+				]).then(() => {})
+			: Promise.resolve();
 	}
 }
 

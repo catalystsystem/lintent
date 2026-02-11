@@ -36,6 +36,9 @@
 
 	let inputNumber = $state<number>(1);
 
+	let selectedTokenIndex = $state<number>(0);
+	const token = $derived<Token>(coinList(store.mainnet)[selectedTokenIndex]);
+
 	let allowance = $state(0n);
 	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, token.decimals));
 	$effect(() => {
@@ -48,9 +51,6 @@
 			allowance = a;
 		});
 	});
-
-	let selectedTokenIndex = $state<number>(0);
-	const token = $derived<Token>(coinList(store.mainnet)[selectedTokenIndex]);
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
