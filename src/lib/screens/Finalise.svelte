@@ -37,6 +37,7 @@
 	} = $props();
 
 	let refreshClaimed = $state(0);
+
 	const postHookRefreshValidate = async () => {
 		if (postHook) await postHook();
 		refreshClaimed += 1;
@@ -101,7 +102,7 @@
 			</h2>
 			<hr class="my-1" />
 			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
-				{#await isClaimed(inputChain, orderContainer, "")}
+				{#await isClaimed(inputChain, orderContainer, refreshClaimed)}
 					<button
 						type="button"
 						class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"

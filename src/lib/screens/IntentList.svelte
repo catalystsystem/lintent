@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onDestroy } from "svelte";
+	import { tick } from "svelte";
 	import { formatTokenAmount, getChainName, getCoin } from "$lib/config";
 	import { orderToIntent } from "$lib/libraries/intent";
 	import { idToToken } from "$lib/utils/convert";
@@ -26,6 +28,16 @@
 			});
 		});
 	}
+
+	let nowSeconds = $state(Math.floor(Date.now() / 1000));
+	const clock = setInterval(() => {
+		nowSeconds = Math.floor(Date.now() / 1000);
+	}, 10000);
+	onDestroy(() => clearInterval(clock));
+
+	const activeOrderContainers = $derived(
+		orderContainers.filter((orderContainer) => orderContainer.order.fillDeadline > nowSeconds)
+	);
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
@@ -35,12 +47,13 @@
 		listening to the intent server also sees these intents.
 	</p>
 	<div class="flex h-[22rem] flex-col items-center space-y-2 overflow-y-auto align-middle">
-		{#each orderContainers as orderContainer}
+		{#each activeOrderContainers as orderContainer}
 			<button
 				class="w-11/12 cursor-pointer rounded border border-gray-200 bg-gray-100 pt-1 pb-2 transition-shadow ease-linear hover:shadow-xl"
-				onclick={() => {
+				onclick={async () => {
 					selectedOrder = orderContainer;
-					setTimeout(scroll(true), 100);
+					await tick();
+					scroll(3)();
 				}}
 			>
 				<div class="flex w-full flex-row justify-evenly">

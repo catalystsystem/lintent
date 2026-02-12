@@ -51,7 +51,7 @@
 
 	const postHookScroll = async () => {
 		await postHook();
-		scroll(true)();
+		scroll(2)();
 	};
 
 	const intentFactory = $derived(

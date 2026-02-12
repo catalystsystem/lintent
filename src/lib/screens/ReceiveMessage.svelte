@@ -14,11 +14,13 @@
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
 
 	let {
+		scroll,
 		orderContainer,
 		account,
 		preHook,
 		postHook
 	}: {
+		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
 		preHook?: (chain: chain) => Promise<any>;
 		postHook: () => Promise<any>;
@@ -26,6 +28,8 @@
 	} = $props();
 
 	let refreshValidation = $state(0);
+	let autoScrolledOrderId = $state<`0x${string}` | null>(null);
+	let validationRun = 0;
 	const postHookRefreshValidate = async () => {
 		await postHook();
 		refreshValidation += 1;
@@ -89,6 +93,56 @@
 	// 			});
 	// 	})
 	// );
+
+	$effect(() => {
+		refreshValidation;
+
+		const intent = orderToIntent(orderContainer);
+		const orderId = intent.orderId();
+		if (autoScrolledOrderId === orderId) return;
+
+		const inputChains = intent.inputChains();
+		const outputs = orderContainer.order.outputs;
+		const fillTxHashes = outputs.map((output) => {
+			return store.fillTransactions[
+				hashStruct({
+					data: output,
+					types: compactTypes,
+					primaryType: "MandateOutput"
+				})
+			];
+		});
+
+		if (
+			fillTxHashes.some(
+				(fillTxHash) => !fillTxHash || !fillTxHash.startsWith("0x") || fillTxHash.length !== 66
+			)
+		)
+			return;
+
+		const currentRun = ++validationRun;
+		Promise.all(
+			inputChains.flatMap((inputChain) =>
+				outputs.map((output, outputIndex) =>
+					isValidated(
+						orderId,
+						inputChain,
+						orderContainer,
+						output,
+						fillTxHashes[outputIndex] as `0x${string}`,
+						refreshValidation
+					)
+				)
+			)
+		)
+			.then((validationResults) => {
+				if (currentRun !== validationRun) return;
+				if (validationResults.length === 0 || !validationResults.every(Boolean)) return;
+				autoScrolledOrderId = orderId;
+				scroll(5)();
+			})
+			.catch((e) => console.warn("auto-scroll validation check failed", e));
+	});
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">

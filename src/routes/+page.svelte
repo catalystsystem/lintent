@@ -108,10 +108,15 @@
 	function scroll(next: boolean | number) {
 		return () => {
 			if (!snapContainer) return;
-			const scrollLeft = snapContainer.scrollLeft;
 			const width = snapContainer.clientWidth + 1;
+			const maxScreenIndex = Math.max(Math.ceil(snapContainer.scrollWidth / width) - 1, 0);
+			const currentScreenIndex = Math.round(snapContainer.scrollLeft / width);
+			const targetScreenIndex =
+				typeof next === "number"
+					? Math.max(0, Math.min(next, maxScreenIndex))
+					: Math.max(0, Math.min(currentScreenIndex + (next ? 1 : -1), maxScreenIndex));
 			snapContainer.scrollTo({
-				left: next ? scrollLeft + Number(next) * width : scrollLeft - width,
+				left: targetScreenIndex * width,
 				behavior: "smooth"
 			});
 		};
@@ -168,7 +173,7 @@
 							<!-- <IntentDescription></IntentDescription> -->
 							<FillIntent {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
 							></FillIntent>
-							<ReceiveMessage orderContainer={selectedOrder} {account} {preHook} {postHook}
+							<ReceiveMessage {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
 							></ReceiveMessage>
 							<Finalise orderContainer={selectedOrder} {preHook} {postHook} {account}></Finalise>
 						{/if}

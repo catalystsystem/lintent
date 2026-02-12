@@ -34,10 +34,11 @@
 	} = $props();
 
 	let refreshValidation = $state(0);
+	let autoScrolledOrderId = $state<`0x${string}` | null>(null);
+	let fillRun = 0;
 	const postHookScroll = async () => {
 		await postHook();
 		refreshValidation += 1;
-		scroll(true)();
 	};
 
 	async function isFilled(orderId: `0x${string}`, output: MandateOutput, _?: any) {
@@ -78,6 +79,26 @@
 			)
 		])
 	);
+
+	$effect(() => {
+		refreshValidation;
+
+		const orderId = orderToIntent(orderContainer).orderId();
+		if (autoScrolledOrderId === orderId) return;
+
+		const outputs = sortOutputsByChain(orderContainer).flatMap(([, chainOutputs]) => chainOutputs);
+		if (outputs.length === 0) return;
+
+		const currentRun = ++fillRun;
+		Promise.all(outputs.map((output) => isFilled(orderId, output, refreshValidation)))
+			.then((fillResults) => {
+				if (currentRun !== fillRun) return;
+				if (!fillResults.every((result) => result !== BYTES32_ZERO)) return;
+				autoScrolledOrderId = orderId;
+				scroll(4)();
+			})
+			.catch((e) => console.warn("auto-scroll fill check failed", e));
+	});
 
 	const fillWrapper = (outputs: MandateOutput[], func: ReturnType<typeof Solver.fill>) => {
 		return async () => {
