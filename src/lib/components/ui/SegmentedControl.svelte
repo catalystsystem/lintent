@@ -17,15 +17,14 @@
 	} = $props();
 </script>
 
-<div class="inline-flex">
+<div class="inline-flex overflow-hidden rounded-md border border-gray-200 bg-white">
 	{#each options as option, i (option.value)}
 		<button
 			type="button"
 			data-testid={testIdPrefix ? `${testIdPrefix}-${option.value}` : undefined}
 			class={[
-				"h-8 border border-gray-200 px-3 text-sm transition-colors",
-				i === 0 ? "rounded-l" : "",
-				i === options.length - 1 ? "rounded-r" : "border-l-0",
+				"h-8 px-3 text-sm transition-colors",
+				i > 0 ? "border-l border-gray-200" : "",
 				value === option.value
 					? "bg-gray-100 font-semibold text-gray-800"
 					: "bg-white text-gray-700 hover:bg-gray-50"
