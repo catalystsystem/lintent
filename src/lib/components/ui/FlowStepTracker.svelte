@@ -163,9 +163,9 @@
 				status: stepStatus({
 					active: activeStep === "issue",
 					done: issueDone,
-					unlocked: assetsDone || activeStep === "issue"
+					unlocked: true
 				}),
-				clickable: assetsDone || activeStep === "issue",
+				clickable: true,
 				targetIndex: 1
 			},
 			{
@@ -174,9 +174,9 @@
 				status: stepStatus({
 					active: activeStep === "select",
 					done: fetchDone,
-					unlocked: issueDone || activeStep === "select"
+					unlocked: true
 				}),
-				clickable: issueDone || activeStep === "select",
+				clickable: true,
 				targetIndex: 2
 			},
 			{
