@@ -58,6 +58,7 @@
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Network</h2>
 		<SegmentedControl
+			testIdPrefix="network"
 			options={[
 				{ label: "Testnet", value: "testnet" },
 				{ label: "Mainnet", value: "mainnet" }
@@ -69,6 +70,7 @@
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
 		<SegmentedControl
+			testIdPrefix="intent-type"
 			options={[
 				{ label: "Compact Lock", value: "compact" },
 				{ label: "Escrow", value: "escrow" }
@@ -82,6 +84,7 @@
 			<div class="flex flex-row">
 				<h2 class="text-md mr-4 font-medium">Allocator</h2>
 				<SegmentedControl
+					testIdPrefix="allocator"
 					options={[
 						{ label: "AlwaysYesAllocator", value: ALWAYS_OK_ALLOCATOR },
 						{ label: "Polymer", value: POLYMER_ALLOCATOR }

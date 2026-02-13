@@ -191,8 +191,9 @@
 			<div class="flex w-full flex-row justify-evenly gap-2">
 				<div class="flex flex-col justify-center space-y-1">
 					<h2 class="text-center text-xs font-semibold text-gray-500">You Pay</h2>
-					{#each abstractInputs as input (input.name)}
+					{#each abstractInputs as input, i (input.name)}
 						<button
+							data-testid={`open-input-modal-${i}`}
 							class="h-14 w-28 cursor-pointer rounded border border-gray-200 bg-white px-2 py-1 text-center transition-shadow ease-linear hover:shadow-md"
 							onclick={() => (inputTokenSelectorActive = true)}
 						>
@@ -227,6 +228,7 @@
 					<h2 class="text-center text-xs font-semibold text-gray-500">You Receive</h2>
 					{#each store.outputTokens as outputToken, i (`${outputToken.token.chain}-${outputToken.token.address}-${i}`)}
 						<button
+							data-testid={`open-output-modal-${i}`}
 							class="h-14 w-28 cursor-pointer rounded border border-gray-200 bg-white px-2 py-1 text-center transition-shadow ease-linear hover:shadow-md"
 							onclick={() => (outputTokenSelectorActive = true)}
 						>

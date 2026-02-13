@@ -7,11 +7,13 @@
 	let {
 		options,
 		value = $bindable(),
-		onChange
+		onChange,
+		testIdPrefix
 	}: {
 		options: Option[];
 		value: string;
 		onChange?: (value: string) => void;
+		testIdPrefix?: string;
 	} = $props();
 </script>
 
@@ -19,6 +21,7 @@
 	{#each options as option, i (option.value)}
 		<button
 			type="button"
+			data-testid={testIdPrefix ? `${testIdPrefix}-${option.value}` : undefined}
 			class={[
 				"h-8 border border-gray-200 px-3 text-sm transition-colors",
 				i === 0 ? "rounded-l" : "",

@@ -168,6 +168,7 @@
 </script>
 
 <div
+	data-testid="input-token-modal"
 	class="absolute top-1/2 left-1/2 z-20 mx-auto h-[80%] max-h-[24rem] w-11/12 -translate-x-1/2 -translate-y-1/2 transform rounded-md border border-gray-200 bg-white shadow-lg"
 >
 	<div class="flex h-full flex-col">
@@ -177,6 +178,7 @@
 				<p class="text-xs text-gray-500">Choose token amount distribution across chains.</p>
 			</div>
 			<button
+				data-testid="input-token-modal-close"
 				class="h-7 w-7 cursor-pointer rounded border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800"
 				onclick={() => {
 					active = false;
@@ -239,6 +241,7 @@
 			</div>
 
 			<button
+				data-testid="input-token-modal-save"
 				class="h-8 w-full cursor-pointer rounded border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-sky-300 hover:text-sky-700"
 				onclick={save}>Save Input Selection</button
 			>

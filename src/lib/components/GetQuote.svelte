@@ -103,6 +103,7 @@
 <div class="relative flex w-full items-center justify-center text-center align-middle">
 	{#await quoteRequest}
 		<div
+			data-testid="quote-loading"
 			class="relative h-6 w-full rounded border border-gray-200 bg-white px-2 text-xs leading-6 font-semibold text-gray-500"
 		>
 			Quote
@@ -115,6 +116,7 @@
 				style="width: {width}%"
 			></div>
 			<button
+				data-testid="quote-button"
 				class="relative h-6 w-full cursor-pointer rounded border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700 hover:border-sky-300 hover:text-sky-700"
 				onclick={updateQuote}>Quote</button
 			>
@@ -124,6 +126,7 @@
 				style="width: 100%"
 			></div>
 			<button
+				data-testid="quote-button"
 				class="relative h-6 w-full cursor-pointer rounded border border-rose-200 bg-white px-2 text-xs font-semibold text-rose-700 hover:border-rose-300"
 				onclick={updateQuote}>No Quote</button
 			>
