@@ -181,6 +181,7 @@
 				<div class="w-20">
 					<GetQuote
 						bind:exclusiveFor={store.exclusiveFor}
+						useExclusiveForQuoteRequest={store.useExclusiveForQuoteRequest}
 						mainnet={store.mainnet}
 						inputTokens={store.inputTokens}
 						bind:outputTokens={store.outputTokens}
@@ -250,7 +251,7 @@
 		</SectionCard>
 
 		<SectionCard compact>
-			<div class="flex items-center gap-2">
+			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-1">
 					<span class="text-[11px] font-semibold text-gray-500">Verifier</span>
 					{#if sameChain}
@@ -264,8 +265,7 @@
 						</FormControl>
 					{/if}
 				</div>
-				<div class="h-5 w-px bg-gray-200"></div>
-				<div class="flex min-w-0 flex-1 items-center gap-1">
+				<div class="flex min-w-0 items-center gap-1">
 					<span class="text-[11px] font-semibold whitespace-nowrap text-gray-500">Exclusive</span>
 					<FormControl
 						type="text"
@@ -274,6 +274,16 @@
 						placeholder="0x... (optional)"
 						bind:value={store.exclusiveFor}
 					/>
+					<label
+						class="flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap text-gray-500"
+					>
+						<input
+							type="checkbox"
+							class="h-3.5 w-3.5 rounded border-gray-300 text-sky-600 focus:ring-sky-300"
+							bind:checked={store.useExclusiveForQuoteRequest}
+						/>
+						Lock Exclusive
+					</label>
 				</div>
 			</div>
 		</SectionCard>

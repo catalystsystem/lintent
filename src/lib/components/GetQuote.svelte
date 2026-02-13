@@ -2,28 +2,44 @@
 	import { OrderServer } from "$lib/libraries/orderServer";
 	import type { TokenContext } from "$lib/state.svelte";
 	import { interval } from "rxjs";
+	import { getAddress } from "viem";
 
 	let {
 		exclusiveFor = $bindable(),
+		useExclusiveForQuoteRequest = false,
 		inputTokens,
 		outputTokens = $bindable(),
 		account,
 		mainnet
 	}: {
 		exclusiveFor: string;
+		useExclusiveForQuoteRequest?: boolean;
 		inputTokens: TokenContext[];
 		outputTokens: TokenContext[];
 		account: () => `0x${string}`;
 		mainnet: boolean;
 	} = $props();
 
+	const toChecksumAddress = (value: string): `0x${string}` | undefined => {
+		try {
+			return getAddress(value);
+		} catch {
+			return undefined;
+		}
+	};
+
 	const orderServer = $derived(new OrderServer(mainnet));
 
 	async function getQuoteAndSet() {
 		try {
+			const requestedExclusiveFor = useExclusiveForQuoteRequest
+				? toChecksumAddress(exclusiveFor)
+				: undefined;
+
 			const response = await orderServer.getQuotes({
 				user: account(),
 				userChain: inputTokens[0].token.chain,
+				exclusiveFor: requestedExclusiveFor,
 				inputs: inputTokens.map(({ token, amount }) => {
 					return {
 						sender: account(),
