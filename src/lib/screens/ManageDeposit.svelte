@@ -18,32 +18,15 @@
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
+	import store from "$lib/state.svelte";
 
 	let {
 		scroll,
-		mainnet = $bindable(),
-		inputSettler = $bindable(),
-		allocatorId = $bindable(),
-		inputNumber = $bindable(),
-		inputToken = $bindable(),
-		compactBalances,
-		balances,
-		allowances,
-		walletClient,
 		preHook,
 		postHook,
 		account
 	}: {
 		scroll: (direction: boolean | number) => () => void;
-		mainnet: boolean;
-		inputSettler: availableInputSettlers;
-		allocatorId: availableAllocators;
-		inputNumber: number;
-		inputToken: Token;
-		compactBalances: balanceQuery;
-		balances: balanceQuery;
-		allowances: balanceQuery;
-		walletClient: WC;
 		preHook: (chain: chain) => Promise<void>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
@@ -51,15 +34,20 @@
 
 	let manageAssetAction: "deposit" | "withdraw" = $state("deposit");
 
+	let inputNumber = $state<number>(1);
+
+	let selectedTokenIndex = $state<number>(0);
+	const token = $derived<Token>(coinList(store.mainnet)[selectedTokenIndex]);
+
 	let allowance = $state(0n);
-	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, inputToken.decimals));
+	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, token.decimals));
 	$effect(() => {
 		// Check if allowances contain the chain.
-		if (!allowances[inputToken.chain]) {
+		if (!store.allowances[token.chain]) {
 			allowance = 0n;
 			return;
 		}
-		allowances[inputToken.chain][inputToken.address].then((a) => {
+		store.allowances[token.chain][token.address].then((a) => {
 			allowance = a;
 		});
 	});
@@ -76,57 +64,57 @@
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Network</h2>
 		<button
 			class="h-8 rounded-l border px-4"
-			class:hover:bg-gray-100={mainnet !== false}
-			class:font-bold={mainnet === false}
-			onclick={() => (mainnet = false)}
+			class:hover:bg-gray-100={store.mainnet !== false}
+			class:font-bold={store.mainnet === false}
+			onclick={() => (store.mainnet = false)}
 		>
 			Testnet
 		</button>
 		<button
 			class=" h-8 rounded-r border border-l-0 px-4"
-			class:hover:bg-gray-100={mainnet !== true}
-			class:font-bold={mainnet === true}
-			onclick={() => (mainnet = true)}
+			class:hover:bg-gray-100={store.mainnet !== true}
+			class:font-bold={store.mainnet === true}
+			onclick={() => (store.mainnet = true)}
 		>
 			Mainnet
 		</button>
 	</div>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
-		<!-- <button
+		<button
 			class="h-8 rounded-l border px-4"
-			class:hover:bg-gray-100={inputSettler !== INPUT_SETTLER_COMPACT_LIFI}
-			class:font-bold={inputSettler === INPUT_SETTLER_COMPACT_LIFI}
-			onclick={() => (inputSettler = INPUT_SETTLER_COMPACT_LIFI)}
+			class:hover:bg-gray-100={store.intentType !== "compact"}
+			class:font-bold={store.intentType === "compact"}
+			onclick={() => (store.intentType = "compact")}
 		>
 			Compact Lock
-		</button> -->
+		</button>
 		<button
-			class=" h-8 rounded border px-4"
-			class:hover:bg-gray-100={inputSettler !== INPUT_SETTLER_ESCROW_LIFI}
-			class:font-bold={inputSettler === INPUT_SETTLER_ESCROW_LIFI}
-			onclick={() => (inputSettler = INPUT_SETTLER_ESCROW_LIFI)}
+			class=" h-8 rounded-r border border-l-0 px-4"
+			class:hover:bg-gray-100={store.intentType !== "escrow"}
+			class:font-bold={store.intentType === "escrow"}
+			onclick={() => (store.intentType = "escrow")}
 		>
 			Escrow
 		</button>
 	</div>
-	{#if inputSettler === INPUT_SETTLER_COMPACT_LIFI}
+	{#if store.intentType === "compact"}
 		<form class="w-full space-y-4 rounded-md">
 			<div class="flex flex-row">
 				<h2 class="text-md mr-4 font-medium">Allocator</h2>
 				<button
 					class="h-8 rounded-l border px-4"
-					class:hover:bg-gray-100={allocatorId !== ALWAYS_OK_ALLOCATOR}
-					class:font-bold={allocatorId === ALWAYS_OK_ALLOCATOR}
-					onclick={() => (allocatorId = ALWAYS_OK_ALLOCATOR)}
+					class:hover:bg-gray-100={store.allocatorId !== ALWAYS_OK_ALLOCATOR}
+					class:font-bold={store.allocatorId === ALWAYS_OK_ALLOCATOR}
+					onclick={() => (store.allocatorId = ALWAYS_OK_ALLOCATOR)}
 				>
 					AlwaysYesAllocator
 				</button>
 				<button
 					class=" h-8 rounded-r border border-l-0 px-4"
-					class:hover:bg-gray-100={allocatorId !== POLYMER_ALLOCATOR}
-					class:font-bold={allocatorId === POLYMER_ALLOCATOR}
-					onclick={() => (allocatorId = POLYMER_ALLOCATOR)}
+					class:hover:bg-gray-100={store.allocatorId !== POLYMER_ALLOCATOR}
+					class:font-bold={store.allocatorId === POLYMER_ALLOCATOR}
+					onclick={() => (store.allocatorId = POLYMER_ALLOCATOR)}
 				>
 					Polymer
 				</button>
@@ -138,19 +126,17 @@
 				</select>
 				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={inputNumber} />
 				<span>of</span>
-				<BalanceField
-					value={(manageAssetAction === "withdraw" ? compactBalances : balances)[inputToken.chain][
-						inputToken.address
-					]}
-					decimals={inputToken.decimals}
-				/>
-				<select
-					id="inputToken"
-					class="rounded border px-2 py-1"
-					bind:value={() => getIndexOf(inputToken), (v) => (inputToken = coinList(mainnet)[v])}
-				>
-					{#each coinList(mainnet) as token, i}
-						<option value={i}>{printToken(token)}</option>
+				{#if (manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[token.chain]}
+					<BalanceField
+						value={(manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[
+							token.chain
+						][token.address]}
+						decimals={token.decimals}
+					/>
+				{/if}
+				<select id="inputToken" class="rounded border px-2 py-1" bind:value={selectedTokenIndex}>
+					{#each coinList(store.mainnet) as tkn, i}
+						<option value={i}>{printToken(tkn)}</option>
 					{/each}
 				</select>
 			</div>
@@ -159,13 +145,12 @@
 			<div class="flex justify-center">
 				{#if manageAssetAction === "withdraw"}
 					<AwaitButton
-						buttonFunction={CompactLib.compactWithdraw(walletClient, {
+						buttonFunction={CompactLib.compactWithdraw(store.walletClient, {
 							preHook,
 							postHook,
-							inputToken,
+							inputToken: { token, amount: inputAmount },
 							account,
-							inputAmount,
-							allocatorId
+							allocatorId: store.allocatorId
 						})}
 					>
 						{#snippet name()}
@@ -177,11 +162,10 @@
 					</AwaitButton>
 				{:else if allowance < inputAmount}
 					<AwaitButton
-						buttonFunction={CompactLib.compactApprove(walletClient, {
+						buttonFunction={CompactLib.compactApprove(store.walletClient, {
 							preHook,
 							postHook,
-							inputTokens: [inputToken],
-							inputAmounts: [inputAmount],
+							inputTokens: [{ token, amount: inputAmount }],
 							account
 						})}
 					>
@@ -194,13 +178,12 @@
 					</AwaitButton>
 				{:else}
 					<AwaitButton
-						buttonFunction={CompactLib.compactDeposit(walletClient!, {
+						buttonFunction={CompactLib.compactDeposit(store.walletClient!, {
 							preHook,
 							postHook,
-							inputToken,
+							inputToken: { token, amount: inputAmount },
 							account,
-							inputAmount,
-							allocatorId
+							allocatorId: store.allocatorId
 						})}
 					>
 						{#snippet name()}

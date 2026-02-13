@@ -498,17 +498,6 @@ export const COIN_FILLER_ABI = [
 	},
 	{
 		type: "error",
-		name: "ExclusiveTo",
-		inputs: [
-			{
-				name: "solver",
-				type: "bytes32",
-				internalType: "bytes32"
-			}
-		]
-	},
-	{
-		type: "error",
 		name: "FailedCall",
 		inputs: []
 	},
@@ -556,11 +545,6 @@ export const COIN_FILLER_ABI = [
 	},
 	{
 		type: "error",
-		name: "InvalidContextDataLength",
-		inputs: []
-	},
-	{
-		type: "error",
 		name: "NotDivisible",
 		inputs: [
 			{
@@ -574,11 +558,6 @@ export const COIN_FILLER_ABI = [
 				internalType: "uint256"
 			}
 		]
-	},
-	{
-		type: "error",
-		name: "NotImplemented",
-		inputs: []
 	},
 	{
 		type: "error",
@@ -648,10 +627,5 @@ export const COIN_FILLER_ABI = [
 				internalType: "bytes32"
 			}
 		]
-	},
-	{
-		type: "error",
-		name: "ZeroValue",
-		inputs: []
 	}
 ] as const;

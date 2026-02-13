@@ -4,15 +4,23 @@ import {
 	clients,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
+	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	type Token,
 	type WC
 } from "$lib/config";
 import { maxUint256 } from "viem";
-import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../../types";
+import type {
+	MultichainOrder,
+	NoSignature,
+	OrderContainer,
+	Signature,
+	StandardOrder
+} from "../../types";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/libraries/intent";
 import { OrderServer } from "$lib/libraries/orderServer";
 import type { CreateIntentOptions } from "$lib/libraries/intent";
+import { store, type TokenContext } from "$lib/state.svelte";
 
 /**
  * @notice Factory class for creating and managing intents. Functions called by integrators.
@@ -47,14 +55,14 @@ export class IntentFactory {
 	}
 
 	private saveOrder(options: {
-		order: StandardOrder;
-		inputSettler: typeof INPUT_SETTLER_COMPACT_LIFI | typeof INPUT_SETTLER_ESCROW_LIFI;
+		order: StandardOrder | MultichainOrder;
+		inputSettler: `0x${string}`;
 		sponsorSignature?: Signature | NoSignature;
 		allocatorSignature?: Signature | NoSignature;
 	}) {
 		const { order, inputSettler, sponsorSignature, allocatorSignature } = options;
 
-		this.orders.push({
+		const orderContainer: OrderContainer = {
 			order,
 			inputSettler,
 			sponsorSignature: sponsorSignature ?? {
@@ -65,27 +73,37 @@ export class IntentFactory {
 				type: "None",
 				payload: "0x"
 			}
-		});
+		};
+		this.orders.push(orderContainer);
+		store.saveOrderToDb(orderContainer).catch((e) => console.warn("saveOrderToDb error", e));
 	}
 
 	compact(opts: CreateIntentOptions) {
 		return async () => {
 			const { account, inputTokens } = opts;
-			const inputChain = inputTokens[0].chain;
+			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).order();
 
 			const sponsorSignature = await intent.signCompact(account(), this.walletClient);
 
 			console.log({
-				order: intent.asStandardOrder(),
-				batchCompact: intent.asBatchCompact(),
+				order: intent.asOrder(),
 				sponsorSignature
+			});
+
+			this.saveOrder({
+				order: intent.asOrder(),
+				inputSettler: intent.inputSettler,
+				sponsorSignature: {
+					type: "ECDSA",
+					payload: sponsorSignature
+				}
 			});
 
 			const signedOrder = await this.orderServer.submitOrder({
 				orderType: "CatalystCompactOrder",
-				order: intent.asStandardOrder(),
+				order: intent.asOrder() as StandardOrder,
 				inputSettler: INPUT_SETTLER_COMPACT_LIFI,
 				sponsorSignature,
 				allocatorSignature: "0x"
@@ -100,13 +118,13 @@ export class IntentFactory {
 		return async () => {
 			const { inputTokens, account } = opts;
 			const publicClients = clients;
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).singlechain();
 
-			if (this.preHook) await this.preHook(inputTokens[0].chain);
+			if (this.preHook) await this.preHook(inputTokens[0].token.chain);
 
 			let transactionHash = await intent.depositAndRegisterCompact(account(), this.walletClient);
 
-			const recepit = await publicClients[inputTokens[0].chain].waitForTransactionReceipt({
+			const receipt = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
 				hash: transactionHash
 			});
 
@@ -135,26 +153,29 @@ export class IntentFactory {
 	openIntent(opts: CreateIntentOptions) {
 		return async () => {
 			const { inputTokens, account } = opts;
-			const intent = new Intent(opts);
+			const intent = new Intent(opts).order();
 
-			const inputChain = inputTokens[0].chain;
+			const inputChain = inputTokens[0].token.chain;
 			if (this.preHook) await this.preHook(inputChain);
 
 			// Execute the open.
-			const transactionHash = await intent.openEscrow(account(), this.walletClient);
+			const transactionHashes = await intent.openEscrow(account(), this.walletClient);
+			console.log({ tsh: transactionHashes });
 
-			await clients[inputChain].waitForTransactionReceipt({
-				hash: transactionHash
-			});
+			// for (const hash of transactionHashes) {
+			// 	await clients[inputChain].waitForTransactionReceipt({
+			// 		hash: await hash
+			// 	});
+			// }
 
 			if (this.postHook) await this.postHook();
 
 			this.saveOrder({
-				order: intent.asStandardOrder(),
-				inputSettler: INPUT_SETTLER_ESCROW_LIFI
+				order: intent.asOrder(),
+				inputSettler: store.inputSettler
 			});
 
-			return transactionHash;
+			return transactionHashes;
 		};
 	}
 }
@@ -164,31 +185,32 @@ export function escrowApprove(
 	opts: {
 		preHook?: (chain: chain) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputTokens: Token[];
-		inputAmounts: bigint[];
+		inputTokens: TokenContext[];
 		account: () => `0x${string}`;
 	}
 ) {
 	return async () => {
-		const { preHook, postHook, inputTokens, inputAmounts, account } = opts;
+		const settler = store.multichain ? MULTICHAIN_INPUT_SETTLER_ESCROW : INPUT_SETTLER_ESCROW_LIFI;
+
+		const { preHook, postHook, inputTokens, account } = opts;
 		for (let i = 0; i < inputTokens.length; ++i) {
-			const inputToken = inputTokens[i];
-			if (preHook) await preHook(inputToken.chain);
-			const publicClient = clients[inputToken.chain];
+			const { token, amount } = inputTokens[i];
+			if (preHook) await preHook(token.chain);
+			const publicClient = clients[token.chain];
 			const currentAllowance = await publicClient.readContract({
-				address: inputToken.address,
+				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "allowance",
-				args: [account(), INPUT_SETTLER_ESCROW_LIFI]
+				args: [account(), settler]
 			});
-			if (currentAllowance >= inputAmounts[i]) continue;
+			if (currentAllowance >= amount) continue;
 			const transactionHash = walletClient.writeContract({
-				chain: chainMap[inputToken.chain],
+				chain: chainMap[token.chain],
 				account: account(),
-				address: inputToken.address,
+				address: token.address,
 				abi: ERC20_ABI,
 				functionName: "approve",
-				args: [INPUT_SETTLER_ESCROW_LIFI, maxUint256]
+				args: [settler, maxUint256]
 			});
 
 			await publicClient.waitForTransactionReceipt({

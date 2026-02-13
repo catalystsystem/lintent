@@ -191,42 +191,74 @@ export class OrderServer {
 	}
 
 	connectOrderServerSocket(newOrderFunction: orderPush) {
-		// Websocket
-		const socket = new WebSocket(this.websocketUrl);
+		let shouldReconnect = true;
+		let backoffMs = 1000;
+		const MAX_BACKOFF = 30000;
+		let socket: WebSocket;
+		let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-		socket.onmessage = function (event) {
-			const message = JSON.parse(event.data);
+		const connect = () => {
+			if (!shouldReconnect) return;
+			socket = new WebSocket(this.websocketUrl);
 
-			switch (message.event) {
-				case "user:vm-order-submit":
-					const incomingOrder = message.data as SubmitOrderDto;
-					newOrderFunction(incomingOrder);
-					break;
-				case "ping":
-					socket.send(
-						JSON.stringify({
-							event: "pong"
-						})
-					);
-					break;
-				default:
-					break;
-			}
+			socket.onmessage = function (event) {
+				const message = JSON.parse(event.data);
+
+				switch (message.event) {
+					case "user:vm-order-submit":
+						const incomingOrder = message.data as SubmitOrderDto;
+						newOrderFunction(incomingOrder);
+						break;
+					case "ping":
+						socket.send(
+							JSON.stringify({
+								event: "pong"
+							})
+						);
+						break;
+					default:
+						break;
+				}
+			};
+
+			socket.addEventListener("open", () => {
+				console.log("Connected to Catalyst order server");
+				backoffMs = 1000; // Reset backoff on successful connection
+			});
+
+			socket.addEventListener("close", () => {
+				console.log("Disconnected from Catalyst order server");
+				if (shouldReconnect) {
+					console.log(`Reconnecting in ${backoffMs}ms...`);
+					if (reconnectTimer) clearTimeout(reconnectTimer);
+					reconnectTimer = setTimeout(() => {
+						reconnectTimer = undefined;
+						connect();
+					}, backoffMs);
+					backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF);
+				}
+			});
+
+			socket.addEventListener("error", (event) => {
+				console.error("WebSocket error:", event);
+			});
 		};
 
-		socket.addEventListener("open", (event) => {
-			console.log("Connected to Catalyst order server");
-		});
+		connect();
 
-		socket.addEventListener("close", (event) => {
-			console.log("Disconnected from Catalyst order server");
-		});
-
-		socket.addEventListener("error", (event) => {
-			console.error("WebSocket error:", event);
-		});
-
-		return { socket, disconnect: () => socket.close() };
+		return {
+			get socket() {
+				return socket;
+			},
+			disconnect: () => {
+				shouldReconnect = false;
+				if (reconnectTimer) {
+					clearTimeout(reconnectTimer);
+					reconnectTimer = undefined;
+				}
+				socket.close();
+			}
+		};
 	}
 
 	// -- Translations -- //

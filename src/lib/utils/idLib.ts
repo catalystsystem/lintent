@@ -21,14 +21,14 @@ export enum ResetPeriod {
  *  - Bits 160-251: allocator ID (92 bits)
  *  - Bits 0-159: token address (20 bytes = 160 bits)
  *
- * @param isMultichain Whether the lock is multichain (maps to scope)
+ * @param inputChains Whether the lock is multichain (maps to scope)
  * @param resetPeriod Reset period (0-7)
  * @param allocatorId Allocator ID as string
  * @param token Token address as hex string
  * @returns The derived resource lock ID as a BigInt
  */
 export function toId(
-	isMultichain: boolean,
+	inputChains: boolean,
 	resetPeriod: number,
 	allocatorId: string,
 	token: string
@@ -40,8 +40,8 @@ export function toId(
 	// Validate token is a valid address and normalize it
 	const normalizedToken = getAddress(token);
 
-	// Convert isMultichain to scope (inverse relationship)
-	const scope = isMultichain ? 0n : 1n;
+	// Convert inputChains to scope (inverse relationship)
+	const scope = inputChains ? 0n : 1n;
 
 	// Convert allocatorId from decimal string to BigInt
 	const allocatorBigInt = BigInt(allocatorId);

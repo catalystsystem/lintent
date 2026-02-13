@@ -13,21 +13,21 @@
 {#await value}
 	<input
 		type="text"
-		class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+		class="w-20 cursor-not-allowed rounded border border-gray-700 bg-gray-50 px-2 py-1 text-gray-600"
 		disabled
 		value="..."
 	/>
 {:then value}
 	<input
 		type="text"
-		class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+		class="w-20 cursor-not-allowed rounded border border-gray-700 bg-gray-50 px-2 py-1 text-gray-600"
 		disabled
 		value={Number(value) / 10 ** decimals}
 	/>
 {:catch error}
 	<input
 		type="text"
-		class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
+		class="w-20 cursor-not-allowed rounded border border-gray-700 bg-gray-50 px-2 py-1 text-gray-600"
 		disabled
 		value="err"
 	/>
