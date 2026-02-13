@@ -2,6 +2,8 @@
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import GetQuote from "$lib/components/GetQuote.svelte";
 	import FormControl from "$lib/components/ui/FormControl.svelte";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
+	import SectionCard from "$lib/components/ui/SectionCard.svelte";
 	import { POLYMER_ALLOCATOR, formatTokenAmount, type chain } from "$lib/config";
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
@@ -114,7 +116,6 @@
 			decimals: number;
 			chains: string[];
 		}[] = [];
-		// Get all unique tokens.
 		const allUniqueNames = [
 			...new Set(
 				store.inputTokens.map((v) => {
@@ -146,8 +147,6 @@
 
 	const sameChain = $derived.by(() => {
 		if (numInputChains > 1) return false;
-
-		// Only 1 input chain is used.
 		const inputChain = store.inputTokens[0].token.chain;
 		const outputChains = store.outputTokens.map((o) => o.token.chain);
 		const numOutputChains = [...new Set(outputChains)].length;
@@ -157,11 +156,12 @@
 	});
 </script>
 
-<div class="relative h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-3">
-	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Intent Issuance</h1>
-	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
-		Configure assets and execution settings, then issue your intent.
-	</p>
+<ScreenFrame
+	title="Intent Issuance"
+	description="Configure assets and execution settings, then issue your intent."
+	contentClass="relative p-3"
+	bodyClass="mt-2 h-[22.25rem] overflow-y-auto pr-1"
+>
 	{#if inputTokenSelectorActive}
 		<InputTokenModal
 			bind:active={inputTokenSelectorActive}
@@ -174,20 +174,20 @@
 			bind:currentOutputTokens={store.outputTokens}
 		></OutputTokenModal>
 	{/if}
-	<div class="mt-2 h-[22.25rem] overflow-y-auto pr-1">
-		<div class="mt-2 mb-2 flex items-center justify-between gap-2">
-			<div class="text-xs font-semibold text-gray-500">Intent pair</div>
-			<div class="w-20">
-				<GetQuote
-					bind:exclusiveFor={store.exclusiveFor}
-					mainnet={store.mainnet}
-					inputTokens={store.inputTokens}
-					bind:outputTokens={store.outputTokens}
-					{account}
-				></GetQuote>
-			</div>
-		</div>
-		<div class="rounded border border-gray-200 bg-gray-50 p-2">
+
+	<div class="space-y-2">
+		<SectionCard title="Intent pair" compact>
+			{#snippet headerRight()}
+				<div class="w-20">
+					<GetQuote
+						bind:exclusiveFor={store.exclusiveFor}
+						mainnet={store.mainnet}
+						inputTokens={store.inputTokens}
+						bind:outputTokens={store.outputTokens}
+						{account}
+					></GetQuote>
+				</div>
+			{/snippet}
 			<div class="flex w-full flex-row justify-evenly gap-2">
 				<div class="flex flex-col justify-center space-y-1">
 					<h2 class="text-center text-xs font-semibold text-gray-500">You Pay</h2>
@@ -234,9 +234,7 @@
 						>
 							<div class="flex flex-col items-center justify-center align-middle">
 								<div class="flex flex-row space-x-1">
-									<div>
-										{formatTokenAmount(outputToken.amount, outputToken.token.decimals)}
-									</div>
+									<div>{formatTokenAmount(outputToken.amount, outputToken.token.decimals)}</div>
 									<div class="text-xs font-medium text-gray-600">
 										{outputToken.token.name.toUpperCase()}
 									</div>
@@ -249,8 +247,9 @@
 					{/each}
 				</div>
 			</div>
-		</div>
-		<div class="mt-2 rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
+		</SectionCard>
+
+		<SectionCard compact>
 			<div class="flex items-center gap-2">
 				<div class="flex items-center gap-1">
 					<span class="text-[11px] font-semibold text-gray-500">Verifier</span>
@@ -277,9 +276,8 @@
 					/>
 				</div>
 			</div>
-		</div>
+		</SectionCard>
 
-		<!-- Action Button -->
 		<div class="mt-2 flex justify-center">
 			{#if !allowanceCheck}
 				<AwaitButton buttonFunction={approveFunction}>
@@ -340,4 +338,4 @@
 			</p>
 		{/if}
 	</div>
-</div>
+</ScreenFrame>

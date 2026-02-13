@@ -89,7 +89,7 @@
 		</div>
 
 		<div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto p-3">
-			<div class="rounded border border-gray-200 bg-white">
+			<div>
 				<FieldRow columns={rowColumns} header>
 					<div>Chain</div>
 					<div>Amount</div>

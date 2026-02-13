@@ -869,12 +869,18 @@ export class MultichainOrderIntent {
 		this.asMultichainBatchCompact();
 		const { sourceChain, account, walletClient, solveParams, signatures } = options;
 		const actionChain = chainMap[sourceChain];
-		if (actionChain.id in this.inputChains().map((v) => Number(v)))
+		const inputChainIds = this.inputChains().map((v) => Number(v));
+		if (!inputChainIds.includes(actionChain.id))
 			throw new Error(
-				`Input chains and action ID does not match: ${this.inputChains()}, ${actionChain.id}`
+				`Action chain must be one of input chains for finalise: ${inputChainIds}, action=${actionChain.id}`
 			);
 		// Get all components for our chain.
-		const components = this.asComponents().filter((c) => c.chainId === BigInt(actionChain.id));
+		const components = this.asComponents().filter((c) => Number(c.chainId) === actionChain.id);
+		if (components.length === 0) {
+			throw new Error(
+				`No multichain order component found for action chain ${actionChain.id} (${sourceChain}).`
+			);
+		}
 
 		for (const { orderComponent, chainId } of components) {
 			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW.toLowerCase()) {
@@ -912,5 +918,6 @@ export class MultichainOrderIntent {
 				throw new Error(`Could not detect settler type ${this.inputSettler}`);
 			}
 		}
+		throw new Error(`Failed to finalise multichain order on chain ${sourceChain}.`);
 	}
 }

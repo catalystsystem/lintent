@@ -202,7 +202,7 @@
 				</FormControl>
 			</div>
 
-			<div class="rounded border border-gray-200 bg-white">
+			<div>
 				<FieldRow columns={rowColumns} header>
 					<div>Chain</div>
 					<div>Amount / Balance</div>

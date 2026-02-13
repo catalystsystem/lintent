@@ -83,6 +83,13 @@
 	});
 
 	$effect(() => {
+		if (typeof window === "undefined") return;
+		const onOnline = () => updateQuote();
+		window.addEventListener("online", onOnline);
+		return () => window.removeEventListener("online", onOnline);
+	});
+
+	$effect(() => {
 		quoteExpires;
 		if (quoteExpires === 0) {
 			width = 0;
