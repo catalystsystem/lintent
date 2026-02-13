@@ -146,8 +146,8 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Submit Proof of Fill</h1>
-	<p class="my-2">
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Submit Proof of Fill</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
 		Click on each output and wait until they turn green. Polymer does not support batch validation.
 		Continue to the right.
 	</p>

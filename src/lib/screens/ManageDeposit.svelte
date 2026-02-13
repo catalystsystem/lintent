@@ -2,20 +2,15 @@
 	import {
 		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
-		INPUT_SETTLER_ESCROW_LIFI,
-		INPUT_SETTLER_COMPACT_LIFI,
 		type chain,
-		type WC,
 		type Token,
 		coinList,
-		printToken,
-		getIndexOf,
-		type availableAllocators,
-		type availableInputSettlers,
-		type balanceQuery
+		printToken
 	} from "$lib/config";
 	import BalanceField from "$lib/components/BalanceField.svelte";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import FormControl from "$lib/components/ui/FormControl.svelte";
+	import SegmentedControl from "$lib/components/ui/SegmentedControl.svelte";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
 	import store from "$lib/state.svelte";
@@ -54,77 +49,53 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Assets Management</h1>
-	<p class="text-sm">
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Assets Management</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
 		Select input type for your intent and manage deposited tokens. When done, continue to the right.
 		If you want to be using TheCompact with signatures, ensure your tokens are deposited before you
 		continue.
 	</p>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Network</h2>
-		<button
-			class="h-8 rounded-l border px-4"
-			class:hover:bg-gray-100={store.mainnet !== false}
-			class:font-bold={store.mainnet === false}
-			onclick={() => (store.mainnet = false)}
-		>
-			Testnet
-		</button>
-		<button
-			class=" h-8 rounded-r border border-l-0 px-4"
-			class:hover:bg-gray-100={store.mainnet !== true}
-			class:font-bold={store.mainnet === true}
-			onclick={() => (store.mainnet = true)}
-		>
-			Mainnet
-		</button>
+		<SegmentedControl
+			options={[
+				{ label: "Testnet", value: "testnet" },
+				{ label: "Mainnet", value: "mainnet" }
+			]}
+			value={store.mainnet ? "mainnet" : "testnet"}
+			onChange={(v) => (store.mainnet = v === "mainnet")}
+		/>
 	</div>
 	<div class="my-4 flex flex-row">
 		<h2 class="text-md mt-0.5 mr-4 font-medium">Input Type</h2>
-		<button
-			class="h-8 rounded-l border px-4"
-			class:hover:bg-gray-100={store.intentType !== "compact"}
-			class:font-bold={store.intentType === "compact"}
-			onclick={() => (store.intentType = "compact")}
-		>
-			Compact Lock
-		</button>
-		<button
-			class=" h-8 rounded-r border border-l-0 px-4"
-			class:hover:bg-gray-100={store.intentType !== "escrow"}
-			class:font-bold={store.intentType === "escrow"}
-			onclick={() => (store.intentType = "escrow")}
-		>
-			Escrow
-		</button>
+		<SegmentedControl
+			options={[
+				{ label: "Compact Lock", value: "compact" },
+				{ label: "Escrow", value: "escrow" }
+			]}
+			value={store.intentType}
+			onChange={(v) => (store.intentType = v as "compact" | "escrow")}
+		/>
 	</div>
 	{#if store.intentType === "compact"}
-		<form class="w-full space-y-4 rounded-md">
+		<div class="w-full space-y-4 rounded-md">
 			<div class="flex flex-row">
 				<h2 class="text-md mr-4 font-medium">Allocator</h2>
-				<button
-					class="h-8 rounded-l border px-4"
-					class:hover:bg-gray-100={store.allocatorId !== ALWAYS_OK_ALLOCATOR}
-					class:font-bold={store.allocatorId === ALWAYS_OK_ALLOCATOR}
-					onclick={() => (store.allocatorId = ALWAYS_OK_ALLOCATOR)}
-				>
-					AlwaysYesAllocator
-				</button>
-				<button
-					class=" h-8 rounded-r border border-l-0 px-4"
-					class:hover:bg-gray-100={store.allocatorId !== POLYMER_ALLOCATOR}
-					class:font-bold={store.allocatorId === POLYMER_ALLOCATOR}
-					onclick={() => (store.allocatorId = POLYMER_ALLOCATOR)}
-				>
-					Polymer
-				</button>
+				<SegmentedControl
+					options={[
+						{ label: "AlwaysYesAllocator", value: ALWAYS_OK_ALLOCATOR },
+						{ label: "Polymer", value: POLYMER_ALLOCATOR }
+					]}
+					value={store.allocatorId}
+					onChange={(v) => (store.allocatorId = v as typeof store.allocatorId)}
+				/>
 			</div>
 			<div class="flex flex-wrap items-center justify-start gap-2">
-				<select id="in-asset" class="rounded border px-2 py-1" bind:value={manageAssetAction}>
+				<FormControl as="select" id="in-asset" bind:value={manageAssetAction}>
 					<option value="deposit" selected>Deposit</option>
 					<option value="withdraw">Withdraw</option>
-				</select>
-				<input type="number" class="w-20 rounded border px-2 py-1" bind:value={inputNumber} />
+				</FormControl>
+				<FormControl type="number" className="w-20" bind:value={inputNumber} />
 				<span>of</span>
 				{#if (manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[token.chain]}
 					<BalanceField
@@ -134,11 +105,11 @@
 						decimals={token.decimals}
 					/>
 				{/if}
-				<select id="inputToken" class="rounded border px-2 py-1" bind:value={selectedTokenIndex}>
+				<FormControl as="select" id="inputToken" bind:value={selectedTokenIndex}>
 					{#each coinList(store.mainnet) as tkn, i}
 						<option value={i}>{printToken(tkn)}</option>
 					{/each}
-				</select>
+				</FormControl>
 			</div>
 
 			<!-- Action Button -->
@@ -195,7 +166,7 @@
 					</AwaitButton>
 				{/if}
 			</div>
-		</form>
+		</div>
 	{:else}
 		<div class="px-4">
 			<p>

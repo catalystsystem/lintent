@@ -93,8 +93,10 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="mb-2 w-full text-center text-2xl font-medium">Finalise Intent</h1>
-	<p>Finalise the order to receive the inputs.</p>
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Finalise Intent</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
+		Finalise the order to receive the input assets.
+	</p>
 	{#each orderToIntent(orderContainer).inputChains() as inputChain}
 		<div class="w-full">
 			<h2 class="w-full text-center text-lg font-medium">
@@ -105,7 +107,7 @@
 				{#await isClaimed(inputChain, orderContainer, refreshClaimed)}
 					<button
 						type="button"
-						class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
+						class="h-8 rounded-r border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
 						disabled
 					>
 						Finalise
@@ -114,7 +116,7 @@
 					{#if isClaimed}
 						<button
 							type="button"
-							class="h-8 rounded-r border px-4 text-xl font-bold text-gray-300"
+							class="h-8 rounded-r border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
 							disabled
 						>
 							Finalised

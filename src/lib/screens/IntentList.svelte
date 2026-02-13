@@ -62,8 +62,10 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="mb-2 w-full text-center text-2xl font-medium">Select Intent To Solve</h1>
-	<p class="text-sm">Click any row to open it in the fill flow.</p>
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Select Intent To Solve</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
+		Click any row to open it in the fill flow.
+	</p>
 	<div class="mt-2 flex h-[22rem] flex-col overflow-y-auto align-middle">
 		<div class="mb-2 text-xs font-semibold text-gray-500">Active intents ({activeRows.length})</div>
 		<div class="space-y-2">

@@ -124,7 +124,7 @@
 </script>
 
 <main class="main">
-	<h1 class="mb-2 pt-3 text-center align-middle text-xl font-medium">
+	<h1 class="mb-1 pt-3 text-center align-middle text-xl font-medium text-gray-900">
 		Resource lock intents using OIF
 	</h1>
 	<div

@@ -120,8 +120,8 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Fill Intent</h1>
-	<p class="my-2">
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Fill Intent</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
 		Fill each chain once and continue to the right. If you refreshed the page provide your fill tx
 		hash in the input box.
 	</p>

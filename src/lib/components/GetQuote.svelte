@@ -100,27 +100,31 @@
 	let quoteRequest: Promise<void> = $state(Promise.resolve());
 </script>
 
-<div class="relative my-1 flex w-full items-center justify-center text-center align-middle">
+<div class="relative flex w-full items-center justify-center text-center align-middle">
 	{#await quoteRequest}
-		<div class="relative h-7 w-full animate-pulse rounded border px-2 font-bold">Fetch Quote</div>
+		<div
+			class="relative h-6 w-full rounded border border-gray-200 bg-white px-2 text-xs leading-6 font-semibold text-gray-500"
+		>
+			Quote
+		</div>
 	{:then _}
 		<!-- Button gradually shows how long until it is expired by fill background -->
 		{#if quoteExpires !== 0}
 			<div
-				class="absolute top-0 left-0 h-7 rounded bg-blue-200 transition-all"
+				class="absolute top-0 left-0 h-6 rounded bg-sky-100 transition-all"
 				style="width: {width}%"
 			></div>
 			<button
-				class="relative h-7 w-full cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
-				onclick={updateQuote}>Fetch Quote</button
+				class="relative h-6 w-full cursor-pointer rounded border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700 hover:border-sky-300 hover:text-sky-700"
+				onclick={updateQuote}>Quote</button
 			>
 		{:else}
 			<div
-				class="absolute top-0 left-0 h-7 rounded bg-red-200 transition-all"
+				class="absolute top-0 left-0 h-6 rounded bg-rose-100 transition-all"
 				style="width: 100%"
 			></div>
 			<button
-				class="relative h-7 w-full cursor-pointer rounded border px-2 font-bold hover:text-blue-800"
+				class="relative h-6 w-full cursor-pointer rounded border border-rose-200 bg-white px-2 text-xs font-semibold text-rose-700 hover:border-rose-300"
 				onclick={updateQuote}>No Quote</button
 			>
 		{/if}
