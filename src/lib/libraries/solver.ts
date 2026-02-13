@@ -17,6 +17,7 @@ import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { orderToIntent } from "./intent";
 import { compactTypes } from "$lib/utils/typedMessage";
+import store from "$lib/state.svelte";
 
 /**
  * @notice Class for solving intents. Functions called by solvers.
@@ -27,6 +28,33 @@ export class Solver {
 
 	private static sleep(ms: number) {
 		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	private static async persistReceipt(
+		chainId: number | bigint,
+		txHash: `0x${string}`,
+		receipt: unknown
+	) {
+		try {
+			await store.saveTransactionReceipt(chainId, txHash, receipt);
+		} catch (error) {
+			console.warn("saveTransactionReceipt error", { chainId: Number(chainId), txHash, error });
+		}
+	}
+
+	private static async getReceiptCachedOrRpc(chainId: number | bigint, txHash: `0x${string}`) {
+		const cached = store.getTransactionReceipt(chainId, txHash);
+		if (
+			cached &&
+			typeof cached === "object" &&
+			Array.isArray((cached as { logs?: unknown[] }).logs) &&
+			(cached as { logs?: unknown[] }).logs!.length > 0
+		)
+			return cached as any;
+		const chainName = getChainName(chainId);
+		const receipt = await clients[chainName].getTransactionReceipt({ hash: txHash });
+		await Solver.persistReceipt(chainId, txHash, receipt);
+		return receipt;
 	}
 
 	static fill(
@@ -91,9 +119,10 @@ export class Solver {
 						functionName: "approve",
 						args: [bytes32ToAddress(output.settler), maxUint256]
 					});
-					await clients[outputChain].waitForTransactionReceipt({
+					const approveReceipt = await clients[outputChain].waitForTransactionReceipt({
 						hash: approveTransaction
 					});
+					await Solver.persistReceipt(outputs[0].chainId, approveTransaction, approveReceipt);
 				}
 			}
 
@@ -106,9 +135,10 @@ export class Solver {
 				functionName: "fillOrderOutputs",
 				args: [orderId, outputs, order.fillDeadline, addressToBytes32(account())]
 			});
-			await clients[outputChain].waitForTransactionReceipt({
+			const fillReceipt = await clients[outputChain].waitForTransactionReceipt({
 				hash: transactionHash
 			});
+			await Solver.persistReceipt(outputs[0].chainId, transactionHash, fillReceipt);
 			// orderInputs.validate[index] = transactionHash;
 			if (postHook) await postHook();
 			return transactionHash;
@@ -159,9 +189,10 @@ export class Solver {
 				}
 
 				// Get the output filled event.
-				const transactionReceipt = await clients[outputChain].getTransactionReceipt({
-					hash: fillTransactionHash as `0x${string}`
-				});
+				const transactionReceipt = await Solver.getReceiptCachedOrRpc(
+					output.chainId,
+					fillTransactionHash as `0x${string}`
+				);
 
 				const logs = parseEventLogs({
 					abi: COIN_FILLER_ABI,
@@ -190,13 +221,17 @@ export class Solver {
 					const polymerKey = `${Number(output.chainId)}:${Number(transactionReceipt.blockNumber)}:${Number(logIndex)}`;
 					let polymerIndex: number | undefined = Solver.polymerRequestIndexByLog.get(polymerKey);
 					for (const waitMs of [1000, 2000, 4000, 8000]) {
-						const response = await axios.post(`/polymer`, {
-							srcChainId: Number(output.chainId),
-							srcBlockNumber: Number(transactionReceipt.blockNumber),
-							globalLogIndex: Number(logIndex),
-							polymerIndex,
-							mainnet: mainnet
-						});
+						const response = await axios.post(
+							`/polymer`,
+							{
+								srcChainId: Number(output.chainId),
+								srcBlockNumber: Number(transactionReceipt.blockNumber),
+								globalLogIndex: Number(logIndex),
+								polymerIndex,
+								mainnet: mainnet
+							},
+							{ timeout: 15_000 }
+						);
 						const dat = response.data as {
 							proof: undefined | string;
 							polymerIndex: number;
@@ -224,8 +259,11 @@ export class Solver {
 						});
 
 						const result = await clients[sourceChain].waitForTransactionReceipt({
-							hash: transactionHash
+							hash: transactionHash,
+							timeout: 120_000,
+							pollingInterval: 2_000
 						});
+						await Solver.persistReceipt(chainMap[sourceChain].id, transactionHash, result);
 						if (postHook) await postHook();
 						return result;
 					}
@@ -245,8 +283,11 @@ export class Solver {
 					});
 
 					const result = await clients[sourceChain].waitForTransactionReceipt({
-						hash: transactionHash
+						hash: transactionHash,
+						timeout: 120_000,
+						pollingInterval: 2_000
 					});
+					await Solver.persistReceipt(chainMap[sourceChain].id, transactionHash, result);
 					if (postHook) await postHook();
 					return result;
 				}
@@ -297,12 +338,9 @@ export class Solver {
 				}
 			}
 			const transactionReceipts = await Promise.all(
-				fillTransactionHashes.map((fth, i) => {
-					const outputChain = getChainName(order.outputs[i].chainId);
-					return clients[outputChain].getTransactionReceipt({
-						hash: fth as `0x${string}`
-					});
-				})
+				fillTransactionHashes.map((fth, i) =>
+					Solver.getReceiptCachedOrRpc(order.outputs[i].chainId, fth as `0x${string}`)
+				)
 			);
 			const blocks = await Promise.all(
 				transactionReceipts.map((r, i) => {
@@ -355,6 +393,7 @@ export class Solver {
 					{ cause: error as Error }
 				);
 			}
+			await Solver.persistReceipt(chainMap[sourceChain].id, transactionHash, result);
 			if (postHook) await postHook();
 			return result;
 		};

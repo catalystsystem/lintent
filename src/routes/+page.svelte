@@ -12,10 +12,9 @@
 	import ReceiveMessage from "$lib/screens/ReceiveMessage.svelte";
 	import Finalise from "$lib/screens/Finalise.svelte";
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
-	import FlowProgressList, { type FlowStep } from "$lib/components/ui/FlowProgressList.svelte";
+	import FlowStepTracker from "$lib/components/ui/FlowStepTracker.svelte";
 	import store from "$lib/state.svelte";
 	import { orderToIntent } from "$lib/libraries/intent";
-	import { getOrderProgressChecks, getOutputStorageKey } from "$lib/libraries/flowProgress";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
@@ -106,13 +105,6 @@
 	let selectedOrder = $state<OrderContainer | undefined>(undefined);
 	let currentScreenIndex = $state(0);
 	let scrollStepProgress = $state(0);
-	let progressRefreshTick = $state(0);
-	let flowChecksRun = 0;
-	let flowChecks = $state({
-		allFilled: false,
-		allValidated: false,
-		allFinalised: false
-	});
 
 	let snapContainer: HTMLDivElement;
 
@@ -161,182 +153,6 @@
 			goToScreen(targetScreenIndex);
 		};
 	}
-
-	const selectedOutputFillHashSignature = $derived.by(() => {
-		if (!selectedOrder) return "";
-		return selectedOrder.order.outputs
-			.map((output) => store.fillTransactions[getOutputStorageKey(output)] ?? "")
-			.join("|");
-	});
-
-	$effect(() => {
-		const interval = setInterval(() => {
-			progressRefreshTick += 1;
-		}, 30_000);
-		return () => clearInterval(interval);
-	});
-
-	$effect(() => {
-		progressRefreshTick;
-		store.connectedAccount;
-		store.walletClient;
-		selectedOrder;
-		selectedOutputFillHashSignature;
-
-		if (!store.connectedAccount || !store.walletClient || !selectedOrder) {
-			flowChecks = {
-				allFilled: false,
-				allValidated: false,
-				allFinalised: false
-			};
-			return;
-		}
-
-		const currentRun = ++flowChecksRun;
-		getOrderProgressChecks(selectedOrder, store.fillTransactions)
-			.then((checks) => {
-				if (currentRun !== flowChecksRun) return;
-				flowChecks = checks;
-			})
-			.catch((error) => {
-				console.warn("flow progress update failed", error);
-				if (currentRun !== flowChecksRun) return;
-				flowChecks = {
-					allFilled: false,
-					allValidated: false,
-					allFinalised: false
-				};
-			});
-	});
-
-	const progressSteps = $derived.by(() => {
-		const connected = !!store.connectedAccount && !!store.walletClient;
-		if (!connected) {
-			return [
-				{
-					id: "connect",
-					label: "Connect Wallet",
-					status: "active",
-					clickable: true,
-					targetIndex: 0
-				},
-				{
-					id: "assets",
-					label: "Assets Management",
-					status: "locked",
-					clickable: false
-				},
-				{
-					id: "issue",
-					label: "Intent Issuance",
-					status: "locked",
-					clickable: false
-				},
-				{
-					id: "select",
-					label: "Select Intent",
-					status: "locked",
-					clickable: false
-				},
-				{
-					id: "fill",
-					label: "Fill Intent",
-					status: "locked",
-					clickable: false
-				},
-				{
-					id: "proof",
-					label: "Submit Proof",
-					status: "locked",
-					clickable: false
-				},
-				{
-					id: "finalise",
-					label: "Finalise Intent",
-					status: "locked",
-					clickable: false
-				}
-			] as FlowStep[];
-		}
-
-		const selected = selectedOrder !== undefined;
-		const activeByIndex = ["assets", "issue", "select", "fill", "proof", "finalise"];
-		const activeStep =
-			activeByIndex[Math.max(0, Math.min(currentScreenIndex, activeByIndex.length - 1))];
-
-		const assetsDone = currentScreenIndex > 0;
-		const issueDone = currentScreenIndex > 1;
-		const selectDone = selected;
-
-		return [
-			{
-				id: "assets",
-				label: "Asset",
-				status: activeStep === "assets" ? "active" : assetsDone ? "completed" : "pending",
-				clickable: true,
-				targetIndex: 0
-			},
-			{
-				id: "issue",
-				label: "Issue",
-				status: activeStep === "issue" ? "active" : issueDone ? "completed" : "pending",
-				clickable: true,
-				targetIndex: 1
-			},
-			{
-				id: "select",
-				label: "Fetch",
-				status: activeStep === "select" ? "active" : selectDone ? "completed" : "pending",
-				clickable: true,
-				targetIndex: 2
-			},
-			{
-				id: "fill",
-				label: "Fill",
-				status: !selected
-					? "locked"
-					: activeStep === "fill"
-						? "active"
-						: flowChecks.allFilled
-							? "completed"
-							: "pending",
-				clickable: selected,
-				targetIndex: 3
-			},
-			{
-				id: "proof",
-				label: "Prove",
-				status: !selected
-					? "locked"
-					: activeStep === "proof"
-						? "active"
-						: flowChecks.allValidated
-							? "completed"
-							: "pending",
-				clickable: selected,
-				targetIndex: 4
-			},
-			{
-				id: "finalise",
-				label: "Claim",
-				status: !selected
-					? "locked"
-					: activeStep === "finalise"
-						? "active"
-						: flowChecks.allFinalised
-							? "completed"
-							: "pending",
-				clickable: selected,
-				targetIndex: 5
-			}
-		] as FlowStep[];
-	});
-
-	const progressConnectorPosition = $derived.by(() => {
-		if (!store.connectedAccount || !store.walletClient) return 0;
-		const maxIndex = Math.max(progressSteps.length - 1, 0);
-		return Math.max(0, Math.min(scrollStepProgress, maxIndex));
-	});
 </script>
 
 <main class="main">
@@ -404,10 +220,11 @@
 					</div>
 				</div>
 			</div>
-			<FlowProgressList
+			<FlowStepTracker
 				className="h-full w-[6.25rem] flex-shrink-0"
-				steps={progressSteps}
-				progress={progressConnectorPosition}
+				{currentScreenIndex}
+				{scrollStepProgress}
+				{selectedOrder}
 				onStepClick={(step) => {
 					if (step.targetIndex === undefined) return;
 					goToScreen(step.targetIndex);

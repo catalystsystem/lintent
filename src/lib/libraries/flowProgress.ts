@@ -18,6 +18,7 @@ import { addressToBytes32, bytes32ToAddress } from "$lib/utils/convert";
 import { orderToIntent } from "$lib/libraries/intent";
 import { getOrFetchRpc } from "$lib/libraries/rpcCache";
 import type { MandateOutput, OrderContainer } from "../../types";
+import store from "$lib/state.svelte";
 
 const PROGRESS_TTL_MS = 30_000;
 const OrderStatus_Claimed = 2;
@@ -68,16 +69,29 @@ async function isOutputValidatedOnChain(
 	fillTransactionHash: `0x${string}`
 ) {
 	const outputKey = getOutputStorageKey(output);
-	const receipt = await getOrFetchRpc(
-		`progress:receipt:${output.chainId.toString()}:${fillTransactionHash}`,
-		async () => {
-			const outputClient = getClient(output.chainId);
-			return outputClient.getTransactionReceipt({
-				hash: fillTransactionHash
-			});
-		},
-		{ ttlMs: PROGRESS_TTL_MS }
-	);
+	const cachedReceipt = store.getTransactionReceipt(output.chainId, fillTransactionHash);
+	const receipt = (
+		cachedReceipt
+			? cachedReceipt
+			: await getOrFetchRpc(
+					`progress:receipt:${output.chainId.toString()}:${fillTransactionHash}`,
+					async () => {
+						const outputClient = getClient(output.chainId);
+						return outputClient.getTransactionReceipt({
+							hash: fillTransactionHash
+						});
+					},
+					{ ttlMs: PROGRESS_TTL_MS }
+				)
+	) as {
+		blockHash: `0x${string}`;
+		from: `0x${string}`;
+	};
+	if (!cachedReceipt) {
+		store
+			.saveTransactionReceipt(output.chainId, fillTransactionHash, receipt)
+			.catch((error) => console.warn("saveTransactionReceipt error", error));
+	}
 
 	const block = await getOrFetchRpc(
 		`progress:block:${output.chainId.toString()}:${receipt.blockHash}`,

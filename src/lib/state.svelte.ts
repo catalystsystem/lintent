@@ -20,8 +20,12 @@ import onboard from "./utils/web3-onboard";
 import { createWalletClient, custom } from "viem";
 import { browser } from "$app/environment";
 import { initDb, db } from "./db";
-import { intents, fillTransactions as fillTransactionsTable } from "./schema";
-import { eq } from "drizzle-orm";
+import {
+	intents,
+	fillTransactions as fillTransactionsTable,
+	transactionReceipts as transactionReceiptsTable
+} from "./schema";
+import { and, eq } from "drizzle-orm";
 import { orderToIntent } from "./libraries/intent";
 import { getOrFetchRpc, invalidateRpcPrefix } from "./libraries/rpcCache";
 
@@ -109,6 +113,72 @@ class Store {
 		}
 	}
 
+	async loadTransactionReceiptsFromDb() {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const rows = await db!.select().from(transactionReceiptsTable);
+		const loaded: Record<string, string> = {};
+		for (const row of rows) {
+			loaded[`${row.chainId}:${row.txHash}`] = row.receipt;
+		}
+		this.transactionReceipts = loaded;
+	}
+
+	async saveTransactionReceipt(chainId: number | bigint, txHash: `0x${string}`, receipt: unknown) {
+		if (!browser) return;
+		if (!db) await initDb();
+		if (!db) return;
+		const chainIdNumber = Number(chainId);
+		const serializedReceipt = JSON.stringify(receipt, (_key, value) =>
+			typeof value === "bigint" ? value.toString() : value
+		);
+		const existing = await db!
+			.select()
+			.from(transactionReceiptsTable)
+			.where(
+				and(
+					eq(transactionReceiptsTable.chainId, chainIdNumber),
+					eq(transactionReceiptsTable.txHash, txHash)
+				)
+			);
+		if (existing.length > 0) {
+			await db!
+				.update(transactionReceiptsTable)
+				.set({ receipt: serializedReceipt })
+				.where(
+					and(
+						eq(transactionReceiptsTable.chainId, chainIdNumber),
+						eq(transactionReceiptsTable.txHash, txHash)
+					)
+				);
+		} else {
+			await db!.insert(transactionReceiptsTable).values({
+				id: typeof crypto !== "undefined" ? crypto.randomUUID() : String(Date.now()),
+				chainId: chainIdNumber,
+				txHash,
+				receipt: serializedReceipt,
+				createdAt: Date.now()
+			});
+		}
+		this.transactionReceipts[`${chainIdNumber}:${txHash}`] = serializedReceipt;
+	}
+
+	getTransactionReceipt(chainId: number | bigint, txHash: `0x${string}`) {
+		const serialized = this.transactionReceipts[`${Number(chainId)}:${txHash}`];
+		if (!serialized) return undefined;
+		try {
+			return JSON.parse(serialized) as unknown;
+		} catch (error) {
+			console.warn("parse cached transaction receipt failed", {
+				chainId: Number(chainId),
+				txHash,
+				error
+			});
+			return undefined;
+		}
+	}
+
 	wallets = onboard.state.select("wallets");
 	activeWallet = $state<{ wallet?: WalletState }>({});
 	connectedAccount = $derived(this.activeWallet.wallet?.accounts?.[0]);
@@ -121,6 +191,7 @@ class Store {
 	inputTokens = $state<TokenContext[]>([]);
 	outputTokens = $state<TokenContext[]>([]);
 	fillTransactions = $state<{ [outputId: string]: `0x${string}` }>({});
+	transactionReceipts = $state<Record<string, string>>({});
 
 	refreshEpoch = $state(0);
 	rpcRefreshMs = 45_000;
@@ -311,6 +382,9 @@ class Store {
 					this.loadOrdersFromDb().catch((e) => console.warn("loadOrdersFromDb error", e)),
 					this.loadFillTransactionsFromDb().catch((e) =>
 						console.warn("loadFillTransactionsFromDb error", e)
+					),
+					this.loadTransactionReceiptsFromDb().catch((e) =>
+						console.warn("loadTransactionReceiptsFromDb error", e)
 					)
 				]).then(() => {})
 			: Promise.resolve();
