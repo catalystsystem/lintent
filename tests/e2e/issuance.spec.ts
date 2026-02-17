@@ -10,6 +10,41 @@ test.beforeEach(async ({ page }) => {
 			body: JSON.stringify(mockQuoteResponse)
 		});
 	});
+	await page.route("**/orders/status/*", async (route) => {
+		const now = Math.floor(Date.now() / 1000);
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			body: JSON.stringify({
+				data: {
+					order: {
+						user: "0x1111111111111111111111111111111111111111",
+						nonce: "123",
+						originChainId: "8453",
+						expires: now + 3600,
+						fillDeadline: now + 1800,
+						inputOracle: "0x0000000000000000000000000000000000000001",
+						inputs: [["1", "1000000"]],
+						outputs: [
+							{
+								oracle: "0x0000000000000000000000000000000000000000000000000000000000000001",
+								settler: "0x0000000000000000000000000000000000000000000000000000000000000001",
+								chainId: "42161",
+								token: "0x0000000000000000000000000000000000000000000000000000000000000001",
+								amount: "1000000",
+								recipient: "0x0000000000000000000000000000000000000000000000000000000000000001",
+								callbackData: "0x",
+								context: "0x"
+							}
+						]
+					},
+					inputSettler: "0x000025c3226C00B2Cdc200005a1600509f4e00C0",
+					sponsorSignature: null,
+					allocatorSignature: null
+				}
+			})
+		});
+	});
 
 	await page.goto("/");
 	await bootstrapConnectedWallet(page);
@@ -45,4 +80,17 @@ test("input/output modals open and save in issuance screen", async ({ page }) =>
 
 	await page.getByTestId("quote-button").click();
 	await expect(page.getByTestId("quote-button")).toBeVisible();
+});
+
+test("imports order by order id into intent list", async ({ page }) => {
+	await page.getByRole("button", { name: "→" }).click();
+	await page.getByRole("button", { name: "→" }).click();
+	await expect(page.getByRole("heading", { name: "Select Intent To Solve" })).toBeVisible();
+
+	await page
+		.getByTestId("intent-import-order-id")
+		.fill("0x1111111111111111111111111111111111111111111111111111111111111111");
+	await page.getByTestId("intent-import-order-submit").click();
+
+	await expect(page.getByTestId("intent-import-order-id")).toHaveValue("");
 });
