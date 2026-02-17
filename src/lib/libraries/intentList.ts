@@ -11,6 +11,7 @@ import {
 import { orderToIntent } from "./intent";
 import { bytes32ToAddress, idToToken } from "../utils/convert";
 import type { OrderContainer, StandardOrder, MultichainOrder } from "../../types";
+import { validateOrderContainerWithReason } from "$lib/utils/orderLib";
 
 export type Chip = {
 	key: string;
@@ -38,6 +39,8 @@ export type BaseIntentRow = {
 	inputOverflow: number;
 	outputChips: Chip[];
 	outputOverflow: number;
+	validationPassed: boolean;
+	validationReason: string;
 };
 
 export type TimedIntentRow = BaseIntentRow & {
@@ -200,6 +203,8 @@ export function buildBaseIntentRow(orderContainer: OrderContainer): BaseIntentRo
 	const chainScope = getChainScope(order);
 	const contextDetails = getContextDetails(orderContainer);
 
+	const validation = validateOrderContainerWithReason(orderContainer);
+
 	return {
 		orderContainer,
 		orderId,
@@ -217,7 +222,9 @@ export function buildBaseIntentRow(orderContainer: OrderContainer): BaseIntentRo
 		inputChips: inputChipsRaw.slice(0, MAX_CHIPS_PER_SIDE),
 		inputOverflow: Math.max(0, inputChipsRaw.length - MAX_CHIPS_PER_SIDE),
 		outputChips: outputChipsRaw.slice(0, MAX_CHIPS_PER_SIDE),
-		outputOverflow: Math.max(0, outputChipsRaw.length - MAX_CHIPS_PER_SIDE)
+		outputOverflow: Math.max(0, outputChipsRaw.length - MAX_CHIPS_PER_SIDE),
+		validationPassed: validation.passed,
+		validationReason: validation.reason
 	};
 }
 

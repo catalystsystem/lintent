@@ -61,4 +61,14 @@
 	<span class="rounded bg-gray-100 px-1.5 py-0.5"
 		>{row.inputCount} inputs • {row.outputCount} outputs</span
 	>
+	<span
+		class="rounded px-1.5 py-0.5"
+		class:bg-emerald-100={row.validationPassed}
+		class:text-emerald-800={row.validationPassed}
+		class:bg-rose-100={!row.validationPassed}
+		class:text-rose-800={!row.validationPassed}
+		title={row.validationReason}
+	>
+		{row.validationPassed ? "Validation Pass" : `Invalid: ${row.validationReason}`}
+	</span>
 </div>
