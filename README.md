@@ -16,6 +16,24 @@ To start development:
 4. Install dependencies `bun install`.
 5. Start `bun run dev`.
 
+### Testing
+
+The project now uses a two-layer automated test suite:
+
+1. Unit and integration tests with `bun test`
+2. Browser UI-state tests with Playwright
+
+Run:
+
+- `bun run test:unit` for library/unit/integration tests with coverage output
+- `bun run test:e2e` for deterministic browser tests
+- `bun run test:all` to run both
+
+For local Playwright setup:
+
+1. `bun install`
+2. `bunx playwright install chromium`
+
 ## Structure
 
 Lintent is built around a single page [/src/routes/+page.svelte](/src/routes/+page.svelte).

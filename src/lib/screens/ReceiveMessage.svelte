@@ -7,6 +7,10 @@
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 	import { Solver } from "$lib/libraries/solver";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
+	import SectionCard from "$lib/components/ui/SectionCard.svelte";
+	import ChainActionRow from "$lib/components/ui/ChainActionRow.svelte";
+	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
 	import { orderToIntent } from "$lib/libraries/intent";
 	import { compactTypes } from "$lib/utils/typedMessage";
@@ -30,10 +34,19 @@
 	let refreshValidation = $state(0);
 	let autoScrolledOrderId = $state<`0x${string}` | null>(null);
 	let validationRun = 0;
+	let validationStatuses = $state<Record<string, boolean>>({});
 	const postHookRefreshValidate = async () => {
 		await postHook();
 		refreshValidation += 1;
 	};
+	const outputKey = (output: MandateOutput) =>
+		hashStruct({
+			data: output,
+			types: compactTypes,
+			primaryType: "MandateOutput"
+		});
+	const validationKey = (inputChain: bigint, output: MandateOutput) =>
+		`${inputChain.toString()}:${outputKey(output)}`;
 
 	async function isValidated(
 		orderId: `0x${string}`,
@@ -121,9 +134,10 @@
 			return;
 
 		const currentRun = ++validationRun;
-		Promise.all(
-			inputChains.flatMap((inputChain) =>
-				outputs.map((output, outputIndex) =>
+		const pairs = inputChains.flatMap((inputChain) =>
+			outputs.map((output, outputIndex) => ({
+				key: validationKey(inputChain, output),
+				run: () =>
 					isValidated(
 						orderId,
 						inputChain,
@@ -132,12 +146,15 @@
 						fillTxHashes[outputIndex] as `0x${string}`,
 						refreshValidation
 					)
-				)
-			)
-		)
-			.then((validationResults) => {
+			}))
+		);
+		Promise.all(pairs.map(async (pair) => [pair.key, await pair.run()] as const))
+			.then((entries) => {
 				if (currentRun !== validationRun) return;
-				if (validationResults.length === 0 || !validationResults.every(Boolean)) return;
+				const nextStatuses: Record<string, boolean> = {};
+				for (const [key, validated] of entries) nextStatuses[key] = validated;
+				validationStatuses = nextStatuses;
+				if (entries.length === 0 || !entries.every(([, validated]) => validated)) return;
 				autoScrolledOrderId = orderId;
 				scroll(5)();
 			})
@@ -145,99 +162,81 @@
 	});
 </script>
 
-<div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Submit Proof of Fill</h1>
-	<p class="my-2">
-		Click on each output and wait until they turn green. Polymer does not support batch validation.
-		Continue to the right.
-	</p>
-	{#each orderToIntent(orderContainer).inputChains() as inputChain}
-		<div class="w-full">
-			<h2 class="w-full text-center text-lg font-medium">
-				{getChainName(inputChain)}
-			</h2>
-			<hr class="my-1" />
-			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
-				{#each orderContainer.order.outputs as output}
-					{#await isValidated(orderToIntent(orderContainer).orderId(), inputChain, orderContainer, output, store.fillTransactions[hashStruct( { data: output, types: compactTypes, primaryType: "MandateOutput" } )], refreshValidation)}
-						<div class="h-8 w-28 cursor-pointer rounded bg-slate-100 text-center">
-							<div class="flex flex-col items-center justify-center align-middle">
-								<div class="flex flex-row space-x-1">
-									<div>
+<ScreenFrame
+	title="Submit Proof of Fill"
+	description="Click on each output and wait until they turn green. Polymer does not support batch validation. Continue to the right."
+>
+	<div class="space-y-2">
+		{#each orderToIntent(orderContainer).inputChains() as inputChain}
+			<SectionCard compact>
+				<ChainActionRow chainLabel={getChainName(inputChain)}>
+					{#snippet action()}
+						<div class="text-[11px] font-semibold text-gray-500 uppercase">Validate outputs</div>
+					{/snippet}
+					{#snippet chips()}
+						{#each orderContainer.order.outputs as output}
+							{@const status = validationStatuses[validationKey(inputChain, output)]}
+							{#if status === undefined}
+								<TokenAmountChip
+									amountText={formatTokenAmount(
+										output.amount,
+										getCoin({ address: output.token, chain: getChainName(output.chainId) }).decimals
+									)}
+									symbol={getCoin({ address: output.token, chain: getChainName(output.chainId) })
+										.name}
+									tone="warning"
+								/>
+							{:else}
+								<AwaitButton
+									size="sm"
+									variant={status ? "success" : "warning"}
+									baseClass={["min-w-[6.5rem] justify-center"]}
+									buttonFunction={status
+										? async () => {}
+										: Solver.validate(
+												store.walletClient,
+												{
+													output,
+													orderContainer,
+													fillTransactionHash:
+														store.fillTransactions[
+															hashStruct({
+																data: output,
+																types: compactTypes,
+																primaryType: "MandateOutput"
+															})
+														],
+													sourceChain: getChainName(inputChain),
+													mainnet: store.mainnet
+												},
+												{
+													preHook,
+													postHook: postHookRefreshValidate,
+													account
+												}
+											)}
+								>
+									{#snippet name()}
 										{formatTokenAmount(
 											output.amount,
 											getCoin({ address: output.token, chain: getChainName(output.chainId) })
 												.decimals
 										)}
-									</div>
-									<div>
-										{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
-									</div>
-								</div>
-							</div>
-						</div>
-					{:then validated}
-						<AwaitButton
-							baseClass={[
-								"h-8 w-28 rounded text-center",
-								validated ? "bg-green-50" : "bg-yellow-50"
-							]}
-							hoverClass={[validated ? "" : "hover:bg-yellow-100 cursor-pointer"]}
-							buttonFunction={Solver.validate(
-								store.walletClient,
-								{
-									output,
-									orderContainer,
-									fillTransactionHash:
-										store.fillTransactions[
-											hashStruct({
-												data: output,
-												types: compactTypes,
-												primaryType: "MandateOutput"
-											})
-										],
-									sourceChain: getChainName(inputChain),
-									mainnet: store.mainnet
-								},
-								{
-									preHook,
-									postHook: postHookRefreshValidate,
-									account
-								}
-							)}
-						>
-							{#snippet name()}
-								<div class="flex flex-row items-center justify-center space-x-1 text-center">
-									<div>
-										{formatTokenAmount(
-											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId) })
-												.decimals
-										)}
-									</div>
-									<div>
-										{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
-									</div>
-								</div>
-							{/snippet}
-							{#snippet awaiting()}
-								<div class="flex flex-row items-center justify-center space-x-1 text-center">
-									<div>
-										{formatTokenAmount(
-											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId) })
-												.decimals
-										)}
-									</div>
-									<div>
-										{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
-									</div>
-								</div>
-							{/snippet}
-						</AwaitButton>
-					{/await}
-				{/each}
-			</div>
-		</div>
-	{/each}
-</div>
+										&nbsp;
+										{getCoin({
+											address: output.token,
+											chain: getChainName(output.chainId)
+										}).name.toUpperCase()}
+									{/snippet}
+									{#snippet awaiting()}
+										Validating...
+									{/snippet}
+								</AwaitButton>
+							{/if}
+						{/each}
+					{/snippet}
+				</ChainActionRow>
+			</SectionCard>
+		{/each}
+	</div>
+</ScreenFrame>

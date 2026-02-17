@@ -12,6 +12,7 @@
 	import ReceiveMessage from "$lib/screens/ReceiveMessage.svelte";
 	import Finalise from "$lib/screens/Finalise.svelte";
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
+	import FlowStepTracker from "$lib/components/ui/FlowStepTracker.svelte";
 	import store from "$lib/state.svelte";
 	import { orderToIntent } from "$lib/libraries/intent";
 
@@ -102,84 +103,133 @@
 	const account = () => store.connectedAccount?.address!;
 
 	let selectedOrder = $state<OrderContainer | undefined>(undefined);
+	let currentScreenIndex = $state(0);
+	let scrollStepProgress = $state(0);
 
 	let snapContainer: HTMLDivElement;
+
+	function getScreenWidth() {
+		if (!snapContainer) return 0;
+		return snapContainer.clientWidth + 1;
+	}
+
+	function getMaxScreenIndex() {
+		if (!snapContainer) return 0;
+		const width = getScreenWidth();
+		return Math.max(Math.ceil(snapContainer.scrollWidth / width) - 1, 0);
+	}
+
+	function updateCurrentScreenIndex() {
+		if (!snapContainer) return;
+		const width = getScreenWidth();
+		const maxScreenIndex = getMaxScreenIndex();
+		const rawIndex = snapContainer.scrollLeft / width;
+		scrollStepProgress = Math.max(0, Math.min(rawIndex, maxScreenIndex));
+		currentScreenIndex = Math.round(scrollStepProgress);
+	}
+
+	function goToScreen(index: number) {
+		if (!snapContainer) return;
+		const width = getScreenWidth();
+		const maxScreenIndex = getMaxScreenIndex();
+		const targetScreenIndex = Math.max(0, Math.min(index, maxScreenIndex));
+		currentScreenIndex = targetScreenIndex;
+		scrollStepProgress = targetScreenIndex;
+		snapContainer.scrollTo({
+			left: targetScreenIndex * width,
+			behavior: "smooth"
+		});
+	}
 
 	function scroll(next: boolean | number) {
 		return () => {
 			if (!snapContainer) return;
-			const width = snapContainer.clientWidth + 1;
-			const maxScreenIndex = Math.max(Math.ceil(snapContainer.scrollWidth / width) - 1, 0);
-			const currentScreenIndex = Math.round(snapContainer.scrollLeft / width);
+			updateCurrentScreenIndex();
+			const maxScreenIndex = getMaxScreenIndex();
 			const targetScreenIndex =
 				typeof next === "number"
 					? Math.max(0, Math.min(next, maxScreenIndex))
 					: Math.max(0, Math.min(currentScreenIndex + (next ? 1 : -1), maxScreenIndex));
-			snapContainer.scrollTo({
-				left: targetScreenIndex * width,
-				behavior: "smooth"
-			});
+			goToScreen(targetScreenIndex);
 		};
 	}
 </script>
 
 <main class="main">
-	<h1 class="mb-2 pt-3 text-center align-middle text-xl font-medium">
+	<h1 class="mb-1 pt-3 text-center align-middle text-xl font-medium text-gray-900">
 		Resource lock intents using OIF
 	</h1>
 	<div
 		class="mx-auto flex flex-col-reverse items-center px-4 pt-2 md:max-w-[80rem] md:flex-row md:items-start md:px-10 md:pt-3"
 	>
 		<Introduction />
-		<div class="relative mb-4 h-[30rem] w-[25rem] md:mb-0">
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				class="h-[30rem] w-[25rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-md border border-gray-200 bg-gray-50"
-				bind:this={snapContainer}
-			>
-				<!-- Right Button -->
-				<a
-					class="absolute bottom-2 left-[18.5rem] w-40 cursor-pointer rounded px-1 text-xs hover:text-sky-800"
-					href="https://li.fi"
+		<div class="mb-4 flex h-[30rem] w-max flex-row items-stretch gap-2 md:mb-0">
+			<div class="relative h-full w-[25rem]">
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="h-[30rem] w-[25rem] snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-md border border-gray-200 bg-gray-50"
+					bind:this={snapContainer}
+					onscroll={updateCurrentScreenIndex}
 				>
-					Preview by LI.FI
-				</a>
-
-				{#if !(!store.connectedAccount || !store.walletClient)}
 					<!-- Right Button -->
-					<button
-						class="absolute top-1.5 left-[23rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
-						onclick={scroll(true)}
+					<a
+						class="absolute bottom-2 left-[18.5rem] w-40 cursor-pointer rounded px-1 text-xs hover:text-sky-800"
+						href="https://li.fi"
 					>
-						→
-					</button>
-					<!-- Back Button -->
-					<button
-						class="absolute top-1.5 left-[1rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
-						onclick={scroll(false)}
-					>
-						←
-					</button>
-				{/if}
-				<div class="flex h-full w-max flex-row">
-					{#if !store.connectedAccount || !store.walletClient}
-						<ConnectWallet {onboard}></ConnectWallet>
-					{:else}
-						<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
-						<IssueIntent {scroll} {preHook} {postHook} {account}></IssueIntent>
-						<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
-						{#if selectedOrder !== undefined}
-							<!-- <IntentDescription></IntentDescription> -->
-							<FillIntent {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
-							></FillIntent>
-							<ReceiveMessage {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
-							></ReceiveMessage>
-							<Finalise orderContainer={selectedOrder} {preHook} {postHook} {account}></Finalise>
-						{/if}
+						Preview by LI.FI
+					</a>
+
+					{#if !(!store.connectedAccount || !store.walletClient)}
+						<!-- Right Button -->
+						<button
+							class="absolute top-1.5 left-[23rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
+							onclick={scroll(true)}
+						>
+							→
+						</button>
+						<!-- Back Button -->
+						<button
+							class="absolute top-1.5 left-[1rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
+							onclick={scroll(false)}
+						>
+							←
+						</button>
 					{/if}
+					<div class="flex h-full w-max flex-row">
+						{#if !store.connectedAccount || !store.walletClient}
+							<ConnectWallet {onboard}></ConnectWallet>
+						{:else}
+							<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
+							<IssueIntent {scroll} {preHook} {postHook} {account}></IssueIntent>
+							<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
+							{#if selectedOrder !== undefined}
+								<!-- <IntentDescription></IntentDescription> -->
+								<FillIntent {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
+								></FillIntent>
+								<ReceiveMessage
+									{scroll}
+									orderContainer={selectedOrder}
+									{account}
+									{preHook}
+									{postHook}
+								></ReceiveMessage>
+								<Finalise orderContainer={selectedOrder} {preHook} {postHook} {account}></Finalise>
+							{/if}
+						{/if}
+					</div>
 				</div>
 			</div>
+			<FlowStepTracker
+				className="h-full w-[6.25rem] flex-shrink-0"
+				{currentScreenIndex}
+				{scrollStepProgress}
+				{selectedOrder}
+				onStepClick={(step) => {
+					if (step.targetIndex === undefined) return;
+					goToScreen(step.targetIndex);
+				}}
+			/>
 		</div>
 	</div>
 	<!-- Make a table to display orders from users -->

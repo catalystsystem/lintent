@@ -10,6 +10,8 @@
 		formatRemaining,
 		type TimedIntentRow
 	} from "$lib/libraries/intentList";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
+	import SectionCard from "$lib/components/ui/SectionCard.svelte";
 	import type { OrderContainer } from "../../types";
 
 	let {
@@ -61,11 +63,12 @@
 	);
 </script>
 
-<div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="mb-2 w-full text-center text-2xl font-medium">Select Intent To Solve</h1>
-	<p class="text-sm">Click any row to open it in the fill flow.</p>
-	<div class="mt-2 flex h-[22rem] flex-col overflow-y-auto align-middle">
-		<div class="mb-2 text-xs font-semibold text-gray-500">Active intents ({activeRows.length})</div>
+<ScreenFrame
+	title="Select Intent To Solve"
+	description="Click any row to open it in the fill flow."
+	bodyClass="mt-2 flex h-[22rem] flex-col overflow-y-auto align-middle pr-1"
+>
+	<SectionCard title={`Active intents (${activeRows.length})`} className="mb-2" compact>
 		<div class="space-y-2">
 			{#each activeRows as row (row.orderId)}
 				<button
@@ -87,10 +90,8 @@
 				</button>
 			{/each}
 		</div>
-
-		<div class="mt-3 mb-2 text-xs font-semibold text-gray-400">
-			Expired intents ({expiredRows.length})
-		</div>
+	</SectionCard>
+	<SectionCard title={`Expired intents (${expiredRows.length})`} compact>
 		<div class="space-y-1">
 			{#each expiredRows as row (row.orderId)}
 				<button
@@ -118,5 +119,5 @@
 				</button>
 			{/each}
 		</div>
-	</div>
-</div>
+	</SectionCard>
+</ScreenFrame>

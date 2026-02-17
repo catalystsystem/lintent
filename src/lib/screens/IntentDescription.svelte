@@ -3,9 +3,10 @@
 </script>
 
 <div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4 px-10">
-	<h1 class="mb-2 w-full text-center text-2xl font-medium">Intent Description</h1>
-	To fill an intent, you need to execute up to 4 transactions. This intent requires 3 transactions to
-	fill.
+	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">Intent Description</h1>
+	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">
+		To fill an intent, you may need to execute up to 4 transactions. This intent requires 3.
+	</p>
 	<hr />
 	<ol class="list-decimal">
 		<li>

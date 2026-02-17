@@ -1,12 +1,16 @@
 <script lang="ts">
-	import BalanceField from "$lib/components/BalanceField.svelte";
-	import { chainMap, coinList, INPUT_SETTLER_COMPACT_LIFI, type Token } from "$lib/config";
+	import { chainMap, coinList, type Token } from "$lib/config";
+	import FieldRow from "$lib/components/ui/FieldRow.svelte";
+	import FormControl from "$lib/components/ui/FormControl.svelte";
+	import InlineMetaField from "$lib/components/ui/InlineMetaField.svelte";
 	import { AssetSelection } from "$lib/libraries/assetSelection";
 	import store, { type TokenContext } from "$lib/state.svelte";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
 	import { type InteropableAddress, getInteropableAddress } from "$lib/utils/interopableAddresses";
 
 	const v = (num: number | null) => (num ? num : 0);
+	const formatBalance = (value: bigint, decimals: number) =>
+		(Number(value) / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: 4 });
 
 	let {
 		active = $bindable(),
@@ -24,15 +28,27 @@
 			])
 		)
 	);
+	let enabledByToken = $state<{ [index: InteropableAddress]: boolean }>(
+		Object.fromEntries(
+			(currentInputTokens ?? []).map(({ token }) => [
+				getInteropableAddress(token.address, chainMap[token.chain].id),
+				true
+			])
+		)
+	);
 	// svelte-ignore state_referenced_locally
 	let computerValue = $state<number | null>(Object.values(inputs).reduce((a, b) => v(a) + v(b), 0));
 
 	type SortOrder = "largest" | "smallest";
 	let sortOrder = $state<SortOrder>("largest");
+	const rowColumns = "4.5rem minmax(0,1fr) 2rem";
+	const iaddrFor = (token: Token) => getInteropableAddress(token.address, chainMap[token.chain].id);
+
+	const isEnabled = (address: InteropableAddress) => enabledByToken[address] ?? true;
 
 	function getTokenFor(address: InteropableAddress): Token | undefined {
 		for (const token of tokenSet) {
-			const iaddr = getInteropableAddress(token.address, chainMap[token.chain].id);
+			const iaddr = iaddrFor(token);
 			if (iaddr === address) return token;
 		}
 	}
@@ -48,6 +64,7 @@
 			const token = getTokenFor(key);
 			// If we can't find the token, then it is most likely because the user changed their token.
 			if (!token) continue;
+			if (!isEnabled(key)) continue;
 
 			if (inputValue === 0) continue;
 			inputTokens.push({ token, amount: toBigIntWithDecimals(inputValue, token.decimals) });
@@ -79,18 +96,28 @@
 		selectedTokenName;
 		if (circuitBreaker || currentInputTokens[0].token.name !== selectedTokenName) {
 			circuitBreaker = true;
-			inputs = Object.fromEntries(
-				tokenSet.map((token) => [getInteropableAddress(token.address, chainMap[token.chain].id), 0])
-			);
+			inputs = Object.fromEntries(tokenSet.map((token) => [iaddrFor(token), 0]));
+			enabledByToken = Object.fromEntries(tokenSet.map((token) => [iaddrFor(token), true]));
 		}
 	});
 
 	async function computeInputs(total: number, order: SortOrder) {
 		const tokens = tokenSet;
-		const balancePromises = tokenSet.map(
-			(tkn) =>
-				(store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][
-					tkn.address
+		const selectedIndices = tokens
+			.map((token, i) => [token, i] as const)
+			.filter(([token]) => isEnabled(iaddrFor(token)))
+			.map(([, i]) => i);
+		if (selectedIndices.length === 0) {
+			for (const token of tokens) {
+				const iaddr = iaddrFor(token);
+				inputs[iaddr] = 0;
+			}
+			return 0;
+		}
+		const balancePromises = selectedIndices.map(
+			(i) =>
+				(store.intentType === "compact" ? store.compactBalances : store.balances)[tokens[i].chain][
+					tokens[i].address
 				]
 		);
 		const balances = await Promise.all(balancePromises);
@@ -103,9 +130,13 @@
 					? new AssetSelection({ goal, values: balances }).largest().asValues()
 					: new AssetSelection({ goal, values: balances }).smallest().asValues();
 
-		for (let i = 0; i < tokens.length; ++i) {
-			const token = tokenSet[i];
-			const iaddr = getInteropableAddress(token.address, chainMap[token.chain].id);
+		for (const token of tokens) {
+			const iaddr = iaddrFor(token);
+			inputs[iaddr] = 0;
+		}
+		for (let i = 0; i < selectedIndices.length; ++i) {
+			const token = tokenSet[selectedIndices[i]];
+			const iaddr = iaddrFor(token);
 			inputs[iaddr] = Number(solution[i]) / 10 ** token.decimals;
 		}
 
@@ -137,69 +168,83 @@
 </script>
 
 <div
-	class="absolute top-30 left-1/2 z-20 mx-auto h-2/3 w-11/12 -translate-x-1/2 transform border border-gray-200 bg-gray-50"
+	data-testid="input-token-modal"
+	class="absolute top-1/2 left-1/2 z-20 mx-auto h-[80%] max-h-[24rem] w-11/12 -translate-x-1/2 -translate-y-1/2 transform rounded-md border border-gray-200 bg-white shadow-lg"
 >
-	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<button
-		class="absolute top-0 right-0 h-5 w-5 cursor-pointer bg-blue-100 text-center"
-		onclick={() => {
-			active = false;
-		}}
-	>
-		<div class="absolute top-1.5 right-2.5 h-2 w-[1px] rotate-45 bg-black font-bold"></div>
-		<div class="absolute top-1.5 right-2.5 h-2 w-[1px] -rotate-45 bg-black font-bold"></div>
-	</button>
-	<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
-		<h3 class="-mt-2 text-center text-xl font-medium">Select Input</h3>
-		<div class="flex flex-row">
-			<select id="orderSelector" class="mr-0.5" bind:value={sortOrder}>
-				<option value="largest">↑</option>
-				<option value="smallest">↓</option>
-			</select>
-			<input
-				type="number"
-				class="w-20 rounded rounded-r-none border border-r-0 border-gray-400 px-2 py-1"
-				bind:value={computerValue}
-			/>
-			<select
-				id="tokenSelector"
-				class="rounded rounded-l-none border border-gray-400 px-2 py-1"
-				bind:value={selectedTokenName}
+	<div class="flex h-full flex-col">
+		<div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">Select Input</h3>
+				<p class="text-xs text-gray-500">Choose token amount distribution across chains.</p>
+			</div>
+			<button
+				data-testid="input-token-modal-close"
+				class="h-7 w-7 cursor-pointer rounded border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+				onclick={() => {
+					active = false;
+				}}
 			>
-				{#each uniqueInputTokens as token}
-					<option value={token}>{token.toUpperCase()}</option>
-				{/each}
-			</select>
+				x
+			</button>
 		</div>
-		<div class="flex flex-row space-x-2">
-			<div class="flex flex-col space-y-2 text-right">
-				{#each tokenSet as tkn}
-					<span class="h-8">{tkn.chain}</span>
-				{/each}
+
+		<div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto p-3">
+			<div class="flex items-center gap-1">
+				<FormControl as="select" id="orderSelector" className="w-14" bind:value={sortOrder}>
+					<option value="largest">↑</option>
+					<option value="smallest">↓</option>
+				</FormControl>
+				<FormControl type="number" className="w-24" bind:value={computerValue} />
+				<FormControl as="select" id="tokenSelector" bind:value={selectedTokenName}>
+					{#each uniqueInputTokens as token}
+						<option value={token}>{token.toUpperCase()}</option>
+					{/each}
+				</FormControl>
 			</div>
-			<div class="flex flex-col space-y-2">
-				{#each tokenSet as tkn}
-					<div class="flex flex-row space-x-2">
-						<input
-							type="number"
-							class="w-20 rounded border px-2 py-1"
-							defaultValue="0"
-							bind:value={inputs[getInteropableAddress(tkn.address, chainMap[tkn.chain].id)]}
-						/>
-						<span class="mt-0.5">of</span>
-						<BalanceField
-							value={(store.intentType === "compact" ? store.compactBalances : store.balances)[
-								tkn.chain
-							][tkn.address]}
-							decimals={tkn.decimals}
-						/>
-					</div>
-				{/each}
+
+			<div>
+				<FieldRow columns={rowColumns} header>
+					<div>Chain</div>
+					<div>Amount / Balance</div>
+					<div class="text-center">Use</div>
+				</FieldRow>
+				<div>
+					{#each tokenSet as tkn, rowIndex}
+						{@const iaddr = iaddrFor(tkn)}
+						<FieldRow columns={rowColumns} striped index={rowIndex}>
+							<div class="truncate text-xs font-medium text-gray-700">{tkn.chain}</div>
+							{#await (store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][tkn.address]}
+								<InlineMetaField
+									bind:value={inputs[iaddr]}
+									metaText="..."
+									disabled={!isEnabled(iaddr)}
+								/>
+							{:then balance}
+								<InlineMetaField
+									bind:value={inputs[iaddr]}
+									metaText={formatBalance(balance, tkn.decimals)}
+									disabled={!isEnabled(iaddr)}
+								/>
+							{:catch _}
+								<InlineMetaField
+									bind:value={inputs[iaddr]}
+									metaText="err"
+									disabled={!isEnabled(iaddr)}
+								/>
+							{/await}
+							<div class="flex justify-center">
+								<input type="checkbox" bind:checked={enabledByToken[iaddr]} />
+							</div>
+						</FieldRow>
+					{/each}
+				</div>
 			</div>
+
+			<button
+				data-testid="input-token-modal-save"
+				class="h-8 w-full cursor-pointer rounded border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-sky-300 hover:text-sky-700"
+				onclick={save}>Save Input Selection</button
+			>
 		</div>
-		<button
-			class="bg-gray h-8 rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-			onclick={save}>Save</button
-		>
 	</div>
 </div>

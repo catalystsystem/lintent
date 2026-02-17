@@ -14,4 +14,12 @@ export const fillTransactions = pgTable("fill_transactions", {
 	txHash: text("tx_hash").notNull()
 });
 
-export const schema = { intents, fillTransactions };
+export const transactionReceipts = pgTable("transaction_receipts", {
+	id: text("id").primaryKey(),
+	chainId: bigint("chain_id", { mode: "number" }).notNull(),
+	txHash: text("tx_hash").notNull(),
+	receipt: text("receipt").notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull()
+});
+
+export const schema = { intents, fillTransactions, transactionReceipts };

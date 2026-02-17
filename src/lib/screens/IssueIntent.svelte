@@ -1,14 +1,10 @@
 <script lang="ts">
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import GetQuote from "$lib/components/GetQuote.svelte";
-	import {
-		INPUT_SETTLER_COMPACT_LIFI,
-		POLYMER_ALLOCATOR,
-		formatTokenAmount,
-		type chain,
-		INPUT_SETTLER_ESCROW_LIFI,
-		MULTICHAIN_INPUT_SETTLER_COMPACT
-	} from "$lib/config";
+	import FormControl from "$lib/components/ui/FormControl.svelte";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
+	import SectionCard from "$lib/components/ui/SectionCard.svelte";
+	import { POLYMER_ALLOCATOR, formatTokenAmount, type chain } from "$lib/config";
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import store from "$lib/state.svelte";
@@ -118,8 +114,8 @@
 			name: string;
 			amount: bigint;
 			decimals: number;
+			chains: string[];
 		}[] = [];
-		// Get all unique tokens.
 		const allUniqueNames = [
 			...new Set(
 				store.inputTokens.map((v) => {
@@ -131,10 +127,13 @@
 			const name = allUniqueNames[i];
 			inputs[i] = {
 				name,
-				amount: bigIntSum(
-					...store.inputTokens.map((v, i) => (v.token.name == name ? v.amount : 0n))
-				),
-				decimals: store.inputTokens.find((v) => v.token.name == name)!.token.decimals
+				amount: bigIntSum(...store.inputTokens.map((v) => (v.token.name == name ? v.amount : 0n))),
+				decimals: store.inputTokens.find((v) => v.token.name == name)!.token.decimals,
+				chains: [
+					...new Set(
+						store.inputTokens.filter((v) => v.token.name == name).map((v) => v.token.chain)
+					)
+				]
 			};
 		}
 		return inputs;
@@ -148,8 +147,6 @@
 
 	const sameChain = $derived.by(() => {
 		if (numInputChains > 1) return false;
-
-		// Only 1 input chain is used.
 		const inputChain = store.inputTokens[0].token.chain;
 		const outputChains = store.outputTokens.map((o) => o.token.chain);
 		const numOutputChains = [...new Set(outputChains)].length;
@@ -159,12 +156,12 @@
 	});
 </script>
 
-<div class="relative h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Intent Issuance</h1>
-	<p class="text-sm">
-		Select assets for your intent along with the verifier for the intent. Then choose your desired
-		style of execution. Your intent will be sent to the LI.FI dev order server.
-	</p>
+<ScreenFrame
+	title="Intent Issuance"
+	description="Configure assets and execution settings, then issue your intent."
+	contentClass="relative p-3"
+	bodyClass="mt-2 h-[22.25rem] overflow-y-auto pr-1"
+>
 	{#if inputTokenSelectorActive}
 		<InputTokenModal
 			bind:active={inputTokenSelectorActive}
@@ -177,148 +174,168 @@
 			bind:currentOutputTokens={store.outputTokens}
 		></OutputTokenModal>
 	{/if}
-	<div class="my-4 flex w-full flex-row justify-evenly">
-		<div class="flex flex-col justify-center space-y-1">
-			<h2 class="text-center text-sm">You Pay</h2>
-			{#each abstractInputs as input, i}
-				<button
-					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-					onclick={() => (inputTokenSelectorActive = true)}
-				>
-					<div class="flex flex-col items-center justify-center align-middle">
-						<div class="flex flex-row space-x-1">
-							<div>{formatTokenAmount(input.amount, input.decimals)}</div>
-						</div>
-						<div>{input.name.toUpperCase()}</div>
-					</div>
-				</button>
-			{/each}
-			{#if numInputChains > 1}
-				<div class="text-center font-medium text-fuchsia-500">Multichain!</div>
-			{/if}
-			{#if sameChain}
-				<div class="text-center font-medium text-violet-500">SameChain!</div>
-			{/if}
-		</div>
-		<div class="flex flex-col justify-center">
-			<div class="flex flex-col items-center">
-				<div>In</div>
-				<div>exchange</div>
-				<div>for</div>
-			</div>
-		</div>
-		<div class="flex flex-col justify-center space-y-1">
-			<h2 class="text-center text-sm">You Receive</h2>
-			{#each store.outputTokens as outputToken}
-				<button
-					class="h-16 w-28 cursor-pointer rounded bg-sky-100 text-center hover:bg-sky-200 hover:shadow-sm"
-					onclick={() => (outputTokenSelectorActive = true)}
-				>
-					<div class="flex flex-col items-center justify-center align-middle">
-						<div class="flex flex-row space-x-1">
-							<div>
-								{formatTokenAmount(outputToken.amount, outputToken.token.decimals)}
+
+	<div class="space-y-2">
+		<SectionCard title="Intent pair" compact>
+			{#snippet headerRight()}
+				<div class="w-20">
+					<GetQuote
+						bind:exclusiveFor={store.exclusiveFor}
+						mainnet={store.mainnet}
+						inputTokens={store.inputTokens}
+						bind:outputTokens={store.outputTokens}
+						{account}
+					></GetQuote>
+				</div>
+			{/snippet}
+			<div class="flex w-full flex-row justify-evenly gap-2">
+				<div class="flex flex-col justify-center space-y-1">
+					<h2 class="text-center text-xs font-semibold text-gray-500">You Pay</h2>
+					{#each abstractInputs as input, i (input.name)}
+						<button
+							data-testid={`open-input-modal-${i}`}
+							class="h-14 w-28 cursor-pointer rounded border border-gray-200 bg-white px-2 py-1 text-center transition-shadow ease-linear hover:shadow-md"
+							onclick={() => (inputTokenSelectorActive = true)}
+						>
+							<div class="flex flex-col items-center justify-center align-middle">
+								<div class="flex flex-row space-x-1">
+									<div>{formatTokenAmount(input.amount, input.decimals)}</div>
+									<div class="text-xs font-medium text-gray-600">{input.name.toUpperCase()}</div>
+								</div>
+								<div class="mt-0.5 text-center text-[11px] leading-tight text-gray-500">
+									{#each input.chains as chainName, chainIndex (chainName)}
+										<span>{chainName}{chainIndex < input.chains.length - 1 ? ", " : ""}</span>
+									{/each}
+								</div>
 							</div>
-							<div>{outputToken.token.name.toUpperCase()}</div>
-						</div>
-						<div>{outputToken.token.chain}</div>
+						</button>
+					{/each}
+					{#if numInputChains > 1}
+						<div class="text-center text-xs font-semibold text-amber-700">Multichain</div>
+					{/if}
+					{#if sameChain}
+						<div class="text-center text-xs font-semibold text-sky-700">Same chain</div>
+					{/if}
+				</div>
+				<div class="flex flex-col justify-center">
+					<div class="flex flex-col items-center text-xs font-semibold text-gray-500">
+						<div>In</div>
+						<div>exchange</div>
+						<div>for</div>
 					</div>
-				</button>
-			{/each}
-		</div>
-	</div>
+				</div>
+				<div class="flex flex-col justify-center space-y-1">
+					<h2 class="text-center text-xs font-semibold text-gray-500">You Receive</h2>
+					{#each store.outputTokens as outputToken, i (`${outputToken.token.chain}-${outputToken.token.address}-${i}`)}
+						<button
+							data-testid={`open-output-modal-${i}`}
+							class="h-14 w-28 cursor-pointer rounded border border-gray-200 bg-white px-2 py-1 text-center transition-shadow ease-linear hover:shadow-md"
+							onclick={() => (outputTokenSelectorActive = true)}
+						>
+							<div class="flex flex-col items-center justify-center align-middle">
+								<div class="flex flex-row space-x-1">
+									<div>{formatTokenAmount(outputToken.amount, outputToken.token.decimals)}</div>
+									<div class="text-xs font-medium text-gray-600">
+										{outputToken.token.name.toUpperCase()}
+									</div>
+								</div>
+								<div class="mt-0.5 text-[11px] leading-tight text-gray-500">
+									{outputToken.token.chain}
+								</div>
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+		</SectionCard>
 
-	<div class="mx-auto w-2/5">
-		<GetQuote
-			bind:exclusiveFor={store.exclusiveFor}
-			mainnet={store.mainnet}
-			inputTokens={store.inputTokens}
-			bind:outputTokens={store.outputTokens}
-			{account}
-		></GetQuote>
-	</div>
-	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
-		{#if sameChain}
-			<span class="font-medium">Verified by</span>
-			<select class="rounded border px-2 py-1 text-gray-400" disabled>
-				<option selected disabled> Settler </option>
-			</select>
-		{:else}
-			<span class="font-medium">Verified by</span>
-			<select id="verified-by" class="rounded border px-2 py-1">
-				<option value="polymer" selected> Polymer </option>
-				<option value="wormhole" disabled> Wormhole </option>
-			</select>
-		{/if}
-	</div>
-	<div class="mb-2 flex flex-wrap items-center justify-center gap-2">
-		<span class="font-medium">Exclusive For</span>
-		<input
-			type="text"
-			class="w-20 rounded border border-gray-800 bg-gray-50 px-2 py-1"
-			placeholder="0x..."
-			bind:value={store.exclusiveFor}
-		/>
-	</div>
+		<SectionCard compact>
+			<div class="flex items-center gap-2">
+				<div class="flex items-center gap-1">
+					<span class="text-[11px] font-semibold text-gray-500">Verifier</span>
+					{#if sameChain}
+						<FormControl as="select" size="sm" state="disabled" disabled>
+							<option selected disabled>Settler</option>
+						</FormControl>
+					{:else}
+						<FormControl as="select" id="verified-by" size="sm">
+							<option value="polymer" selected>Polymer</option>
+							<option value="wormhole" disabled>Wormhole</option>
+						</FormControl>
+					{/if}
+				</div>
+				<div class="h-5 w-px bg-gray-200"></div>
+				<div class="flex min-w-0 flex-1 items-center gap-1">
+					<span class="text-[11px] font-semibold whitespace-nowrap text-gray-500">Exclusive</span>
+					<FormControl
+						type="text"
+						size="sm"
+						className="flex-1"
+						placeholder="0x... (optional)"
+						bind:value={store.exclusiveFor}
+					/>
+				</div>
+			</div>
+		</SectionCard>
 
-	<!-- Action Button -->
-	<div class="flex justify-center">
-		{#if !allowanceCheck}
-			<AwaitButton buttonFunction={approveFunction}>
-				{#snippet name()}
-					Set allowance
-				{/snippet}
-				{#snippet awaiting()}
-					Waiting for transaction...
-				{/snippet}
-			</AwaitButton>
-		{:else}
-			<div class="flex flex-row space-x-2">
-				{#if !balanceCheckWallet}
-					<button
-						type="button"
-						class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
-						disabled
-					>
-						Low Balance
-					</button>
-				{:else if store.intentType === "escrow"}
-					<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
-						{#snippet name()}
-							Execute Open
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{/if}
-				{#if store.intentType === "compact" && store.allocatorId !== POLYMER_ALLOCATOR}
-					{#if !balanceCheckCompact}
+		<div class="mt-2 flex justify-center">
+			{#if !allowanceCheck}
+				<AwaitButton buttonFunction={approveFunction}>
+					{#snippet name()}
+						Set allowance
+					{/snippet}
+					{#snippet awaiting()}
+						Waiting for transaction...
+					{/snippet}
+				</AwaitButton>
+			{:else}
+				<div class="flex flex-row space-x-2">
+					{#if !balanceCheckWallet}
 						<button
 							type="button"
-							class="h-8 rounded border px-4 text-xl font-bold text-gray-300"
+							class="h-8 rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
 							disabled
 						>
-							Low Compact Balance
+							Low Balance
 						</button>
-					{:else}
-						<AwaitButton buttonFunction={intentFactory.compact(opts)}>
+					{:else if store.intentType === "escrow"}
+						<AwaitButton buttonFunction={intentFactory.openIntent(opts)}>
 							{#snippet name()}
-								Sign Order
+								Execute Open
 							{/snippet}
 							{#snippet awaiting()}
 								Waiting for transaction...
 							{/snippet}
 						</AwaitButton>
 					{/if}
-				{/if}
-			</div>
+					{#if store.intentType === "compact" && store.allocatorId !== POLYMER_ALLOCATOR}
+						{#if !balanceCheckCompact}
+							<button
+								type="button"
+								class="h-8 rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
+								disabled
+							>
+								Low Compact Balance
+							</button>
+						{:else}
+							<AwaitButton buttonFunction={intentFactory.compact(opts)}>
+								{#snippet name()}
+									Sign Order
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{/if}
+					{/if}
+				</div>
+			{/if}
+		</div>
+		{#if numInputChains > 1 && store.intentType !== "compact"}
+			<p class="mx-auto mt-2 w-4/5 text-center text-xs text-gray-600">
+				You'll need to open the order on {numInputChains} chains. Be prepared and do not interrupt the
+				process.
+			</p>
 		{/if}
 	</div>
-	{#if numInputChains > 1 && store.intentType !== "compact"}
-		<p class="mx-auto mt-1 w-4/5 text-sm">
-			You'll need to open the order on {numInputChains} chains. Be prepared and do not interrupt the
-			process.
-		</p>
-	{/if}
-</div>
+</ScreenFrame>

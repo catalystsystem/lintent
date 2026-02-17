@@ -5,8 +5,7 @@
 		getChainName,
 		getClient,
 		getCoin,
-		type chain,
-		type WC
+		type chain
 	} from "$lib/config";
 	import { bytes32ToAddress } from "$lib/utils/convert";
 	import { getOutputHash } from "$lib/utils/orderLib";
@@ -14,8 +13,12 @@
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
+	import SectionCard from "$lib/components/ui/SectionCard.svelte";
+	import ChainActionRow from "$lib/components/ui/ChainActionRow.svelte";
+	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
-	import { Intent, orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/libraries/intent";
 	import { compactTypes } from "$lib/utils/typedMessage";
 	import { hashStruct } from "viem";
 
@@ -36,6 +39,7 @@
 	let refreshValidation = $state(0);
 	let autoScrolledOrderId = $state<`0x${string}` | null>(null);
 	let fillRun = 0;
+	let fillStatuses = $state<Record<string, `0x${string}`>>({});
 	const postHookScroll = async () => {
 		await postHook();
 		refreshValidation += 1;
@@ -70,15 +74,12 @@
 		}
 		return arrMap;
 	}
-
-	const filledStatusPromises: [bigint, Promise<`0x${string}`>[]][] = $derived(
-		sortOutputsByChain(orderContainer).map(([c, outputs]) => [
-			c,
-			outputs.map((output) =>
-				isFilled(orderToIntent(orderContainer).orderId(), output, refreshValidation)
-			)
-		])
-	);
+	const outputKey = (output: MandateOutput) =>
+		hashStruct({
+			data: output,
+			types: compactTypes,
+			primaryType: "MandateOutput"
+		});
 
 	$effect(() => {
 		refreshValidation;
@@ -90,10 +91,15 @@
 		if (outputs.length === 0) return;
 
 		const currentRun = ++fillRun;
-		Promise.all(outputs.map((output) => isFilled(orderId, output, refreshValidation)))
-			.then((fillResults) => {
+		Promise.all(
+			outputs.map(async (output) => [outputKey(output), await isFilled(orderId, output)] as const)
+		)
+			.then((entries) => {
 				if (currentRun !== fillRun) return;
-				if (!fillResults.every((result) => result !== BYTES32_ZERO)) return;
+				const nextStatuses: Record<string, `0x${string}`> = {};
+				for (const [key, status] of entries) nextStatuses[key] = status;
+				fillStatuses = nextStatuses;
+				if (!entries.every(([, result]) => result !== BYTES32_ZERO)) return;
 				autoScrolledOrderId = orderId;
 				scroll(4)();
 			})
@@ -119,98 +125,79 @@
 	};
 </script>
 
-<div class="h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4">
-	<h1 class="w-full text-center text-2xl font-medium">Fill Intent</h1>
-	<p class="my-2">
-		Fill each chain once and continue to the right. If you refreshed the page provide your fill tx
-		hash in the input box.
-	</p>
-	<div class="w-full">
-		{#each sortOutputsByChain(orderContainer) as chainIdAndOutputs, c}
-			<h2 class="w-full text-center text-lg font-medium">
-				{getChainName(chainIdAndOutputs[0])}
-			</h2>
-			<hr class="my-1" />
-			<div class="flex w-full flex-row space-x-1 overflow-y-hidden">
-				{#await Promise.all(filledStatusPromises[c][1])}
-					<button class="h-8 w-min max-w-min min-w-max rounded border px-4 font-medium" disabled>
-						Fill
-					</button>
-				{:then filledStatus}
-					<AwaitButton
-						buttonFunction={filledStatus.every((v) => v == BYTES32_ZERO)
-							? fillWrapper(
-									chainIdAndOutputs[1],
-									Solver.fill(
-										store.walletClient,
-										{
-											orderContainer,
-											outputs: chainIdAndOutputs[1]
-										},
-										{
-											preHook,
-											postHook: postHookScroll,
-											account
-										}
-									)
-								)
-							: async () => {}}
-					>
-						{#snippet name()}
-							Fill
-						{/snippet}
-						{#snippet awaiting()}
-							Waiting for transaction...
-						{/snippet}
-					</AwaitButton>
-				{/await}
-				{#each chainIdAndOutputs[1] as output, i}
-					{#await filledStatusPromises[c][1][i]}
-						<div class="h-8 w-28 rounded bg-slate-200 pt-0.5 text-center">
-							<div class="flex flex-col items-center justify-center align-middle">
-								<div class="flex flex-row space-x-1">
-									<div>
-										{formatTokenAmount(
-											output.amount,
-											getCoin({
-												address: output.token,
-												chain: getChainName(output.chainId)
-											}).decimals
-										)}
-									</div>
-									<div>
-										{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
-									</div>
-								</div>
-							</div>
-						</div>
-					{:then filled}
-						<div
-							class={[
-								"h-8 w-28 rounded pt-0.5 text-center",
-								filled === BYTES32_ZERO ? "bg-slate-200" : "bg-green-100"
-							]}
-						>
-							<div class="flex flex-col items-center justify-center align-middle">
-								<div class="flex flex-row space-x-1">
-									<div>
-										{formatTokenAmount(
-											output.amount,
-											getCoin({
-												address: output.token,
-												chain: getChainName(output.chainId)
-											}).decimals
-										)}
-									</div>
-									<div>
-										{getCoin({ address: output.token, chain: getChainName(output.chainId) }).name}
-									</div>
-								</div>
-							</div>
-						</div>
-					{/await}
-				{/each}
-			</div>
+<ScreenFrame
+	title="Fill Intent"
+	description="Fill each chain once and continue to the right. If you refreshed the page provide your fill tx hash in the input box."
+>
+	<div class="space-y-2">
+		{#each sortOutputsByChain(orderContainer) as chainIdAndOutputs}
+			<SectionCard compact>
+				<ChainActionRow chainLabel={getChainName(chainIdAndOutputs[0])}>
+					{#snippet action()}
+						{@const chainStatuses = chainIdAndOutputs[1].map(
+							(output) => fillStatuses[outputKey(output)]
+						)}
+						{#if chainStatuses.some((status) => status === undefined)}
+							<button
+								type="button"
+								class="h-8 rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
+								disabled
+							>
+								Fill
+							</button>
+						{:else}
+							<AwaitButton
+								variant={chainStatuses.every((v) => v == BYTES32_ZERO) ? "default" : "muted"}
+								buttonFunction={chainStatuses.every((v) => v == BYTES32_ZERO)
+									? fillWrapper(
+											chainIdAndOutputs[1],
+											Solver.fill(
+												store.walletClient,
+												{
+													orderContainer,
+													outputs: chainIdAndOutputs[1]
+												},
+												{
+													preHook,
+													postHook: postHookScroll,
+													account
+												}
+											)
+										)
+									: async () => {}}
+							>
+								{#snippet name()}
+									Fill
+								{/snippet}
+								{#snippet awaiting()}
+									Waiting for transaction...
+								{/snippet}
+							</AwaitButton>
+						{/if}
+					{/snippet}
+					{#snippet chips()}
+						{#each chainIdAndOutputs[1] as output}
+							{@const filled = fillStatuses[outputKey(output)]}
+							<TokenAmountChip
+								amountText={formatTokenAmount(
+									output.amount,
+									getCoin({
+										address: output.token,
+										chain: getChainName(output.chainId)
+									}).decimals
+								)}
+								symbol={getCoin({ address: output.token, chain: getChainName(output.chainId) })
+									.name}
+								tone={filled === undefined
+									? "muted"
+									: filled === BYTES32_ZERO
+										? "neutral"
+										: "success"}
+							/>
+						{/each}
+					{/snippet}
+				</ChainActionRow>
+			</SectionCard>
 			<!-- <input
 				class="w-20 rounded border px-2 py-1"
 				placeholder="fillTransactionHash"
@@ -229,4 +216,4 @@
 			/> -->
 		{/each}
 	</div>
-</div>
+</ScreenFrame>

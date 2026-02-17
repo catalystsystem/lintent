@@ -1,19 +1,23 @@
 <script lang="ts">
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
+	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
 
 	let { onboard }: { onboard: any } = $props();
 </script>
 
-<div class="h-[29rem] w-[25rem] snap-center snap-always p-4 px-10">
-	<div class="mb-14 flex h-full flex-col items-center justify-center align-middle">
-		<AwaitButton buttonFunction={() => onboard.connectWallet()} baseClass={["h-full w-full"]}>
-			{#snippet name()}
-				Connect Wallet
-			{/snippet}
-			{#snippet awaiting()}
-				Waiting for wallet...
-			{/snippet}
-		</AwaitButton>
-		<div></div>
-	</div>
-</div>
+<ScreenFrame
+	title="Connect Wallet"
+	description="Connect your wallet to continue with intent issuance and filling."
+	contentClass="px-10"
+	bodyClass="mb-14 flex h-[22rem] flex-col items-center justify-center align-middle"
+>
+	<AwaitButton buttonFunction={() => onboard.connectWallet()} fullWidth baseClass={["h-full"]}>
+		{#snippet name()}
+			Connect Wallet
+		{/snippet}
+		{#snippet awaiting()}
+			Waiting for wallet...
+		{/snippet}
+	</AwaitButton>
+	<div></div>
+</ScreenFrame>

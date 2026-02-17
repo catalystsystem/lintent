@@ -102,8 +102,54 @@ export class OrderServer {
 		this.websocketUrl = OrderServer.getOrderServerWssUrl(mainnet);
 
 		this.api = axios.create({
-			baseURL: this.baseUrl
+			baseURL: this.baseUrl,
+			timeout: 15000
 		});
+	}
+
+	private static sleep(ms: number) {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	private static isNetworkError(error: unknown): boolean {
+		if (!axios.isAxiosError(error)) return false;
+		return error.code === "ERR_NETWORK" || error.code === "ECONNABORTED";
+	}
+
+	private async waitForOnline(maxWaitMs = 15000) {
+		if (typeof window === "undefined" || typeof navigator === "undefined") return;
+		if (navigator.onLine) return;
+		await Promise.race([
+			new Promise<void>((resolve) => {
+				const onOnline = () => {
+					window.removeEventListener("online", onOnline);
+					resolve();
+				};
+				window.addEventListener("online", onOnline, { once: true });
+			}),
+			OrderServer.sleep(maxWaitMs)
+		]);
+	}
+
+	private async postWithRetry<T>(
+		path: string,
+		body: unknown,
+		opts: { retries?: number; baseDelayMs?: number } = {}
+	): Promise<T> {
+		const retries = opts.retries ?? 2;
+		const baseDelayMs = opts.baseDelayMs ?? 500;
+		let attempt = 0;
+		while (true) {
+			try {
+				const response = await this.api.post(path, body);
+				return response.data as T;
+			} catch (error) {
+				if (!OrderServer.isNetworkError(error) || attempt >= retries) throw error;
+				await this.waitForOnline();
+				await OrderServer.sleep(baseDelayMs * 2 ** attempt);
+				attempt += 1;
+			}
+		}
 	}
 
 	static getOrderServerUrl(mainnet: boolean) {
@@ -121,8 +167,7 @@ export class OrderServer {
 	 */
 	async submitOrder(request: SubmitOrderDto) {
 		try {
-			const response = await this.api.post("/orders/submit", request);
-			return response.data;
+			return await this.postWithRetry("/orders/submit", request, { retries: 2, baseDelayMs: 600 });
 		} catch (error) {
 			console.error("Error submitting order:", error);
 			throw error;
@@ -182,10 +227,12 @@ export class OrderServer {
 		};
 
 		try {
-			const response = await this.api.post("/quote/request", rq);
-			return response.data;
+			return await this.postWithRetry<GetQuoteResponse>("/quote/request", rq, {
+				retries: 3,
+				baseDelayMs: 700
+			});
 		} catch (error) {
-			console.error("Error submitting order:", error);
+			console.error("Error fetching quote:", error);
 			throw error;
 		}
 	}

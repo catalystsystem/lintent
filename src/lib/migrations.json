@@ -28,5 +28,13 @@
 		"bps": true,
 		"folderMillis": 1770810000000,
 		"hash": "387946018137748e3a5dd66fca8a1da71ddabc4191a835a3254fad26c6b6d412"
+	},
+	{
+		"sql": [
+			"CREATE TABLE \"transaction_receipts\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"chain_id\" bigint NOT NULL,\n\t\"tx_hash\" text NOT NULL,\n\t\"receipt\" text NOT NULL,\n\t\"created_at\" bigint NOT NULL\n);\n"
+		],
+		"bps": true,
+		"folderMillis": 1771060000000,
+		"hash": "8f048c5d64c44d6c89c970f44a52e1fdbaf3de8f4052145cfd90f50822ab95f1"
 	}
 ]

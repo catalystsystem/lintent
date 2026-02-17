@@ -1,6 +1,7 @@
 <script lang="ts">
-	import BalanceField from "$lib/components/BalanceField.svelte";
-	import { chainList, type chain, chains, coinList, type Token } from "$lib/config";
+	import FieldRow from "$lib/components/ui/FieldRow.svelte";
+	import FormControl from "$lib/components/ui/FormControl.svelte";
+	import { chainList, type chain, coinList } from "$lib/config";
 	import store, { type TokenContext } from "$lib/state.svelte";
 	import { toBigIntWithDecimals } from "$lib/utils/convert";
 
@@ -62,70 +63,78 @@
 		if (outputs.length == 1) return;
 		outputs.pop();
 	}
+
+	const rowColumns = "5.5rem minmax(0,1fr) 5.5rem";
 </script>
 
 <div
-	class="absolute top-30 left-1/2 z-20 mx-auto h-2/3 w-11/12 -translate-x-1/2 transform border border-gray-200 bg-gray-50"
+	data-testid="output-token-modal"
+	class="absolute top-1/2 left-1/2 z-20 mx-auto h-[80%] max-h-[24rem] w-11/12 -translate-x-1/2 -translate-y-1/2 transform rounded-md border border-gray-200 bg-white shadow-lg"
 >
-	<!-- svelte-ignore a11y_consider_explicit_label -->
-	<button
-		class="absolute top-0 right-0 h-5 w-5 cursor-pointer bg-blue-100 text-center"
-		onclick={() => {
-			active = false;
-		}}
-	>
-		<div class="absolute top-1.5 right-2.5 h-2 w-[1px] rotate-45 bg-black font-bold"></div>
-		<div class="absolute top-1.5 right-2.5 h-2 w-[1px] -rotate-45 bg-black font-bold"></div>
-	</button>
-	<div class="flex h-full w-full flex-col items-center justify-center space-y-3 align-middle">
-		<h3 class="-mt-2 text-center text-xl font-medium">Select Output</h3>
-		<div class="flex flex-row space-x-2">
-			<div class="flex flex-col space-y-2">
-				{#each outputs as output}
-					<div class="flex flex-row space-x-2">
-						<input
-							type="number"
-							class="w-20 rounded border px-2 py-1"
-							defaultValue="0"
-							bind:value={output.amount}
-						/>
-						<select
-							class="rounded rounded-l-none border border-gray-400 px-2 py-1"
-							bind:value={output.chain}
-						>
-							{#each Object.values(chainList(store.mainnet)) as chain}
-								<option value={chain}>{chain}</option>
-							{/each}
-						</select>
-						<select
-							class="rounded rounded-l-none border border-gray-400 px-2 py-1"
-							bind:value={output.name}
-						>
-							{#each getTokensForChain(output.chain) as token}
-								<option value={token.name}>{token.name.toUpperCase()}</option>
-							{/each}
-						</select>
-					</div>
-				{/each}
+	<div class="flex h-full flex-col">
+		<div class="flex items-center justify-between border-b border-gray-200 px-3 py-2">
+			<div>
+				<h3 class="text-base font-semibold text-gray-800">Select Output</h3>
+				<p class="text-xs text-gray-500">Configure one or more destination token outputs.</p>
 			</div>
+			<button
+				data-testid="output-token-modal-close"
+				class="h-7 w-7 cursor-pointer rounded border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+				onclick={() => {
+					active = false;
+				}}
+			>
+				x
+			</button>
 		</div>
-		<div class="flex w-full flex-row justify-evenly">
-			<button
-				class="w-8 cursor-pointer rounded bg-red-100 font-medium hover:bg-red-200"
-				onclick={remove}
-			>
-				-
-			</button>
-			<button
-				class="bg-gray h-8 rounded border px-4 text-xl font-bold text-gray-600 hover:text-blue-600"
-				onclick={save}>Save</button
-			>
-			<button
-				class="w-8 cursor-pointer rounded bg-green-100 font-medium hover:bg-green-200"
-				onclick={add}
-			>
-				+
-			</button>
+
+		<div class="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto p-3">
+			<div>
+				<FieldRow columns={rowColumns} header>
+					<div>Chain</div>
+					<div>Amount</div>
+					<div>Token</div>
+				</FieldRow>
+				<div>
+					{#each outputs as output, rowIndex}
+						<FieldRow columns={rowColumns} striped index={rowIndex}>
+							<FormControl as="select" size="sm" bind:value={output.chain}>
+								{#each Object.values(chainList(store.mainnet)) as chain}
+									<option value={chain}>{chain}</option>
+								{/each}
+							</FormControl>
+							<FormControl type="number" size="sm" bind:value={output.amount} />
+							<FormControl as="select" size="sm" bind:value={output.name}>
+								{#each getTokensForChain(output.chain) as token}
+									<option value={token.name}>{token.name.toUpperCase()}</option>
+								{/each}
+							</FormControl>
+						</FieldRow>
+					{/each}
+				</div>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<button
+					data-testid="output-token-remove"
+					class="h-8 w-8 cursor-pointer rounded border border-rose-200 bg-rose-50 text-base font-semibold text-rose-700 hover:border-rose-300"
+					onclick={remove}
+				>
+					-
+				</button>
+				<button
+					data-testid="output-token-modal-save"
+					class="h-8 flex-1 cursor-pointer rounded border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-sky-300 hover:text-sky-700"
+					onclick={save}>Save Output Selection</button
+				>
+				<button
+					data-testid="output-token-add"
+					class="h-8 w-8 cursor-pointer rounded border border-emerald-200 bg-emerald-50 text-base font-semibold text-emerald-700 hover:border-emerald-300"
+					onclick={add}
+				>
+					+
+				</button>
+			</div>
 		</div>
 	</div>
 </div>
