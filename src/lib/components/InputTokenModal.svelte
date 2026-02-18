@@ -4,7 +4,8 @@
 	import FormControl from "$lib/components/ui/FormControl.svelte";
 	import InlineMetaField from "$lib/components/ui/InlineMetaField.svelte";
 	import { AssetSelection } from "$lib/libraries/assetSelection";
-	import store, { type TokenContext } from "$lib/state.svelte";
+	import type { TokenContext } from "$lib/core/types";
+	import store from "$lib/state.svelte";
 	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 	import { type InteropableAddress, getInteropableAddress } from "$lib/utils/interopableAddresses";
 

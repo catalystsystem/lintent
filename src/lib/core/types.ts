@@ -1,3 +1,6 @@
+import type { Token, Verifier } from "../config";
+import type { ResetPeriod } from "./compact/idLib";
+
 export type Quote = {
 	fromAsset: string;
 	toAsset: string;
@@ -29,6 +32,41 @@ export type Lock = {
 	token: `0x${string}`;
 	amount: bigint;
 };
+
+export type EscrowLock = {
+	type: "escrow";
+};
+
+export type CompactLock = {
+	type: "compact";
+	resetPeriod: ResetPeriod;
+	allocatorId: string;
+};
+
+export type TokenContext = {
+	token: Token;
+	amount: bigint;
+};
+
+export type CreateIntentOptionsEscrow = {
+	exclusiveFor: string;
+	inputTokens: TokenContext[];
+	outputTokens: TokenContext[];
+	verifier: Verifier;
+	account: () => `0x${string}`;
+	lock: EscrowLock;
+};
+
+export type CreateIntentOptionsCompact = {
+	exclusiveFor: string;
+	inputTokens: TokenContext[];
+	outputTokens: TokenContext[];
+	verifier: Verifier;
+	account: () => `0x${string}`;
+	lock: CompactLock;
+};
+
+export type CreateIntentOptions = CreateIntentOptionsEscrow | CreateIntentOptionsCompact;
 
 export type BatchCompact = {
 	arbiter: `0x${string}`; // The account tasked with verifying and submitting the claim.

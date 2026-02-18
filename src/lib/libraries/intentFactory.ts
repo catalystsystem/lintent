@@ -10,17 +10,19 @@ import {
 } from "$lib/config";
 import { maxUint256 } from "viem";
 import type {
+	CreateIntentOptions,
 	MultichainOrder,
 	NoSignature,
 	OrderContainer,
 	Signature,
-	StandardOrder
+	StandardOrder,
+	TokenContext
 } from "../core/types";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/core/intent";
 import { OrderServer } from "$lib/core/api/orderServer";
-import type { CreateIntentOptions } from "$lib/core/intent";
-import { store, type TokenContext } from "$lib/state.svelte";
+import { store } from "$lib/state.svelte";
+import { depositAndRegisterCompact, openEscrowIntent, signIntentCompact } from "./intentExecution";
 
 /**
  * @notice Factory class for creating and managing intents. Functions called by integrators.
@@ -85,7 +87,7 @@ export class IntentFactory {
 			if (this.preHook) await this.preHook(inputChain);
 			const intent = new Intent(opts).order();
 
-			const sponsorSignature = await intent.signCompact(account(), this.walletClient);
+			const sponsorSignature = await signIntentCompact(intent, account(), this.walletClient);
 
 			console.log({
 				order: intent.asOrder(),
@@ -122,7 +124,7 @@ export class IntentFactory {
 
 			if (this.preHook) await this.preHook(inputTokens[0].token.chain);
 
-			let transactionHash = await intent.depositAndRegisterCompact(account(), this.walletClient);
+			let transactionHash = await depositAndRegisterCompact(intent, account(), this.walletClient);
 
 			const receipt = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
 				hash: transactionHash
@@ -159,7 +161,7 @@ export class IntentFactory {
 			if (this.preHook) await this.preHook(inputChain);
 
 			// Execute the open.
-			const transactionHashes = await intent.openEscrow(account(), this.walletClient);
+			const transactionHashes = await openEscrowIntent(intent, account(), this.walletClient);
 			console.log({ tsh: transactionHashes });
 
 			// for (const hash of transactionHashes) {

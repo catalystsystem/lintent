@@ -18,6 +18,7 @@ import { ERC20_ABI } from "$lib/abi/erc20";
 import { orderToIntent } from "../core/intent";
 import { compactTypes } from "$lib/utils/typedMessage";
 import store from "$lib/state.svelte";
+import { finaliseIntent } from "./intentExecution";
 
 /**
  * @notice Class for solving intents. Functions called by solvers.
@@ -368,7 +369,8 @@ export class Solver {
 				};
 			});
 
-			const transactionHash = await intent.finalise({
+			const transactionHash = await finaliseIntent({
+				intent,
 				sourceChain,
 				account: account(),
 				walletClient,

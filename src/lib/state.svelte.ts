@@ -1,5 +1,5 @@
 import type { WalletState } from "@web3-onboard/core";
-import type { OrderContainer } from "./core/types";
+import type { OrderContainer, TokenContext } from "./core/types";
 import {
 	ALWAYS_OK_ALLOCATOR,
 	chainMap,
@@ -28,11 +28,6 @@ import {
 import { and, eq } from "drizzle-orm";
 import { orderToIntent } from "./core/intent";
 import { getOrFetchRpc, invalidateRpcPrefix } from "./libraries/rpcCache";
-
-export type TokenContext = {
-	token: Token;
-	amount: bigint;
-};
 
 class Store {
 	mainnet = $state<boolean>(true);

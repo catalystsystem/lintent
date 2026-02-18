@@ -13,7 +13,7 @@ import {
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { addressToBytes32 } from "$lib/core/helpers/convert";
 import { ERC20_ABI } from "$lib/abi/erc20";
-import type { TokenContext } from "$lib/state.svelte";
+import type { TokenContext } from "$lib/core/types";
 
 export class CompactLib {
 	static compactDeposit(
