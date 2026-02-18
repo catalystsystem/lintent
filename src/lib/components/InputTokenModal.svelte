@@ -5,7 +5,7 @@
 	import InlineMetaField from "$lib/components/ui/InlineMetaField.svelte";
 	import { AssetSelection } from "$lib/libraries/assetSelection";
 	import store, { type TokenContext } from "$lib/state.svelte";
-	import { toBigIntWithDecimals } from "$lib/utils/convert";
+	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 	import { type InteropableAddress, getInteropableAddress } from "$lib/utils/interopableAddresses";
 
 	const v = (num: number | null) => (num ? num : 0);

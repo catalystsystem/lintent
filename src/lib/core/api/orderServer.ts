@@ -6,9 +6,9 @@ import type {
 	Quote,
 	Signature,
 	StandardOrder
-} from "../../types";
+} from "../types";
 import { type chain, chainMap } from "$lib/config";
-import { getInteropableAddress } from "../utils/interopableAddresses";
+import { getInteropableAddress } from "../../utils/interopableAddresses";
 
 type OrderStatus = "Signed" | "Delivered" | "Settled";
 

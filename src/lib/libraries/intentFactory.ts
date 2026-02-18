@@ -15,11 +15,11 @@ import type {
 	OrderContainer,
 	Signature,
 	StandardOrder
-} from "../../types";
+} from "../core/types";
 import { ERC20_ABI } from "$lib/abi/erc20";
-import { Intent } from "$lib/libraries/intent";
-import { OrderServer } from "$lib/libraries/orderServer";
-import type { CreateIntentOptions } from "$lib/libraries/intent";
+import { Intent } from "$lib/core/intent";
+import { OrderServer } from "$lib/core/api/orderServer";
+import type { CreateIntentOptions } from "$lib/core/intent";
 import { store, type TokenContext } from "$lib/state.svelte";
 
 /**

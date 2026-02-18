@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseOrderStatusPayload } from "../../src/lib/libraries/orderServer";
+import { parseOrderStatusPayload } from "../../src/lib/core/api/orderServer";
 
 const BYTES32_ONE = "0x0000000000000000000000000000000000000000000000000000000000000001" as const;
 

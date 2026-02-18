@@ -14,7 +14,7 @@
 	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
 	import SectionCard from "$lib/components/ui/SectionCard.svelte";
 	import { CompactLib } from "$lib/libraries/compactLib";
-	import { toBigIntWithDecimals } from "$lib/utils/convert";
+	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 	import store from "$lib/state.svelte";
 
 	let {

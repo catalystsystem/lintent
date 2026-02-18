@@ -7,9 +7,9 @@
 		getCoin,
 		type chain
 	} from "$lib/config";
-	import { bytes32ToAddress } from "$lib/utils/convert";
-	import { getOutputHash } from "$lib/utils/orderLib";
-	import type { MandateOutput, OrderContainer } from "../../types";
+	import { bytes32ToAddress } from "$lib/core/helpers/convert";
+	import { getOutputHash } from "$lib/core/orderLib";
+	import type { MandateOutput, OrderContainer } from "$lib/core/types";
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
@@ -18,7 +18,7 @@
 	import ChainActionRow from "$lib/components/ui/ChainActionRow.svelte";
 	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
-	import { orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/core/intent";
 	import { compactTypes } from "$lib/utils/typedMessage";
 	import { hashStruct } from "viem";
 

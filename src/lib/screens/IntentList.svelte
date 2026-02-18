@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from "svelte";
 	import { tick } from "svelte";
-	import { orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/core/intent";
 	import IntentListDetailRow from "$lib/components/IntentListDetailRow.svelte";
 	import {
 		buildBaseIntentRow,
@@ -12,7 +12,7 @@
 	} from "$lib/libraries/intentList";
 	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
 	import SectionCard from "$lib/components/ui/SectionCard.svelte";
-	import type { OrderContainer } from "../../types";
+	import type { OrderContainer } from "$lib/core/types";
 
 	let {
 		scroll,

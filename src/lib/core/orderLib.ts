@@ -1,5 +1,5 @@
-import { encodeAbiParameters, encodePacked, keccak256, parseAbiParameters } from "viem";
-import type { MandateOutput, MultichainOrder, OrderContainer, StandardOrder } from "../../types";
+import { encodePacked, keccak256 } from "viem";
+import type { MandateOutput, OrderContainer, StandardOrder } from "./types";
 import {
 	BYTES32_ZERO,
 	type chain,
@@ -10,32 +10,29 @@ import {
 	POLYMER_ORACLE,
 	WORMHOLE_ORACLE
 } from "../config";
-import { addressToBytes32 } from "./convert";
+import { addressToBytes32 } from "./helpers/convert";
 
 export type ValidationResult = {
 	passed: boolean;
 	reason: string;
 };
 
-export const VALIDATION_PASS_REASON = "Validation pass" as const;
+export const VALIDATION_PASS_REASON = "" as const;
 
-export const VALIDATION_ERRORS = {
-	FILL_DEADLINE_AFTER_EXPIRES: "fillDeadline > expires",
-	UNKNOWN_ORIGIN_CHAIN: "input chain",
-	INPUT_ORACLE_NOT_ALLOWED: "inputOracle",
-	NO_INPUTS: "inputs",
-	INVALID_INPUT_TUPLE: "inputs",
-	INPUT_AMOUNT_NON_POSITIVE: "input amount",
-	NO_OUTPUTS: "outputs",
-	UNKNOWN_OUTPUT_CHAIN: "output chain",
-	OUTPUT_AMOUNT_NON_POSITIVE: "output amount",
-	OUTPUT_ORACLE_ZERO: "output oracle",
-	OUTPUT_ORACLE_NOT_ALLOWED: "output oracle",
-	OUTPUT_SETTLER_ZERO: "output settler",
-	OUTPUT_SETTLER_NOT_ALLOWED: "output settler",
-	OUTPUT_TOKEN_ZERO: "output token",
-	OUTPUT_RECIPIENT_ZERO: "output recipient"
-} as const;
+export enum VALIDATION_ERRORS {
+	FILL_DEADLINE_AFTER_EXPIRES = "fillDeadline > expires",
+	UNKNOWN_ORIGIN_CHAIN = "input chain",
+	INPUT_ORACLE_NOT_ALLOWED = "inputOracle",
+	NO_INPUTS = "inputs",
+	INPUT_AMOUNT_NON_POSITIVE = "input amount",
+	NO_OUTPUTS = "outputs",
+	UNKNOWN_OUTPUT_CHAIN = "output chain",
+	OUTPUT_AMOUNT_NON_POSITIVE = "output amount",
+	INVALID_OUTPUT_ORACLE = "output oracle",
+	INVALID_OUTPUT_SETTLER = "output settler",
+	OUTPUT_TOKEN_ZERO = "output token",
+	OUTPUT_RECIPIENT_ZERO = "output recipient"
+}
 
 export function getOutputHash(output: MandateOutput) {
 	return keccak256(
@@ -172,8 +169,6 @@ export function validateOrderWithReason(order: StandardOrder): ValidationResult 
 	if (!Array.isArray(order.inputs) || order.inputs.length === 0)
 		return fail(VALIDATION_ERRORS.NO_INPUTS);
 	for (const input of order.inputs) {
-		if (!Array.isArray(input) || input.length !== 2)
-			return fail(VALIDATION_ERRORS.INVALID_INPUT_TUPLE);
 		const [, amount] = input;
 		if (amount <= 0n) return fail(VALIDATION_ERRORS.INPUT_AMOUNT_NON_POSITIVE);
 	}
@@ -194,15 +189,15 @@ export function validateOrderWithReason(order: StandardOrder): ValidationResult 
 		const outputChain = findChainById(output.chainId);
 		if (!outputChain) return fail(VALIDATION_ERRORS.UNKNOWN_OUTPUT_CHAIN);
 		if (output.amount < 0n) return fail(VALIDATION_ERRORS.OUTPUT_AMOUNT_NON_POSITIVE);
-		if (isZeroBytes32(output.oracle)) return fail(VALIDATION_ERRORS.OUTPUT_ORACLE_ZERO);
+		if (isZeroBytes32(output.oracle)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
 		const allowedOutputOracles = getAllowedOutputOracles(outputChain);
 		if (!allowedOutputOracles.includes(normalize(output.oracle))) {
-			return fail(VALIDATION_ERRORS.OUTPUT_ORACLE_NOT_ALLOWED);
+			return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
 		}
-		if (isZeroBytes32(output.settler)) return fail(VALIDATION_ERRORS.OUTPUT_SETTLER_ZERO);
+		if (isZeroBytes32(output.settler)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
 		const allowedOutputSettlers = getAllowedOutputSettlers();
 		if (!allowedOutputSettlers.includes(normalize(output.settler))) {
-			return fail(VALIDATION_ERRORS.OUTPUT_SETTLER_NOT_ALLOWED);
+			return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
 		}
 		if (isZeroBytes32(output.token)) return fail(VALIDATION_ERRORS.OUTPUT_TOKEN_ZERO);
 		if (isZeroBytes32(output.recipient)) return fail(VALIDATION_ERRORS.OUTPUT_RECIPIENT_ZERO);

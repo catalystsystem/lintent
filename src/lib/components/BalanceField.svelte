@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toBigIntWithDecimals } from "$lib/utils/convert";
+	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 
 	let {
 		value,

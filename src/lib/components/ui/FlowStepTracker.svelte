@@ -2,7 +2,7 @@
 	import FlowProgressList, { type FlowStep } from "$lib/components/ui/FlowProgressList.svelte";
 	import { getOrderProgressChecks, getOutputStorageKey } from "$lib/libraries/flowProgress";
 	import store from "$lib/state.svelte";
-	import type { OrderContainer } from "../../../types";
+	import type { OrderContainer } from "$lib/core/types";
 
 	let {
 		currentScreenIndex,

@@ -11,9 +11,9 @@ import {
 	validateOrderContainer,
 	validateOrderWithReason,
 	VALIDATION_ERRORS
-} from "../../src/lib/utils/orderLib";
-import { addressToBytes32 } from "../../src/lib/utils/convert";
-import type { MandateOutput, OrderContainer, StandardOrder } from "../../src/types";
+} from "../../src/lib/core/orderLib";
+import { addressToBytes32 } from "../../src/lib/core/helpers/convert";
+import type { MandateOutput, OrderContainer, StandardOrder } from "../../src/lib/core/types";
 
 const b32 = (byte: string) => `0x${byte.repeat(64)}` as `0x${string}`;
 
@@ -125,7 +125,7 @@ describe("orderLib", () => {
 		});
 		const result = validateOrderWithReason(badOutputOracle);
 		expect(result.passed).toBe(false);
-		expect(result.reason).toBe(VALIDATION_ERRORS.OUTPUT_ORACLE_NOT_ALLOWED);
+		expect(result.reason).toBe(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
 	});
 
 	it("rejects orders with non-whitelisted output settler", () => {
@@ -134,7 +134,7 @@ describe("orderLib", () => {
 		});
 		const result = validateOrderWithReason(badOutputSettler);
 		expect(result.passed).toBe(false);
-		expect(result.reason).toBe(VALIDATION_ERRORS.OUTPUT_SETTLER_NOT_ALLOWED);
+		expect(result.reason).toBe(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
 	});
 
 	it("treats compact intents as valid in container validator (TODO path)", () => {

@@ -10,8 +10,8 @@
 	import store from "$lib/state.svelte";
 	import InputTokenModal from "../components/InputTokenModal.svelte";
 	import OutputTokenModal from "$lib/components/OutputTokenModal.svelte";
-	import { ResetPeriod } from "$lib/utils/idLib";
-	import type { CreateIntentOptions } from "$lib/libraries/intent";
+	import { ResetPeriod } from "$lib/core/compact/idLib";
+	import type { CreateIntentOptions } from "$lib/core/intent";
 
 	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
 

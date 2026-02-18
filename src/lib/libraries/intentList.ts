@@ -8,10 +8,10 @@ import {
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	MULTICHAIN_INPUT_SETTLER_COMPACT
 } from "../config";
-import { orderToIntent } from "./intent";
-import { bytes32ToAddress, idToToken } from "../utils/convert";
-import type { OrderContainer, StandardOrder, MultichainOrder } from "../../types";
-import { validateOrderContainerWithReason } from "$lib/utils/orderLib";
+import { orderToIntent } from "../core/intent";
+import { bytes32ToAddress, idToToken } from "../core/helpers/convert";
+import type { OrderContainer, StandardOrder, MultichainOrder } from "../core/types";
+import { validateOrderContainerWithReason } from "$lib/core/orderLib";
 
 export type Chip = {
 	key: string;

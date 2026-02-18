@@ -3,7 +3,7 @@
 	import FormControl from "$lib/components/ui/FormControl.svelte";
 	import { chainList, type chain, coinList } from "$lib/config";
 	import store, { type TokenContext } from "$lib/state.svelte";
-	import { toBigIntWithDecimals } from "$lib/utils/convert";
+	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 
 	let {
 		active = $bindable(),

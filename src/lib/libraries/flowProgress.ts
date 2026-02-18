@@ -13,11 +13,11 @@ import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { hashStruct, keccak256 } from "viem";
 import { compactTypes } from "$lib/utils/typedMessage";
-import { getOutputHash, encodeMandateOutput } from "$lib/utils/orderLib";
-import { addressToBytes32, bytes32ToAddress } from "$lib/utils/convert";
-import { orderToIntent } from "$lib/libraries/intent";
+import { getOutputHash, encodeMandateOutput } from "$lib/core/orderLib";
+import { addressToBytes32, bytes32ToAddress } from "$lib/core/helpers/convert";
+import { orderToIntent } from "$lib/core/intent";
 import { getOrFetchRpc } from "$lib/libraries/rpcCache";
-import type { MandateOutput, OrderContainer } from "../../types";
+import type { MandateOutput, OrderContainer } from "../core/types";
 import store from "$lib/state.svelte";
 
 const PROGRESS_TTL_MS = 30_000;

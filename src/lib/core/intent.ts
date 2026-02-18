@@ -10,7 +10,7 @@ import type {
 	NoSignature,
 	Signature,
 	StandardOrder
-} from "../../types";
+} from "./types";
 import { COMPACT_ABI } from "../abi/compact";
 import {
 	chainMap,
@@ -27,9 +27,9 @@ import {
 	type Verifier,
 	type WC
 } from "../config";
-import { ResetPeriod, toId } from "../utils/idLib";
+import { ResetPeriod, toId } from "./compact/idLib";
 import { compact_type_hash, compactTypes } from "../utils/typedMessage";
-import { addressToBytes32 } from "../utils/convert";
+import { addressToBytes32 } from "./helpers/convert";
 import { SETTLER_ESCROW_ABI } from "../abi/escrow";
 import type { TokenContext } from "$lib/state.svelte";
 import { MULTICHAIN_SETTLER_ESCROW_ABI } from "$lib/abi/multichain_escrow";
@@ -882,7 +882,7 @@ export class MultichainOrderIntent {
 			);
 		}
 
-		for (const { orderComponent, chainId } of components) {
+		for (const { orderComponent } of components) {
 			if (this.inputSettler.toLowerCase() === MULTICHAIN_INPUT_SETTLER_ESCROW.toLowerCase()) {
 				return await walletClient.writeContract({
 					chain: actionChain,

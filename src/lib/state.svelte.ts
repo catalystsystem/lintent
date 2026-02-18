@@ -1,5 +1,5 @@
 import type { WalletState } from "@web3-onboard/core";
-import type { OrderContainer } from "../types";
+import type { OrderContainer } from "./core/types";
 import {
 	ALWAYS_OK_ALLOCATOR,
 	chainMap,
@@ -26,7 +26,7 @@ import {
 	transactionReceipts as transactionReceiptsTable
 } from "./schema";
 import { and, eq } from "drizzle-orm";
-import { orderToIntent } from "./libraries/intent";
+import { orderToIntent } from "./core/intent";
 import { getOrFetchRpc, invalidateRpcPrefix } from "./libraries/rpcCache";
 
 export type TokenContext = {

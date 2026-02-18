@@ -1,6 +1,6 @@
 /// -- Compact -- ///
 import { maxInt32, maxUint256, toHex } from "viem";
-import { ResetPeriod, toId } from "$lib/utils/idLib";
+import { ResetPeriod, toId } from "$lib/core/compact/idLib";
 import {
 	ADDRESS_ZERO,
 	type chain,
@@ -11,7 +11,7 @@ import {
 	type WC
 } from "$lib/config";
 import { COMPACT_ABI } from "$lib/abi/compact";
-import { addressToBytes32 } from "$lib/utils/convert";
+import { addressToBytes32 } from "$lib/core/helpers/convert";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import type { TokenContext } from "$lib/state.svelte";
 

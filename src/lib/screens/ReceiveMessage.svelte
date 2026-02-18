@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { formatTokenAmount, getChainName, getClient, getCoin, type chain } from "$lib/config";
-	import { addressToBytes32 } from "$lib/utils/convert";
-	import { encodeMandateOutput } from "$lib/utils/orderLib";
+	import { addressToBytes32 } from "$lib/core/helpers/convert";
+	import { encodeMandateOutput } from "$lib/core/orderLib";
 	import { hashStruct, keccak256 } from "viem";
-	import type { MandateOutput, OrderContainer } from "../../types";
+	import type { MandateOutput, OrderContainer } from "$lib/core/types";
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 	import { Solver } from "$lib/libraries/solver";
 	import AwaitButton from "$lib/components/AwaitButton.svelte";
@@ -12,7 +12,7 @@
 	import ChainActionRow from "$lib/components/ui/ChainActionRow.svelte";
 	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
-	import { orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/core/intent";
 	import { compactTypes } from "$lib/utils/typedMessage";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.

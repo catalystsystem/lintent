@@ -6,7 +6,7 @@
 	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 
 	import { Solver } from "$lib/libraries/solver";
-	import type { OrderContainer } from "../../types";
+	import type { OrderContainer } from "$lib/core/types";
 	import {
 		COMPACT,
 		formatTokenAmount,
@@ -21,9 +21,9 @@
 	} from "$lib/config";
 	import { COMPACT_ABI } from "$lib/abi/compact";
 	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
-	import { idToToken } from "$lib/utils/convert";
+	import { idToToken } from "$lib/core/helpers/convert";
 	import store from "$lib/state.svelte";
-	import { orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/core/intent";
 	import { hashStruct } from "viem";
 	import { compactTypes } from "$lib/utils/typedMessage";
 

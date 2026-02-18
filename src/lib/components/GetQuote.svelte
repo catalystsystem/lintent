@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { OrderServer } from "$lib/libraries/orderServer";
+	import { OrderServer } from "$lib/core/api/orderServer";
 	import type { TokenContext } from "$lib/state.svelte";
 	import { interval } from "rxjs";
 	import { getAddress } from "viem";

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import onboard from "$lib/utils/web3-onboard";
-	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "../types";
+	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "$lib/core/types";
 	import { coinList, type chain } from "$lib/config";
 	import { onDestroy } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
-	import { OrderServer } from "$lib/libraries/orderServer";
+	import { OrderServer } from "$lib/core/api/orderServer";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
 	import IntentList from "$lib/screens/IntentList.svelte";
@@ -14,7 +14,7 @@
 	import ConnectWallet from "$lib/screens/ConnectWallet.svelte";
 	import FlowStepTracker from "$lib/components/ui/FlowStepTracker.svelte";
 	import store from "$lib/state.svelte";
-	import { orderToIntent } from "$lib/libraries/intent";
+	import { orderToIntent } from "$lib/core/intent";
 
 	// Fix bigint so we can json serialize it:
 	(BigInt.prototype as any).toJSON = function () {
