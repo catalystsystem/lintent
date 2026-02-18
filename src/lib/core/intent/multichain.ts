@@ -11,7 +11,7 @@ import {
 } from "./compact/conversions";
 import { encodeOutputs } from "./helpers/output-encoding";
 import { selectAllBut } from "./helpers/shared";
-import { compactTypes } from "../../utils/typedMessage";
+import { compactTypes } from "$lib/core/typedMessage";
 import type {
 	CompactLock,
 	CompactMandate,
@@ -126,11 +126,11 @@ export function computeMultichainCompactOrderId(
 }
 
 export class MultichainOrderIntent implements OrderIntentCommon<MultichainOrder> {
-	lock?: { type: string } | EscrowLock | CompactLock;
+	lock?: EscrowLock | CompactLock;
 	inputSettler: `0x${string}`;
 	order: MultichainOrder;
 
-	constructor(inputSetter: `0x${string}`, order: MultichainOrder, lock?: { type: string }) {
+	constructor(inputSetter: `0x${string}`, order: MultichainOrder, lock?: EscrowLock | CompactLock) {
 		this.inputSettler = inputSetter;
 		this.order = order;
 
@@ -138,7 +138,7 @@ export class MultichainOrderIntent implements OrderIntentCommon<MultichainOrder>
 			this.inputSettler === INPUT_SETTLER_COMPACT_LIFI ||
 			this.inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT;
 
-		this.lock = lock ?? { type: isCompact ? "compact" : "escrow" };
+		this.lock = lock ?? ({ type: isCompact ? "compact" : "escrow" } as EscrowLock | CompactLock);
 	}
 
 	asOrder(): MultichainOrder {

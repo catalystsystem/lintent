@@ -1,5 +1,5 @@
 import { COMPACT, type WC } from "../../../config";
-import { compactTypes } from "../../../utils/typedMessage";
+import { compactTypes } from "$lib/core/typedMessage";
 import type { BatchCompact, MultichainCompact } from "../../types";
 
 export function signStandardCompact(

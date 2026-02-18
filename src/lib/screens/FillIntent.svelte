@@ -19,7 +19,7 @@
 	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
 	import { orderToIntent } from "$lib/core/intent";
-	import { compactTypes } from "$lib/utils/typedMessage";
+	import { compactTypes } from "$lib/core/typedMessage";
 	import { hashStruct } from "viem";
 
 	let {

@@ -1,30 +1,29 @@
-import type { MultichainOrder, StandardOrder } from "../types";
+import type { CompactLock, EscrowLock, MultichainOrder, StandardOrder } from "../types";
 import { MultichainOrderIntent } from "./multichain";
 import { StandardOrderIntent } from "./standard";
 
-export function orderToIntent(options: {
+type OrderLike = StandardOrder | MultichainOrder;
+
+type IntentForOrder<TOrder extends OrderLike> = TOrder extends StandardOrder
+	? StandardOrderIntent
+	: MultichainOrderIntent;
+
+type OrderToIntentOptions<TOrder extends OrderLike> = {
 	inputSettler: `0x${string}`;
-	order: StandardOrder;
-	lock?: { type: string };
-}): StandardOrderIntent;
-export function orderToIntent(options: {
-	inputSettler: `0x${string}`;
-	order: MultichainOrder;
-	lock?: { type: string };
-}): MultichainOrderIntent;
-export function orderToIntent(options: {
-	inputSettler: `0x${string}`;
-	order: StandardOrder | MultichainOrder;
-	lock?: { type: string };
-}): StandardOrderIntent | MultichainOrderIntent;
-export function orderToIntent(options: {
-	inputSettler: `0x${string}`;
-	order: StandardOrder | MultichainOrder;
-	lock?: { type: string };
-}): StandardOrderIntent | MultichainOrderIntent {
+	order: TOrder;
+	lock?: EscrowLock | CompactLock;
+};
+
+export function isStandardOrder(order: OrderLike): order is StandardOrder {
+	return "originChainId" in order;
+}
+
+export function orderToIntent<TOrder extends OrderLike>(
+	options: OrderToIntentOptions<TOrder>
+): IntentForOrder<TOrder> {
 	const { inputSettler, order, lock } = options;
-	if ("originChainId" in order) {
-		return new StandardOrderIntent(inputSettler, order as StandardOrder);
+	if (isStandardOrder(order)) {
+		return new StandardOrderIntent(inputSettler, order) as IntentForOrder<TOrder>;
 	}
-	return new MultichainOrderIntent(inputSettler, order as MultichainOrder, lock);
+	return new MultichainOrderIntent(inputSettler, order, lock) as IntentForOrder<TOrder>;
 }

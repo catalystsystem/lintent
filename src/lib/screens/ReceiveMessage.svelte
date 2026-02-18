@@ -13,7 +13,7 @@
 	import TokenAmountChip from "$lib/components/ui/TokenAmountChip.svelte";
 	import store from "$lib/state.svelte";
 	import { orderToIntent } from "$lib/core/intent";
-	import { compactTypes } from "$lib/utils/typedMessage";
+	import { compactTypes } from "$lib/core/typedMessage";
 
 	// This script needs to be updated to be able to fetch the associated events of fills. Currently, this presents an issue since it can only fill single outputs.
 

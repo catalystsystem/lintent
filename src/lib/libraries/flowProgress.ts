@@ -12,10 +12,10 @@ import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { hashStruct, keccak256 } from "viem";
-import { compactTypes } from "$lib/utils/typedMessage";
+import { compactTypes } from "$lib/core/typedMessage";
 import { getOutputHash, encodeMandateOutput } from "$lib/core/orderLib";
 import { addressToBytes32, bytes32ToAddress } from "$lib/core/helpers/convert";
-import { orderToIntent } from "$lib/core/intent";
+import { isStandardOrder, orderToIntent } from "$lib/core/intent";
 import { getOrFetchRpc } from "$lib/libraries/rpcCache";
 import type { MandateOutput, OrderContainer } from "../core/types";
 import store from "$lib/state.svelte";
@@ -154,7 +154,7 @@ async function isInputChainFinalised(chainId: bigint, container: OrderContainer)
 		inputSettler === INPUT_SETTLER_COMPACT_LIFI ||
 		inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT
 	) {
-		const flattenedInputs = "originChainId" in order ? order.inputs : order.inputs[0]?.inputs;
+		const flattenedInputs = isStandardOrder(order) ? order.inputs : order.inputs[0]?.inputs;
 		if (!flattenedInputs || flattenedInputs.length === 0) return false;
 
 		return getOrFetchRpc(

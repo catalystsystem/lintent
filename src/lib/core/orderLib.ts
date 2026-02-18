@@ -11,6 +11,7 @@ import {
 	WORMHOLE_ORACLE
 } from "../config";
 import { addressToBytes32 } from "./helpers/convert";
+import { isStandardOrder } from "./intent";
 
 export type ValidationResult = {
 	passed: boolean;
@@ -223,7 +224,7 @@ export function validateOrderContainerWithReason(orderContainer: OrderContainer)
 		return pass();
 	}
 
-	if ("originChainId" in orderContainer.order) return validateOrderWithReason(orderContainer.order);
+	if (isStandardOrder(orderContainer.order)) return validateOrderWithReason(orderContainer.order);
 
 	return pass();
 }

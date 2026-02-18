@@ -14,7 +14,7 @@ import {
 	type chain,
 	type WC
 } from "$lib/config";
-import { compact_type_hash } from "$lib/utils/typedMessage";
+import { compact_type_hash } from "$lib/core/typedMessage";
 import { addressToBytes32 } from "$lib/core/helpers/convert";
 import { signMultichainCompact, signStandardCompact } from "$lib/core/intent/compact/signing";
 import { findChain } from "$lib/core/intent/helpers/shared";

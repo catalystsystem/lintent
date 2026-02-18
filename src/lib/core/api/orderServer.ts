@@ -7,6 +7,7 @@ import type {
 	Signature,
 	StandardOrder
 } from "../types";
+import { isStandardOrder } from "../intent";
 import { type chain, chainMap } from "$lib/config";
 import { getInteropableAddress } from "../../utils/interopableAddresses";
 
@@ -235,10 +236,10 @@ export function parseOrderStatusPayload(payload: unknown): OrderContainer {
 	if (!rawOrder || typeof rawOrder !== "object") {
 		throw new Error("Order payload invalid: order");
 	}
-	const order =
-		"originChainId" in rawOrder
-			? normalizeStandardOrder(rawOrder)
-			: normalizeMultichainOrder(rawOrder);
+	const orderLike = rawOrder as StandardOrder | MultichainOrder;
+	const order = isStandardOrder(orderLike)
+		? normalizeStandardOrder(rawOrder)
+		: normalizeMultichainOrder(rawOrder);
 
 	return {
 		inputSettler: toHexString(envelope.inputSettler, "inputSettler"),

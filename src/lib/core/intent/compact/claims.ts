@@ -1,5 +1,5 @@
 import { encodePacked, hashStruct, keccak256 } from "viem";
-import { compactTypes } from "../../../utils/typedMessage";
+import { compactTypes } from "$lib/core/typedMessage";
 import type { BatchCompact, MultichainCompact } from "../../types";
 
 export const MULTICHAIN_COMPACT_TYPEHASH_WITH_WITNESS = keccak256(

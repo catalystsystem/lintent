@@ -23,9 +23,9 @@
 	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 	import { idToToken } from "$lib/core/helpers/convert";
 	import store from "$lib/state.svelte";
-	import { orderToIntent } from "$lib/core/intent";
+	import { isStandardOrder, orderToIntent } from "$lib/core/intent";
 	import { hashStruct } from "viem";
-	import { compactTypes } from "$lib/utils/typedMessage";
+	import { compactTypes } from "$lib/core/typedMessage";
 
 	let {
 		orderContainer,
@@ -90,7 +90,7 @@
 			inputSettler === MULTICHAIN_INPUT_SETTLER_COMPACT
 		) {
 			// Check claim status
-			const flattenedInputs = "originChainId" in order ? order.inputs : order.inputs[0].inputs;
+			const flattenedInputs = isStandardOrder(order) ? order.inputs : order.inputs[0].inputs;
 
 			const [token, allocator, resetPeriod, scope] = await inputChainClient.readContract({
 				address: COMPACT,
@@ -207,7 +207,7 @@
 						{/if}
 					{/snippet}
 					{#snippet chips()}
-						{#if "originChainId" in orderContainer.order}
+						{#if isStandardOrder(orderContainer.order)}
 							{#each orderContainer.order.inputs as input}
 								<TokenAmountChip
 									amountText={formatTokenAmount(

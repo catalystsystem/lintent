@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseOrderStatusPayload } from "../../src/lib/core/api/orderServer";
+import { isStandardOrder } from "../../src/lib/core/intent";
 
 const BYTES32_ONE = "0x0000000000000000000000000000000000000000000000000000000000000001" as const;
 
@@ -38,7 +39,7 @@ describe("parseOrderStatusPayload", () => {
 
 		expect(parsed.inputSettler).toBe("0x000025c3226C00B2Cdc200005a1600509f4e00C0");
 		expect(parsed.order.nonce).toBe(123n);
-		expect("originChainId" in parsed.order && parsed.order.originChainId).toBe(8453n);
+		expect(isStandardOrder(parsed.order) && parsed.order.originChainId).toBe(8453n);
 		expect(parsed.sponsorSignature).toEqual({ type: "None", payload: "0x" });
 		expect(parsed.allocatorSignature).toEqual({ type: "ECDSA", payload: "0x1234" });
 	});

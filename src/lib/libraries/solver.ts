@@ -16,7 +16,7 @@ import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
 import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { orderToIntent } from "../core/intent";
-import { compactTypes } from "$lib/utils/typedMessage";
+import { compactTypes } from "$lib/core/typedMessage";
 import store from "$lib/state.svelte";
 import { finaliseIntent } from "./intentExecution";
 

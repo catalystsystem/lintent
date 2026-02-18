@@ -8,7 +8,7 @@ import {
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	MULTICHAIN_INPUT_SETTLER_COMPACT
 } from "../config";
-import { orderToIntent } from "../core/intent";
+import { isStandardOrder, orderToIntent } from "../core/intent";
 import { bytes32ToAddress, idToToken } from "../core/helpers/convert";
 import type { OrderContainer, StandardOrder, MultichainOrder } from "../core/types";
 import { validateOrderContainerWithReason } from "$lib/core/orderLib";
@@ -92,7 +92,7 @@ function summarizeOutput(chainId: bigint, token: `0x${string}`, amount: bigint):
 }
 
 function getInputs(order: StandardOrder | MultichainOrder) {
-	if ("originChainId" in order) {
+	if (isStandardOrder(order)) {
 		return order.inputs.map((input, index) => ({
 			key: `s-${index}-${input[0].toString()}`,
 			text: summarizeInput(order.originChainId, input[0], input[1])
@@ -113,7 +113,7 @@ function getOutputs(order: StandardOrder | MultichainOrder) {
 }
 
 function getChainScope(order: StandardOrder | MultichainOrder): ChainScope {
-	if (!("originChainId" in order)) return "multichain";
+	if (!isStandardOrder(order)) return "multichain";
 	const isSameChain = order.outputs.every((output) => output.chainId === order.originChainId);
 	return isSameChain ? "samechain" : "singlechain";
 }
