@@ -6,6 +6,7 @@
 - `src/lib/screens/` holds the scrollable “screen” components used by the main page.
 - `src/lib/components/`, `src/lib/utils/`, and `src/lib/state.svelte.ts` contain shared UI, helpers, and state.
 - `src/lib/libraries/` wraps external endpoints and integrations.
+- `src/lib/core/` is the domain library for order and intent models, creation/conversion flows, hashing/id logic, and core validation/parsing utilities.
 - `src/lib/db.ts`, `src/lib/schema.ts`, and `drizzle/` define and store database schema + migrations.
 - `src/app.css`, `src/app.html`, and `src/app.d.ts` are global app assets/config.
 
