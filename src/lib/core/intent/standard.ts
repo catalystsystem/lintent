@@ -4,6 +4,7 @@ import { compactClaimHash } from "./compact/claims";
 import { toStandardBatchCompact } from "./compact/conversions";
 import { encodeOutputs } from "./helpers/output-encoding";
 import type { BatchCompact, StandardOrder } from "../types";
+import type { OrderIntentCommon } from "./types";
 
 export function computeStandardOrderId(
 	inputSettler: `0x${string}`,
@@ -37,7 +38,7 @@ export function computeStandardOrderId(
 	);
 }
 
-export class StandardOrderIntent {
+export class StandardOrderIntent implements OrderIntentCommon<StandardOrder> {
 	inputSettler: `0x${string}`;
 	order: StandardOrder;
 

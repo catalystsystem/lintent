@@ -21,8 +21,17 @@ import type {
 	MultichainOrder,
 	MultichainOrderComponent
 } from "../types";
+import type { OrderIntentCommon } from "./types";
 
-export function hashInputs(chainId: bigint, inputs: [bigint, bigint][]) {
+/**
+ * @notice Hashes a multichain input segment using the chain id and encoded input locks.
+ * @dev Mirrors the multichain input hashing shape used by OIF multichain order components.
+ * @param chainId The chain id for this input segment.
+ * @param inputs The ordered input locks encoded as token/amount tuples.
+ * @return The keccak256 hash of `abi.encodePacked(chainId, inputs)`.
+ * @see https://github.com/openintentsframework/oif-contracts/blob/d9d9768f035656c8e49bdfbd9e1f88d4a207d69a/src/input/types/MultichainOrderComponentType.sol#L49-L58
+ */
+export function hashMultichainInputs(chainId: bigint, inputs: [bigint, bigint][]) {
 	return keccak256(encodePacked(["uint256", "uint256[2][]"], [chainId, inputs]));
 }
 
@@ -32,7 +41,7 @@ export function constructInputHash(
 	inputs: [bigint, bigint][],
 	additionalChains: `0x${string}`[]
 ) {
-	const inputHash = hashInputs(inputsChainId, inputs);
+	const inputHash = hashMultichainInputs(inputsChainId, inputs);
 	const numSegments = additionalChains.length + 1;
 	if (numSegments <= chainIndex)
 		throw new Error(`ChainIndexOutOfRange(${chainIndex},${numSegments})`);
@@ -116,7 +125,7 @@ export function computeMultichainCompactOrderId(
 	);
 }
 
-export class MultichainOrderIntent {
+export class MultichainOrderIntent implements OrderIntentCommon<MultichainOrder> {
 	lock?: { type: string } | EscrowLock | CompactLock;
 	inputSettler: `0x${string}`;
 	order: MultichainOrder;
