@@ -33,6 +33,7 @@ import {
 	type WalletConnection,
 	watchWalletConnection
 } from "./utils/wagmi";
+import { switchWalletChain } from "./utils/walletClient";
 
 class Store {
 	mainnet = $state<boolean>(true);
@@ -369,7 +370,7 @@ class Store {
 
 	async setWalletToCorrectChain(chain: chain) {
 		try {
-			return await this.walletClient?.switchChain({ id: chainMap[chain].id });
+			return await switchWalletChain(this.walletClient, chainMap[chain].id);
 		} catch (error) {
 			console.warn(
 				`Wallet does not support switchChain or failed to switch chain: ${chainMap[chain].id}`,

@@ -14,6 +14,7 @@
 	import type { CreateIntentOptions } from "$lib/core/types";
 
 	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
+	const REQUIRED_INPUT_USDC_RAW = 100n;
 
 	let {
 		scroll,
@@ -154,6 +155,14 @@
 		const outputChain = outputChains[0];
 		return inputChain === outputChain;
 	});
+
+	const inputSecurityCheck = $derived.by(() => {
+		if (store.inputTokens.length === 0) return false;
+		const usdcOnly = store.inputTokens.every(({ token }) => token.name.toLowerCase() === "usdc");
+		if (!usdcOnly) return false;
+		const totalInput = store.inputTokens.reduce((sum, token) => sum + token.amount, 0n);
+		return totalInput === REQUIRED_INPUT_USDC_RAW;
+	});
 </script>
 
 <ScreenFrame
@@ -289,7 +298,15 @@
 		</SectionCard>
 
 		<div class="mt-2 flex justify-center">
-			{#if !allowanceCheck}
+			{#if !inputSecurityCheck}
+				<button
+					type="button"
+					class="h-8 rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
+					disabled
+				>
+					Input must be exactly raw 100 USDC
+				</button>
+			{:else if !allowanceCheck}
 				<AwaitButton buttonFunction={approveFunction}>
 					{#snippet name()}
 						Set allowance

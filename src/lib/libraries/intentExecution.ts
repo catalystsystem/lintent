@@ -20,6 +20,7 @@ import { signMultichainCompact, signStandardCompact } from "$lib/core/intent/com
 import { findChain } from "$lib/core/intent/helpers/shared";
 import { MultichainOrderIntent, StandardOrderIntent } from "$lib/core/intent";
 import type { NoSignature, Signature } from "$lib/core/types";
+import { switchWalletChain } from "$lib/utils/walletClient";
 
 function combineSignatures(signatures: {
 	sponsorSignature: Signature | NoSignature;
@@ -79,7 +80,7 @@ export async function openEscrowIntent(
 ): Promise<`0x${string}`[]> {
 	if (intent instanceof StandardOrderIntent) {
 		const chain = findChain(intent.order.originChainId);
-		await walletClient.switchChain({ id: Number(intent.order.originChainId) });
+		await switchWalletChain(walletClient, Number(intent.order.originChainId));
 		if (!chain) {
 			throw new Error("Chain not found for chainId " + intent.order.originChainId.toString());
 		}
@@ -100,7 +101,7 @@ export async function openEscrowIntent(
 	for (const { chainId, orderComponent } of components) {
 		const chain = findChain(chainId);
 		if (!chain) throw new Error("Chain not found for chainId " + chainId.toString());
-		await walletClient.switchChain({ id: chain.id });
+		await switchWalletChain(walletClient, chain.id);
 		results.push(
 			await walletClient.writeContract({
 				chain,

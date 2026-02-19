@@ -60,6 +60,19 @@
 		refreshClaimed += 1;
 	};
 
+	const outputKey = (output: (typeof orderContainer.order.outputs)[number]) =>
+		hashStruct({
+			data: output,
+			types: compactTypes,
+			primaryType: "MandateOutput"
+		});
+
+	const fillTransactionHashesFor = (container: OrderContainer) =>
+		container.order.outputs.map((output) => store.fillTransactions[outputKey(output)]);
+
+	const isValidFillTxHash = (hash: unknown): hash is `0x${string}` =>
+		typeof hash === "string" && hash.startsWith("0x") && hash.length === 66;
+
 	// Order status enum
 	const OrderStatus_None = 0;
 	const OrderStatus_Deposited = 1;
@@ -173,37 +186,40 @@
 								Finalised
 							</button>
 						{:else}
-							<AwaitButton
-								buttonFunction={Solver.claim(
-									store.walletClient,
-									{
-										sourceChain: getChainName(inputChain),
-										orderContainer,
-										fillTransactionHashes: orderContainer.order.outputs.map(
-											(output) =>
-												store.fillTransactions[
-													hashStruct({
-														data: output,
-														types: compactTypes,
-														primaryType: "MandateOutput"
-													})
-												] as string
-										)
-									},
-									{
-										account,
-										preHook,
-										postHook: postHookRefreshValidate
-									}
-								)}
-							>
-								{#snippet name()}
-									Claim
-								{/snippet}
-								{#snippet awaiting()}
-									Waiting for transaction...
-								{/snippet}
-							</AwaitButton>
+							{@const fillTransactionHashes = fillTransactionHashesFor(orderContainer)}
+							{@const canClaim = fillTransactionHashes.every((hash) => isValidFillTxHash(hash))}
+							{#if !canClaim}
+								<button
+									type="button"
+									class="h-8 rounded border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-400"
+									disabled
+								>
+									Await fills
+								</button>
+							{:else}
+								<AwaitButton
+									buttonFunction={Solver.claim(
+										store.walletClient,
+										{
+											sourceChain: getChainName(inputChain),
+											orderContainer,
+											fillTransactionHashes: fillTransactionHashes as string[]
+										},
+										{
+											account,
+											preHook,
+											postHook: postHookRefreshValidate
+										}
+									)}
+								>
+									{#snippet name()}
+										Claim
+									{/snippet}
+									{#snippet awaiting()}
+										Waiting for transaction...
+									{/snippet}
+								</AwaitButton>
+							{/if}
 						{/if}
 					{/snippet}
 					{#snippet chips()}

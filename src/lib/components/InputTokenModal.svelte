@@ -212,31 +212,33 @@
 				<div>
 					{#each tokenSet as tkn, rowIndex}
 						{@const iaddr = iaddrFor(tkn)}
-						<FieldRow columns={rowColumns} striped index={rowIndex}>
-							<div class="truncate text-xs font-medium text-gray-700">{tkn.chain}</div>
-							{#await (store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][tkn.address]}
-								<InlineMetaField
-									bind:value={inputs[iaddr]}
-									metaText="..."
-									disabled={!isEnabled(iaddr)}
-								/>
-							{:then balance}
-								<InlineMetaField
-									bind:value={inputs[iaddr]}
-									metaText={formatBalance(balance, tkn.decimals)}
-									disabled={!isEnabled(iaddr)}
-								/>
-							{:catch _}
-								<InlineMetaField
-									bind:value={inputs[iaddr]}
-									metaText="err"
-									disabled={!isEnabled(iaddr)}
-								/>
-							{/await}
-							<div class="flex justify-center">
-								<input type="checkbox" bind:checked={enabledByToken[iaddr]} />
-							</div>
-						</FieldRow>
+						<div data-testid={`input-token-row-${tkn.chain}`}>
+							<FieldRow columns={rowColumns} striped index={rowIndex}>
+								<div class="truncate text-xs font-medium text-gray-700">{tkn.chain}</div>
+								{#await (store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][tkn.address]}
+									<InlineMetaField
+										bind:value={inputs[iaddr]}
+										metaText="..."
+										disabled={!isEnabled(iaddr)}
+									/>
+								{:then balance}
+									<InlineMetaField
+										bind:value={inputs[iaddr]}
+										metaText={formatBalance(balance, tkn.decimals)}
+										disabled={!isEnabled(iaddr)}
+									/>
+								{:catch _}
+									<InlineMetaField
+										bind:value={inputs[iaddr]}
+										metaText="err"
+										disabled={!isEnabled(iaddr)}
+									/>
+								{/await}
+								<div class="flex justify-center">
+									<input type="checkbox" bind:checked={enabledByToken[iaddr]} />
+								</div>
+							</FieldRow>
+						</div>
 					{/each}
 				</div>
 			</div>
