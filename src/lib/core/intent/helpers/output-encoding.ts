@@ -1,5 +1,6 @@
 import { encodeAbiParameters, encodePacked, parseAbiParameters } from "viem";
-import { COIN_FILLER, chainMap, getOracle, type Verifier } from "../../../config";
+import { COIN_FILLER } from "../../constants";
+import type { CoreVerifier, IntentDeps } from "../../deps";
 import { addressToBytes32 } from "../../helpers/convert";
 import type { MandateOutput, TokenContext } from "../../types";
 import { ONE_MINUTE } from "./shared";
@@ -16,12 +17,14 @@ export function encodeOutputs(outputs: MandateOutput[]) {
 export function buildMandateOutputs(options: {
 	exclusiveFor: `0x${string}`;
 	outputTokens: TokenContext[];
-	verifier: Verifier;
+	getOracle: IntentDeps["getOracle"];
+	verifier: CoreVerifier;
 	sameChain: boolean;
 	recipient: `0x${string}`;
 	currentTime: number;
 }): MandateOutput[] {
-	const { exclusiveFor, outputTokens, verifier, sameChain, recipient, currentTime } = options;
+	const { exclusiveFor, outputTokens, getOracle, verifier, sameChain, recipient, currentTime } =
+		options;
 
 	if (exclusiveFor) {
 		const formattedCorrectly = exclusiveFor.length === 42 && exclusiveFor.slice(0, 2) === "0x";
@@ -43,11 +46,11 @@ export function buildMandateOutputs(options: {
 	return outputTokens.map(({ token, amount }) => {
 		const outputOracle = sameChain
 			? addressToBytes32(outputSettler)
-			: addressToBytes32(getOracle(verifier, token.chain)!);
+			: addressToBytes32(getOracle(verifier, token.chainId)!);
 		return {
 			oracle: outputOracle,
 			settler: addressToBytes32(outputSettler),
-			chainId: BigInt(chainMap[token.chain].id),
+			chainId: token.chainId,
 			token: addressToBytes32(token.address),
 			amount: amount,
 			recipient: addressToBytes32(recipient),

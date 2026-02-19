@@ -1,4 +1,4 @@
-import { toHex } from "../../../utils/interopableAddresses";
+import { toHex } from "viem";
 import type {
 	BatchCompact,
 	CompactMandate,
@@ -10,7 +10,7 @@ import type {
 } from "../../types";
 
 export function tokenIdToLock(tokenId: bigint, amount: bigint): Lock {
-	const bytes32 = toHex(tokenId, 32);
+	const bytes32 = toHex(tokenId, { size: 32 }).slice(2);
 	return {
 		lockTag: `0x${bytes32.slice(0, 12 * 2)}`,
 		token: `0x${bytes32.slice(12 * 2, 32 * 2)}`,

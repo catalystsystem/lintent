@@ -8,6 +8,7 @@ It owns:
 - Intent creation and conversion logic.
 - Order id and hashing logic for standard + multichain flows.
 - Core validation/parsing used by higher-level libraries/screens.
+- Dependency-injected domain behavior (for chain/oracle policy), without importing app config.
 
 It does not own:
 
@@ -18,13 +19,16 @@ It does not own:
 
 - `types.ts`
   - Canonical types such as `StandardOrder`, `MultichainOrder`, and `OrderContainer`.
+  - Core token model is chain-id based (`token.chainId`), not chain-name based.
+- `deps.ts`
+  - Minimal dependency interfaces consumed by core constructors/factories.
 - `intent/`
   - `create.ts`: High-level `Intent` builder.
   - `fromOrder.ts`: `orderToIntent(...)` and `isStandardOrder(...)`.
   - `standard.ts` / `multichain.ts`: Concrete intent implementations and order-id derivation.
   - `compact/*`: Compact conversions/signing/claims helpers used by intent flows.
 - `orderLib.ts`
-  - Validation and output encoding/hash helpers.
+  - Validation factory (`createOrderValidator(...)`) and output encoding/hash helpers.
 - `api/orderServer.ts`
   - Normalization/parsing for order server payloads.
 - `typedMessage.ts`
@@ -59,7 +63,7 @@ Use `isStandardOrder(...)` as the canonical discriminator for branching between 
 
 Typical contributor path:
 
-1. Build an intent with `Intent` in `intent/create.ts`.
+1. Build an intent with `Intent` in `intent/create.ts` and inject `IntentDeps`.
 2. Convert/hydrate with `orderToIntent(...)` from `intent/fromOrder.ts`.
 3. Compute `orderId()` and chain-specific behavior through `StandardOrderIntent` or `MultichainOrderIntent`.
 
@@ -109,10 +113,20 @@ When touching compact hashing or typed message definitions:
 
 These utilities are the core gate for normalizing and validating inbound order data before execution paths consume it.
 
+## Dependency Model
+
+- Core has no direct imports from app config/util modules.
+- Dependencies are passed in scope at creation time (constructor/factory), never via global mutable runtime.
+- Keep dependencies minimal:
+  - `Intent` receives `IntentDeps`.
+  - Order validation is created via `createOrderValidator(orderValidationDeps)`.
+  - Core-internal protocol constants live in `constants.ts`.
+
 ## Safe Change Checklist
 
 - Use `isStandardOrder(...)` for order branching, not ad-hoc property checks.
 - Keep hashing/encoding behavior stable unless you are intentionally changing protocol semantics.
+- Keep core APIs chain-id based. Map app chain names to ids at app boundaries.
 - Update/add tests when changing order construction, parsing, or hashing behavior.
 - Run `bun run check` and relevant unit tests before merging.
 

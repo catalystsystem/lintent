@@ -1,6 +1,12 @@
-import { COIN_FILLER, POLYMER_ORACLE, chainMap, type chain } from "../../config";
+import { COIN_FILLER } from "../constants";
 import { addressToBytes32 } from "../helpers/convert";
 import type { MandateOutput, MultichainOrder, StandardOrder } from "../types";
+
+export const CHAIN_ID_ETHEREUM = 1n;
+export const CHAIN_ID_ARBITRUM = 42161n;
+export const CHAIN_ID_BASE = 8453n;
+
+export const TEST_POLYMER_ORACLE = "0x0000003E06000007A224AeE90052fA6bb46d43C9" as const;
 
 export const TEST_USER = "0x1111111111111111111111111111111111111111" as const;
 export const TEST_NOW_SECONDS = 1_700_000_000;
@@ -8,14 +14,14 @@ export const TEST_NOW_SECONDS = 1_700_000_000;
 export const b32 = (nibble: string) => `0x${nibble.repeat(64)}` as `0x${string}`;
 
 export function makeMandateOutput(
-	chainName: chain = "arbitrum",
+	chainId: bigint = CHAIN_ID_ARBITRUM,
 	amount: bigint = 1n,
 	overrides: Partial<MandateOutput> = {}
 ): MandateOutput {
 	return {
 		oracle: addressToBytes32(COIN_FILLER),
 		settler: addressToBytes32(COIN_FILLER),
-		chainId: BigInt(chainMap[chainName].id),
+		chainId,
 		token: b32("3"),
 		amount,
 		recipient: b32("4"),
@@ -29,12 +35,12 @@ export function makeStandardOrder(overrides: Partial<StandardOrder> = {}): Stand
 	return {
 		user: TEST_USER,
 		nonce: 1n,
-		originChainId: BigInt(chainMap.ethereum.id),
+		originChainId: CHAIN_ID_ETHEREUM,
 		expires: TEST_NOW_SECONDS + 1000,
 		fillDeadline: TEST_NOW_SECONDS + 900,
-		inputOracle: POLYMER_ORACLE.ethereum,
+		inputOracle: TEST_POLYMER_ORACLE,
 		inputs: [[1n, 1n]],
-		outputs: [makeMandateOutput("arbitrum")],
+		outputs: [makeMandateOutput(CHAIN_ID_ARBITRUM)],
 		...overrides
 	};
 }
@@ -45,11 +51,11 @@ export function makeMultichainOrder(overrides: Partial<MultichainOrder> = {}): M
 		nonce: 2n,
 		expires: TEST_NOW_SECONDS + 1000,
 		fillDeadline: TEST_NOW_SECONDS + 900,
-		inputOracle: POLYMER_ORACLE.ethereum,
-		outputs: [makeMandateOutput("base", 2n)],
+		inputOracle: TEST_POLYMER_ORACLE,
+		outputs: [makeMandateOutput(CHAIN_ID_BASE, 2n)],
 		inputs: [
-			{ chainId: BigInt(chainMap.ethereum.id), inputs: [[1n, 1n]] },
-			{ chainId: BigInt(chainMap.arbitrum.id), inputs: [[2n, 2n]] }
+			{ chainId: CHAIN_ID_ETHEREUM, inputs: [[1n, 1n]] },
+			{ chainId: CHAIN_ID_ARBITRUM, inputs: [[2n, 2n]] }
 		],
 		...overrides
 	};

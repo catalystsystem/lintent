@@ -1,28 +1,68 @@
 import {
-	type chain,
-	chainMap,
-	clients,
+	getChain,
+	getClient,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
-	type Token,
 	type WC
 } from "$lib/config";
 import { maxUint256 } from "viem";
 import type {
 	CreateIntentOptions,
+	TokenContext,
 	MultichainOrder,
 	NoSignature,
 	OrderContainer,
 	Signature,
-	StandardOrder,
-	TokenContext
+	StandardOrder
 } from "../core/types";
+import type { AppCreateIntentOptions, AppTokenContext } from "$lib/appTypes";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "$lib/core/intent";
 import { OrderServer } from "$lib/core/api/orderServer";
 import { store } from "$lib/state.svelte";
 import { depositAndRegisterCompact, openEscrowIntent, signIntentCompact } from "./intentExecution";
+import { intentDeps } from "./coreDeps";
+
+function toCoreTokenContext(input: AppTokenContext): TokenContext {
+	return {
+		token: {
+			address: input.token.address,
+			name: input.token.name,
+			chainId: BigInt(input.token.chainId),
+			decimals: input.token.decimals
+		},
+		amount: input.amount
+	};
+}
+
+function toCoreCreateIntentOptions(opts: AppCreateIntentOptions): CreateIntentOptions {
+	if (opts.lock.type === "compact") {
+		return {
+			exclusiveFor: opts.exclusiveFor,
+			inputTokens: opts.inputTokens.map(toCoreTokenContext),
+			outputTokens: opts.outputTokens.map(toCoreTokenContext),
+			verifier: opts.verifier,
+			account: opts.account,
+			lock: {
+				type: "compact",
+				resetPeriod: opts.lock.resetPeriod,
+				allocatorId: opts.lock.allocatorId
+			}
+		};
+	}
+
+	return {
+		exclusiveFor: opts.exclusiveFor,
+		inputTokens: opts.inputTokens.map(toCoreTokenContext),
+		outputTokens: opts.outputTokens.map(toCoreTokenContext),
+		verifier: opts.verifier,
+		account: opts.account,
+		lock: {
+			type: "escrow"
+		}
+	};
+}
 
 /**
  * @notice Factory class for creating and managing intents. Functions called by integrators.
@@ -33,7 +73,7 @@ export class IntentFactory {
 
 	walletClient: WC;
 
-	preHook?: (chain: chain) => Promise<any>;
+	preHook?: (chainId: number) => Promise<any>;
 	postHook?: () => Promise<any>;
 
 	orders: OrderContainer[] = [];
@@ -41,7 +81,7 @@ export class IntentFactory {
 	constructor(options: {
 		mainnet: boolean;
 		walletClient: WC;
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook?: () => Promise<any>;
 		ordersPointer?: OrderContainer[];
 	}) {
@@ -80,12 +120,12 @@ export class IntentFactory {
 		store.saveOrderToDb(orderContainer).catch((e) => console.warn("saveOrderToDb error", e));
 	}
 
-	compact(opts: CreateIntentOptions) {
+	compact(opts: AppCreateIntentOptions) {
 		return async () => {
 			const { account, inputTokens } = opts;
-			const inputChain = inputTokens[0].token.chain;
+			const inputChain = inputTokens[0].token.chainId;
 			if (this.preHook) await this.preHook(inputChain);
-			const intent = new Intent(opts).order();
+			const intent = new Intent(toCoreCreateIntentOptions(opts), intentDeps).order();
 
 			const sponsorSignature = await signIntentCompact(intent, account(), this.walletClient);
 
@@ -116,17 +156,16 @@ export class IntentFactory {
 		};
 	}
 
-	compactDepositAndRegister(opts: CreateIntentOptions) {
+	compactDepositAndRegister(opts: AppCreateIntentOptions) {
 		return async () => {
 			const { inputTokens, account } = opts;
-			const publicClients = clients;
-			const intent = new Intent(opts).singlechain();
+			const intent = new Intent(toCoreCreateIntentOptions(opts), intentDeps).singlechain();
 
-			if (this.preHook) await this.preHook(inputTokens[0].token.chain);
+			if (this.preHook) await this.preHook(inputTokens[0].token.chainId);
 
 			let transactionHash = await depositAndRegisterCompact(intent, account(), this.walletClient);
 
-			const receipt = await publicClients[inputTokens[0].token.chain].waitForTransactionReceipt({
+			const receipt = await getClient(inputTokens[0].token.chainId).waitForTransactionReceipt({
 				hash: transactionHash
 			});
 
@@ -152,12 +191,12 @@ export class IntentFactory {
 		};
 	}
 
-	openIntent(opts: CreateIntentOptions) {
+	openIntent(opts: AppCreateIntentOptions) {
 		return async () => {
 			const { inputTokens, account } = opts;
-			const intent = new Intent(opts).order();
+			const intent = new Intent(toCoreCreateIntentOptions(opts), intentDeps).order();
 
-			const inputChain = inputTokens[0].token.chain;
+			const inputChain = inputTokens[0].token.chainId;
 			if (this.preHook) await this.preHook(inputChain);
 
 			// Execute the open.
@@ -185,9 +224,9 @@ export class IntentFactory {
 export function escrowApprove(
 	walletClient: WC,
 	opts: {
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook?: () => Promise<any>;
-		inputTokens: TokenContext[];
+		inputTokens: AppTokenContext[];
 		account: () => `0x${string}`;
 	}
 ) {
@@ -197,8 +236,8 @@ export function escrowApprove(
 		const { preHook, postHook, inputTokens, account } = opts;
 		for (let i = 0; i < inputTokens.length; ++i) {
 			const { token, amount } = inputTokens[i];
-			if (preHook) await preHook(token.chain);
-			const publicClient = clients[token.chain];
+			if (preHook) await preHook(token.chainId);
+			const publicClient = getClient(token.chainId);
 			const currentAllowance = await publicClient.readContract({
 				address: token.address,
 				abi: ERC20_ABI,
@@ -207,7 +246,7 @@ export function escrowApprove(
 			});
 			if (currentAllowance >= amount) continue;
 			const transactionHash = walletClient.writeContract({
-				chain: chainMap[token.chain],
+				chain: getChain(token.chainId),
 				account: account(),
 				address: token.address,
 				abi: ERC20_ABI,

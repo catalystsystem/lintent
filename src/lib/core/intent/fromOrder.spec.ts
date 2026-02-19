@@ -1,14 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { INPUT_SETTLER_ESCROW_LIFI, MULTICHAIN_INPUT_SETTLER_ESCROW, chainMap } from "../../config";
+import { INPUT_SETTLER_ESCROW_LIFI, MULTICHAIN_INPUT_SETTLER_ESCROW } from "../constants";
 import { isStandardOrder, orderToIntent } from ".";
 import { MultichainOrderIntent } from "./multichain";
 import { StandardOrderIntent } from "./standard";
-import { makeMultichainOrder, makeStandardOrder } from "../testing/orderFixtures";
+import {
+	CHAIN_ID_ETHEREUM,
+	makeMultichainOrder,
+	makeStandardOrder
+} from "../testing/orderFixtures";
 
 describe("intent core split", () => {
 	it("hydrates a standard order and keeps orderId deterministic", () => {
 		const order = makeStandardOrder({
-			originChainId: BigInt(chainMap.ethereum.id)
+			originChainId: CHAIN_ID_ETHEREUM
 		});
 		const intent = orderToIntent({
 			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
@@ -16,7 +20,7 @@ describe("intent core split", () => {
 		});
 
 		expect(intent).toBeInstanceOf(StandardOrderIntent);
-		expect(intent.inputChains()).toEqual([BigInt(chainMap.ethereum.id)]);
+		expect(intent.inputChains()).toEqual([CHAIN_ID_ETHEREUM]);
 		expect(intent.orderId()).toBe(intent.orderId());
 	});
 

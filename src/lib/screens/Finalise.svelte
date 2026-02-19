@@ -16,8 +16,7 @@
 		INPUT_SETTLER_COMPACT_LIFI,
 		INPUT_SETTLER_ESCROW_LIFI,
 		MULTICHAIN_INPUT_SETTLER_COMPACT,
-		MULTICHAIN_INPUT_SETTLER_ESCROW,
-		type chain
+		MULTICHAIN_INPUT_SETTLER_ESCROW
 	} from "$lib/config";
 	import { COMPACT_ABI } from "$lib/abi/compact";
 	import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
@@ -34,7 +33,7 @@
 		postHook
 	}: {
 		orderContainer: OrderContainer;
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook?: () => Promise<any>;
 		account: () => `0x${string}`;
 	} = $props();
@@ -201,7 +200,7 @@
 									buttonFunction={Solver.claim(
 										store.walletClient,
 										{
-											sourceChain: getChainName(inputChain),
+											sourceChainId: Number(inputChain),
 											orderContainer,
 											fillTransactionHashes: fillTransactionHashes as string[]
 										},
@@ -230,12 +229,12 @@
 										input[1],
 										getCoin({
 											address: idToToken(input[0]),
-											chain: getChainName(orderContainer.order.originChainId)
+											chainId: orderContainer.order.originChainId
 										}).decimals
 									)}
 									symbol={getCoin({
 										address: idToToken(input[0]),
-										chain: getChainName(orderContainer.order.originChainId)
+										chainId: orderContainer.order.originChainId
 									}).name}
 									tone="neutral"
 								/>
@@ -247,12 +246,12 @@
 										input[1],
 										getCoin({
 											address: idToToken(input[0]),
-											chain: getChainName(inputChain)
+											chainId: inputChain
 										}).decimals
 									)}
 									symbol={getCoin({
 										address: idToToken(input[0]),
-										chain: getChainName(inputChain)
+										chainId: inputChain
 									}).name}
 									tone="neutral"
 								/>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "$lib/core/types";
-	import { coinList, type chain } from "$lib/config";
+	import { coinList } from "$lib/config";
 	import { onDestroy } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
 	import { OrderServer } from "$lib/core/api/orderServer";
@@ -91,7 +91,7 @@
 	});
 
 	// --- Execute Transaction Variables --- //
-	const preHook = (chain: chain) => store.setWalletToCorrectChain(chain);
+	const preHook = (chainId: number) => store.setWalletToCorrectChain(chainId);
 	const postHook = async () => store.forceUpdate();
 	const account = () => store.connectedAccount?.address!;
 

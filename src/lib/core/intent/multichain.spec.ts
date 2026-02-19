@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { encodePacked, keccak256 } from "viem";
-import { MULTICHAIN_INPUT_SETTLER_COMPACT, MULTICHAIN_INPUT_SETTLER_ESCROW } from "../../config";
+import { MULTICHAIN_INPUT_SETTLER_COMPACT, MULTICHAIN_INPUT_SETTLER_ESCROW } from "../constants";
 import { ResetPeriod } from "../compact/idLib";
 import { constructInputHash, hashMultichainInputs, MultichainOrderIntent } from "./multichain";
 import { b32, makeMultichainOrder } from "../testing/orderFixtures";

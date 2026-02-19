@@ -1,5 +1,5 @@
 import { encodePacked, keccak256 } from "viem";
-import { INPUT_SETTLER_COMPACT_LIFI } from "../../config";
+import { INPUT_SETTLER_COMPACT_LIFI } from "../constants";
 import { compactClaimHash } from "./compact/claims";
 import { toStandardBatchCompact } from "./compact/conversions";
 import { encodeOutputs } from "./helpers/output-encoding";

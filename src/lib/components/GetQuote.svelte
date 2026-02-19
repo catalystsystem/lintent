@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { OrderServer } from "$lib/core/api/orderServer";
-	import type { TokenContext } from "$lib/core/types";
+	import type { AppTokenContext } from "$lib/appTypes";
 	import { interval } from "rxjs";
 	import { getAddress } from "viem";
 
@@ -14,8 +14,8 @@
 	}: {
 		exclusiveFor: string;
 		useExclusiveForQuoteRequest?: boolean;
-		inputTokens: TokenContext[];
-		outputTokens: TokenContext[];
+		inputTokens: AppTokenContext[];
+		outputTokens: AppTokenContext[];
 		account: () => `0x${string}`;
 		mainnet: boolean;
 	} = $props();
@@ -38,13 +38,13 @@
 
 			const response = await orderServer.getQuotes({
 				user: account(),
-				userChain: inputTokens[0].token.chain,
+				userChainId: inputTokens[0].token.chainId,
 				exclusiveFor: requestedExclusiveFor,
 				inputs: inputTokens.map(({ token, amount }) => {
 					return {
 						sender: account(),
 						asset: token.address,
-						chain: token.chain,
+						chainId: token.chainId,
 						amount: amount
 					};
 				}),
@@ -52,7 +52,7 @@
 					return {
 						receiver: account(),
 						asset: token.address,
-						chain: token.chain,
+						chainId: token.chainId,
 						amount: 0n
 					};
 				})

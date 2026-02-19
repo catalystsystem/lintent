@@ -2,7 +2,6 @@
 	import {
 		ALWAYS_OK_ALLOCATOR,
 		POLYMER_ALLOCATOR,
-		type chain,
 		type Token,
 		coinList,
 		printToken
@@ -24,7 +23,7 @@
 		account
 	}: {
 		scroll: (direction: boolean | number) => () => void;
-		preHook: (chain: chain) => Promise<void>;
+		preHook: (chainId: number) => Promise<void>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();
@@ -40,11 +39,11 @@
 	const inputAmount = $derived(toBigIntWithDecimals(inputNumber, token.decimals));
 	$effect(() => {
 		// Check if allowances contain the chain.
-		if (!store.allowances[token.chain]) {
+		if (!store.allowances[token.chainId]) {
 			allowance = 0n;
 			return;
 		}
-		store.allowances[token.chain][token.address].then((a) => {
+		store.allowances[token.chainId][token.address].then((a) => {
 			allowance = a;
 		});
 	});
@@ -108,10 +107,10 @@
 						</FormControl>
 						<FormControl type="number" className="w-20" bind:value={inputNumber} />
 						<span>of</span>
-						{#if (manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[token.chain]}
+						{#if (manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[token.chainId]}
 							<BalanceField
 								value={(manageAssetAction === "withdraw" ? store.compactBalances : store.balances)[
-									token.chain
+									token.chainId
 								][token.address]}
 								decimals={token.decimals}
 							/>

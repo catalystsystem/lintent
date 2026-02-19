@@ -1,17 +1,14 @@
 import { encodePacked, keccak256 } from "viem";
-import type { MandateOutput, OrderContainer, StandardOrder } from "./types";
+import type { OrderValidationDeps } from "./deps";
 import {
 	BYTES32_ZERO,
-	type chain,
-	chainMap,
 	COIN_FILLER,
 	INPUT_SETTLER_COMPACT_LIFI,
-	MULTICHAIN_INPUT_SETTLER_COMPACT,
-	POLYMER_ORACLE,
-	WORMHOLE_ORACLE
-} from "../config";
+	MULTICHAIN_INPUT_SETTLER_COMPACT
+} from "./constants";
 import { addressToBytes32 } from "./helpers/convert";
 import { isStandardOrder } from "./intent";
+import type { MandateOutput, OrderContainer, StandardOrder } from "./types";
 
 export type ValidationResult = {
 	passed: boolean;
@@ -34,6 +31,13 @@ export enum VALIDATION_ERRORS {
 	OUTPUT_TOKEN_ZERO = "output token",
 	OUTPUT_RECIPIENT_ZERO = "output recipient"
 }
+
+export type OrderValidator = {
+	validateOrderWithReason: (order: StandardOrder) => ValidationResult;
+	validateOrder: (order: StandardOrder) => boolean;
+	validateOrderContainerWithReason: (orderContainer: OrderContainer) => ValidationResult;
+	validateOrderContainer: (orderContainer: OrderContainer) => boolean;
+};
 
 export function getOutputHash(output: MandateOutput) {
 	return keccak256(
@@ -100,47 +104,12 @@ export function encodeMandateOutput(
 	);
 }
 
-function findChainById(chainId: bigint): chain | undefined {
-	const numericChainId = Number(chainId);
-	if (!Number.isInteger(numericChainId) || numericChainId <= 0) return undefined;
-	return Object.entries(chainMap).find(([, value]) => value.id === numericChainId)?.[0] as
-		| chain
-		| undefined;
-}
-
 function normalize(value: string) {
 	return value.toLowerCase();
 }
 
 function isZeroBytes32(value: string) {
 	return normalize(value) === normalize(BYTES32_ZERO);
-}
-
-function getAllowedInputOracles(inputChain: chain, sameChainFill: boolean): string[] {
-	const allowed: string[] = [];
-	const polymer = POLYMER_ORACLE[inputChain as keyof typeof POLYMER_ORACLE];
-	if (polymer) allowed.push(polymer);
-	const wormhole = WORMHOLE_ORACLE[inputChain as keyof typeof WORMHOLE_ORACLE];
-	if (wormhole && normalize(wormhole) !== "0x0000000000000000000000000000000000000000") {
-		allowed.push(wormhole);
-	}
-	if (sameChainFill) allowed.push(COIN_FILLER);
-	return allowed.map(normalize);
-}
-
-function getAllowedOutputOracles(outputChain: chain): string[] {
-	const allowed: string[] = [addressToBytes32(COIN_FILLER)];
-	const polymer = POLYMER_ORACLE[outputChain as keyof typeof POLYMER_ORACLE];
-	if (polymer) allowed.push(addressToBytes32(polymer));
-	const wormhole = WORMHOLE_ORACLE[outputChain as keyof typeof WORMHOLE_ORACLE];
-	if (wormhole && normalize(wormhole) !== "0x0000000000000000000000000000000000000000") {
-		allowed.push(addressToBytes32(wormhole));
-	}
-	return allowed.map(normalize);
-}
-
-function getAllowedOutputSettlers(): string[] {
-	return [addressToBytes32(COIN_FILLER)].map(normalize);
 }
 
 function pass(): ValidationResult {
@@ -151,84 +120,113 @@ function fail(reason: string): ValidationResult {
 	return { passed: false, reason };
 }
 
-/// https://docs.li.fi/lifi-intents/for-solvers/orderflow#order-validation
-export function validateOrderWithReason(order: StandardOrder): ValidationResult {
-	// 1-2. temporal consistency only
-	if (order.fillDeadline > order.expires)
-		return fail(VALIDATION_ERRORS.FILL_DEADLINE_AFTER_EXPIRES);
+export function createOrderValidator(deps: OrderValidationDeps): OrderValidator {
+	const compactSettlers = (
+		deps.compactSettlers.length > 0
+			? deps.compactSettlers
+			: [INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT]
+	).map(normalize);
 
-	// 3. validation layer
-	const inputChain = findChainById(order.originChainId);
-	if (!inputChain) return fail(VALIDATION_ERRORS.UNKNOWN_ORIGIN_CHAIN);
-	const sameChainFill = order.outputs.every((output) => output.chainId === order.originChainId);
-	const allowedInputOracles = getAllowedInputOracles(inputChain, sameChainFill);
-	if (!allowedInputOracles.includes(normalize(order.inputOracle))) {
-		return fail(VALIDATION_ERRORS.INPUT_ORACLE_NOT_ALLOWED);
+	function getAllowedInputOracles(chainId: bigint, sameChainFill: boolean): string[] | undefined {
+		const allowed = deps.allowedInputOracles(chainId, sameChainFill);
+		if (!allowed) return undefined;
+		return allowed.map(normalize);
 	}
 
-	// 4. inputs
-	if (!Array.isArray(order.inputs) || order.inputs.length === 0)
-		return fail(VALIDATION_ERRORS.NO_INPUTS);
-	for (const input of order.inputs) {
-		const [, amount] = input;
-		if (amount <= 0n) return fail(VALIDATION_ERRORS.INPUT_AMOUNT_NON_POSITIVE);
+	function getAllowedOutputOracles(chainId: bigint): string[] | undefined {
+		const allowed = deps.allowedOutputOracles(chainId);
+		if (!allowed) return undefined;
+		return [COIN_FILLER, ...allowed].map((oracle) => addressToBytes32(oracle)).map(normalize);
 	}
 
-	// 5. lock ID semantics are not validated yet.
-	// TODO: validate lock IDs for escrow/compact compatibility and token mapping.
-	// 6. reset period semantics are not validated yet.
-	// TODO: decode and validate reset period constraints from lock IDs.
-	// 7. allocator ID policy is not validated yet.
-	// TODO: enforce allocator policy rules for active environments.
-	// 8. claim/signature verification is not validated here.
-	// TODO: validate sponsor/allocator signatures when required.
+	function getAllowedOutputSettlers(): string[] {
+		return deps
+			.allowedOutputSettlers()
+			.map((settler) => addressToBytes32(settler))
+			.map(normalize);
+	}
 
-	// 9. outputs
-	if (!Array.isArray(order.outputs) || order.outputs.length === 0)
-		return fail(VALIDATION_ERRORS.NO_OUTPUTS);
-	for (const output of order.outputs) {
-		const outputChain = findChainById(output.chainId);
-		if (!outputChain) return fail(VALIDATION_ERRORS.UNKNOWN_OUTPUT_CHAIN);
-		if (output.amount < 0n) return fail(VALIDATION_ERRORS.OUTPUT_AMOUNT_NON_POSITIVE);
-		if (isZeroBytes32(output.oracle)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
-		const allowedOutputOracles = getAllowedOutputOracles(outputChain);
-		if (!allowedOutputOracles.includes(normalize(output.oracle))) {
-			return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
+	/// https://docs.li.fi/lifi-intents/for-solvers/orderflow#order-validation
+	function validateOrderWithReason(order: StandardOrder): ValidationResult {
+		// 1-2. temporal consistency only
+		if (order.fillDeadline > order.expires)
+			return fail(VALIDATION_ERRORS.FILL_DEADLINE_AFTER_EXPIRES);
+
+		// 3. validation layer
+		const sameChainFill = order.outputs.every((output) => output.chainId === order.originChainId);
+		const allowedInputOracles = getAllowedInputOracles(order.originChainId, sameChainFill);
+		if (!allowedInputOracles) return fail(VALIDATION_ERRORS.UNKNOWN_ORIGIN_CHAIN);
+		if (!allowedInputOracles.includes(normalize(order.inputOracle))) {
+			return fail(VALIDATION_ERRORS.INPUT_ORACLE_NOT_ALLOWED);
 		}
-		if (isZeroBytes32(output.settler)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
-		const allowedOutputSettlers = getAllowedOutputSettlers();
-		if (!allowedOutputSettlers.includes(normalize(output.settler))) {
-			return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
+
+		// 4. inputs
+		if (!Array.isArray(order.inputs) || order.inputs.length === 0)
+			return fail(VALIDATION_ERRORS.NO_INPUTS);
+		for (const input of order.inputs) {
+			const [, amount] = input;
+			if (amount <= 0n) return fail(VALIDATION_ERRORS.INPUT_AMOUNT_NON_POSITIVE);
 		}
-		if (isZeroBytes32(output.token)) return fail(VALIDATION_ERRORS.OUTPUT_TOKEN_ZERO);
-		if (isZeroBytes32(output.recipient)) return fail(VALIDATION_ERRORS.OUTPUT_RECIPIENT_ZERO);
-	}
 
-	// 11. allocatorData is not validated yet.
-	// TODO: parse and validate allocatorData.
-	// 12. nonce freshness/replay checks require chain state.
-	// TODO: validate nonce freshness against chain state.
-	return pass();
-}
+		// 5. lock ID semantics are not validated yet.
+		// TODO: validate lock IDs for escrow/compact compatibility and token mapping.
+		// 6. reset period semantics are not validated yet.
+		// TODO: decode and validate reset period constraints from lock IDs.
+		// 7. allocator ID policy is not validated yet.
+		// TODO: enforce allocator policy rules for active environments.
+		// 8. claim/signature verification is not validated here.
+		// TODO: validate sponsor/allocator signatures when required.
 
-export function validateOrder(order: StandardOrder): boolean {
-	return validateOrderWithReason(order).passed;
-}
+		// 9. outputs
+		if (!Array.isArray(order.outputs) || order.outputs.length === 0)
+			return fail(VALIDATION_ERRORS.NO_OUTPUTS);
+		for (const output of order.outputs) {
+			const allowedOutputOracles = getAllowedOutputOracles(output.chainId);
+			if (!allowedOutputOracles) return fail(VALIDATION_ERRORS.UNKNOWN_OUTPUT_CHAIN);
+			if (output.amount < 0n) return fail(VALIDATION_ERRORS.OUTPUT_AMOUNT_NON_POSITIVE);
+			if (isZeroBytes32(output.oracle)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
+			if (!allowedOutputOracles.includes(normalize(output.oracle))) {
+				return fail(VALIDATION_ERRORS.INVALID_OUTPUT_ORACLE);
+			}
+			if (isZeroBytes32(output.settler)) return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
+			const allowedOutputSettlers = getAllowedOutputSettlers();
+			if (!allowedOutputSettlers.includes(normalize(output.settler))) {
+				return fail(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
+			}
+			if (isZeroBytes32(output.token)) return fail(VALIDATION_ERRORS.OUTPUT_TOKEN_ZERO);
+			if (isZeroBytes32(output.recipient)) return fail(VALIDATION_ERRORS.OUTPUT_RECIPIENT_ZERO);
+		}
 
-export function validateOrderContainerWithReason(orderContainer: OrderContainer): ValidationResult {
-	const compactSettlers = [INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT].map(
-		normalize
-	);
-	if (compactSettlers.includes(normalize(orderContainer.inputSettler))) {
-		// TODO: implement compact validation from LI.FI orderflow docs.
+		// 11. allocatorData is not validated yet.
+		// TODO: parse and validate allocatorData.
+		// 12. nonce freshness/replay checks require chain state.
+		// TODO: validate nonce freshness against chain state.
 		return pass();
 	}
 
-	if (isStandardOrder(orderContainer.order)) return validateOrderWithReason(orderContainer.order);
+	function validateOrder(order: StandardOrder): boolean {
+		return validateOrderWithReason(order).passed;
+	}
 
-	return pass();
-}
+	function validateOrderContainerWithReason(orderContainer: OrderContainer): ValidationResult {
+		if (compactSettlers.includes(normalize(orderContainer.inputSettler))) {
+			// TODO: implement compact validation from LI.FI orderflow docs.
+			return pass();
+		}
 
-export function validateOrderContainer(orderContainer: OrderContainer): boolean {
-	return validateOrderContainerWithReason(orderContainer).passed;
+		if (isStandardOrder(orderContainer.order)) return validateOrderWithReason(orderContainer.order);
+
+		return pass();
+	}
+
+	function validateOrderContainer(orderContainer: OrderContainer): boolean {
+		return validateOrderContainerWithReason(orderContainer).passed;
+	}
+
+	return {
+		validateOrderWithReason,
+		validateOrder,
+		validateOrderContainerWithReason,
+		validateOrderContainer
+	};
 }

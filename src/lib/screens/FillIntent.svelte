@@ -1,12 +1,5 @@
 <script lang="ts">
-	import {
-		BYTES32_ZERO,
-		formatTokenAmount,
-		getChainName,
-		getClient,
-		getCoin,
-		type chain
-	} from "$lib/config";
+	import { BYTES32_ZERO, formatTokenAmount, getChainName, getClient, getCoin } from "$lib/config";
 	import { bytes32ToAddress } from "$lib/core/helpers/convert";
 	import { getOutputHash } from "$lib/core/orderLib";
 	import type { MandateOutput, OrderContainer } from "$lib/core/types";
@@ -31,7 +24,7 @@
 	}: {
 		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
 	} = $props();
@@ -183,11 +176,10 @@
 									output.amount,
 									getCoin({
 										address: output.token,
-										chain: getChainName(output.chainId)
+										chainId: output.chainId
 									}).decimals
 								)}
-								symbol={getCoin({ address: output.token, chain: getChainName(output.chainId) })
-									.name}
+								symbol={getCoin({ address: output.token, chainId: output.chainId }).name}
 								tone={filled === undefined
 									? "muted"
 									: filled === BYTES32_ZERO

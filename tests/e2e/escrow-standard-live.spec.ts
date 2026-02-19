@@ -105,11 +105,13 @@ test("executes full standard escrow flow from base to arbitrum with raw input 10
 	await page.evaluate(
 		async ({ amount, issuer }) => {
 			const { default: store } = await import("/src/lib/state.svelte.ts");
-			const { coinList } = await import("/src/lib/config");
+			const { coinList, chainMap } = await import("/src/lib/config");
 			const coins = coinList(true);
-			const baseUsdc = coins.find((token) => token.chain === "base" && token.name === "usdc");
+			const baseUsdc = coins.find(
+				(token) => token.chainId === chainMap.base.id && token.name === "usdc"
+			);
 			const arbitrumUsdc = coins.find(
-				(token) => token.chain === "arbitrum" && token.name === "usdc"
+				(token) => token.chainId === chainMap.arbitrum.id && token.name === "usdc"
 			);
 			if (!baseUsdc || !arbitrumUsdc) {
 				throw new Error("Could not resolve base/arbitrum USDC from coin list.");

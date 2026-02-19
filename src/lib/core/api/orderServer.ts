@@ -8,8 +8,7 @@ import type {
 	StandardOrder
 } from "../types";
 import { isStandardOrder } from "../intent";
-import { type chain, chainMap } from "$lib/config";
-import { getInteropableAddress } from "../../utils/interopableAddresses";
+import { getInteropableAddress } from "../helpers/interopableAddress";
 
 type OrderStatus = "Signed" | "Delivered" | "Settled";
 
@@ -55,17 +54,17 @@ type GetOrderResponse = {
 
 type GetQuoteOptions = {
 	user: `0x${string}`;
-	userChain: chain;
+	userChainId: number | bigint;
 	inputs: {
 		sender: `0x${string}`;
 		asset: `0x${string}`;
-		chain: chain;
+		chainId: number | bigint;
 		amount: bigint;
 	}[];
 	outputs: {
 		receiver: `0x${string}`;
 		asset: `0x${string}`;
-		chain: chain;
+		chainId: number | bigint;
 		amount: bigint;
 	}[];
 	minValidUntil?: number;
@@ -377,7 +376,7 @@ export class OrderServer {
 	 * @returns The response data containing the quotes
 	 */
 	async getQuotes(options: GetQuoteOptions): Promise<GetQuoteResponse> {
-		const { user, userChain, inputs, outputs, minValidUntil, exclusiveFor } = options;
+		const { user, userChainId, inputs, outputs, minValidUntil, exclusiveFor } = options;
 
 		const lockType: undefined | { kind: "the-compact" } = undefined;
 
@@ -404,21 +403,21 @@ export class OrderServer {
 				exclusiveFor: `0x${string}`;
 			};
 		} = {
-			user: getInteropableAddress(user, chainMap[userChain].id),
+			user: getInteropableAddress(user, userChainId),
 			intent: {
 				intentType: "oif-swap",
 				inputs: inputs.map((input) => {
 					return {
-						user: getInteropableAddress(input.sender, chainMap[userChain].id),
-						asset: getInteropableAddress(input.asset, chainMap[userChain].id),
+						user: getInteropableAddress(input.sender, input.chainId),
+						asset: getInteropableAddress(input.asset, input.chainId),
 						amount: input.amount.toString(),
 						lock: lockType
 					};
 				}),
 				outputs: outputs.map((output) => {
 					return {
-						receiver: getInteropableAddress(output.receiver, chainMap[output.chain].id),
-						asset: getInteropableAddress(output.asset, chainMap[output.chain].id),
+						receiver: getInteropableAddress(output.receiver, output.chainId),
+						asset: getInteropableAddress(output.asset, output.chainId),
 						amount: output.amount.toString()
 					};
 				}),
@@ -455,10 +454,11 @@ export class OrderServer {
 				const message = JSON.parse(event.data);
 
 				switch (message.event) {
-					case "user:vm-order-submit":
+					case "user:vm-order-submit": {
 						const incomingOrder = message.data as SubmitOrderDto;
 						newOrderFunction(incomingOrder);
 						break;
+					}
 					case "ping":
 						socket.send(
 							JSON.stringify({

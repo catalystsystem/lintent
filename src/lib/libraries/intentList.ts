@@ -2,7 +2,6 @@ import {
 	formatTokenAmount,
 	getChainName,
 	getCoin,
-	type chain,
 	INPUT_SETTLER_ESCROW_LIFI,
 	INPUT_SETTLER_COMPACT_LIFI,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
@@ -11,7 +10,10 @@ import {
 import { isStandardOrder, orderToIntent } from "../core/intent";
 import { bytes32ToAddress, idToToken } from "../core/helpers/convert";
 import type { OrderContainer, StandardOrder, MultichainOrder } from "../core/types";
-import { validateOrderContainerWithReason } from "$lib/core/orderLib";
+import { createOrderValidator } from "$lib/core/orderLib";
+import { orderValidationDeps } from "./coreDeps";
+
+const orderValidator = createOrderValidator(orderValidationDeps);
 
 export type Chip = {
 	key: string;
@@ -61,7 +63,7 @@ function flattenInputs(inputs: { chainId: bigint; inputs: [bigint, bigint][] }[]
 	});
 }
 
-function safeChainName(chainId: bigint): chain | undefined {
+function safeChainName(chainId: bigint): string | undefined {
 	try {
 		return getChainName(chainId);
 	} catch {
@@ -75,20 +77,24 @@ function shortAddress(value: string, start = 6, end = 4) {
 }
 
 function summarizeInput(chainId: bigint, tokenId: bigint, amount: bigint): string {
-	const chain = safeChainName(chainId);
 	const tokenAddress = idToToken(tokenId);
-	if (!chain) return `${shortAddress(tokenAddress)} on chain-${chainId.toString()}`;
-	const coin = getCoin({ address: tokenAddress, chain });
+	const chainName = safeChainName(chainId);
+	if (!chainName) {
+		return `${amount.toString()} ${shortAddress(tokenAddress)} on chain-${chainId.toString()}`;
+	}
+	const coin = getCoin({ address: tokenAddress, chainId });
 	const amountText = formatTokenAmount(amount, coin.decimals);
-	return `${amountText} ${coin.name.toUpperCase()} on ${chain}`;
+	return `${amountText} ${coin.name.toUpperCase()} on ${chainName}`;
 }
 
 function summarizeOutput(chainId: bigint, token: `0x${string}`, amount: bigint): string {
-	const chain = safeChainName(chainId);
-	if (!chain) return `${shortAddress(token)} on chain-${chainId.toString()}`;
-	const coin = getCoin({ address: token, chain });
+	const chainName = safeChainName(chainId);
+	if (!chainName) {
+		return `${amount.toString()} ${shortAddress(token)} on chain-${chainId.toString()}`;
+	}
+	const coin = getCoin({ address: token, chainId });
 	const amountText = formatTokenAmount(amount, coin.decimals);
-	return `${amountText} ${coin.name.toUpperCase()} on ${chain}`;
+	return `${amountText} ${coin.name.toUpperCase()} on ${chainName}`;
 }
 
 function getInputs(order: StandardOrder | MultichainOrder) {
@@ -203,7 +209,7 @@ export function buildBaseIntentRow(orderContainer: OrderContainer): BaseIntentRo
 	const chainScope = getChainScope(order);
 	const contextDetails = getContextDetails(orderContainer);
 
-	const validation = validateOrderContainerWithReason(orderContainer);
+	const validation = orderValidator.validateOrderContainerWithReason(orderContainer);
 
 	return {
 		orderContainer,

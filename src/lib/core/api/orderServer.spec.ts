@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { INPUT_SETTLER_ESCROW_LIFI } from "../../config";
+import { INPUT_SETTLER_ESCROW_LIFI } from "../constants";
 import { isStandardOrder } from "../intent";
 import { parseOrderStatusPayload } from "./orderServer";
 

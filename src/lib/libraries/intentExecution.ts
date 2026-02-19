@@ -10,14 +10,12 @@ import {
 	INPUT_SETTLER_ESCROW_LIFI,
 	MULTICHAIN_INPUT_SETTLER_COMPACT,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
-	chainMap,
-	type chain,
+	getChain,
 	type WC
 } from "$lib/config";
 import { compact_type_hash } from "$lib/core/typedMessage";
 import { addressToBytes32 } from "$lib/core/helpers/convert";
 import { signMultichainCompact, signStandardCompact } from "$lib/core/intent/compact/signing";
-import { findChain } from "$lib/core/intent/helpers/shared";
 import { MultichainOrderIntent, StandardOrderIntent } from "$lib/core/intent";
 import type { NoSignature, Signature } from "$lib/core/types";
 import { switchWalletChain } from "$lib/utils/walletClient";
@@ -59,10 +57,7 @@ export async function depositAndRegisterCompact(
 	account: `0x${string}`,
 	walletClient: WC
 ): Promise<`0x${string}`> {
-	const chain = findChain(intent.order.originChainId);
-	if (!chain) {
-		throw new Error("Chain not found for chainId " + intent.order.originChainId.toString());
-	}
+	const chain = getChain(intent.order.originChainId);
 	return walletClient.writeContract({
 		chain,
 		account,
@@ -79,11 +74,8 @@ export async function openEscrowIntent(
 	walletClient: WC
 ): Promise<`0x${string}`[]> {
 	if (intent instanceof StandardOrderIntent) {
-		const chain = findChain(intent.order.originChainId);
 		await switchWalletChain(walletClient, Number(intent.order.originChainId));
-		if (!chain) {
-			throw new Error("Chain not found for chainId " + intent.order.originChainId.toString());
-		}
+		const chain = getChain(intent.order.originChainId);
 		return [
 			await walletClient.writeContract({
 				chain,
@@ -99,8 +91,7 @@ export async function openEscrowIntent(
 	const components = intent.asComponents();
 	const results: `0x${string}`[] = [];
 	for (const { chainId, orderComponent } of components) {
-		const chain = findChain(chainId);
-		if (!chain) throw new Error("Chain not found for chainId " + chainId.toString());
+		const chain = getChain(chainId);
 		await switchWalletChain(walletClient, chain.id);
 		results.push(
 			await walletClient.writeContract({
@@ -118,7 +109,7 @@ export async function openEscrowIntent(
 
 export async function finaliseIntent(options: {
 	intent: StandardOrderIntent | MultichainOrderIntent;
-	sourceChain: chain;
+	sourceChainId: number | bigint;
 	account: `0x${string}`;
 	walletClient: WC;
 	solveParams: { timestamp: number; solver: `0x${string}` }[];
@@ -127,8 +118,8 @@ export async function finaliseIntent(options: {
 		allocatorSignature: Signature | NoSignature;
 	};
 }) {
-	const { intent, sourceChain, account, walletClient, solveParams, signatures } = options;
-	const actionChain = chainMap[sourceChain];
+	const { intent, sourceChainId, account, walletClient, solveParams, signatures } = options;
+	const actionChain = getChain(sourceChainId);
 
 	if (intent instanceof StandardOrderIntent) {
 		if (actionChain.id !== Number(intent.order.originChainId)) {
@@ -168,9 +159,7 @@ export async function finaliseIntent(options: {
 	}
 	const components = intent.asComponents().filter((c) => Number(c.chainId) === actionChain.id);
 	if (components.length === 0) {
-		throw new Error(
-			`No multichain order component found for action chain ${actionChain.id} (${sourceChain}).`
-		);
+		throw new Error(`No multichain order component found for action chain ${actionChain.id}.`);
 	}
 
 	for (const { orderComponent } of components) {
@@ -198,5 +187,5 @@ export async function finaliseIntent(options: {
 		throw new Error(`Could not detect settler type ${intent.inputSettler}`);
 	}
 
-	throw new Error(`Failed to finalise multichain order on chain ${sourceChain}.`);
+	throw new Error(`Failed to finalise multichain order on chain ${actionChain.id}.`);
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { chainMap, coinList, type Token } from "$lib/config";
+	import { coinList, getChainName, type Token } from "$lib/config";
 	import FieldRow from "$lib/components/ui/FieldRow.svelte";
 	import FormControl from "$lib/components/ui/FormControl.svelte";
 	import InlineMetaField from "$lib/components/ui/InlineMetaField.svelte";
 	import { AssetSelection } from "$lib/libraries/assetSelection";
-	import type { TokenContext } from "$lib/core/types";
+	import type { AppTokenContext } from "$lib/appTypes";
 	import store from "$lib/state.svelte";
 	import { toBigIntWithDecimals } from "$lib/core/helpers/convert";
 	import { type InteropableAddress, getInteropableAddress } from "$lib/utils/interopableAddresses";
@@ -18,13 +18,13 @@
 		currentInputTokens = $bindable()
 	}: {
 		active: boolean;
-		currentInputTokens: TokenContext[];
+		currentInputTokens: AppTokenContext[];
 	} = $props();
 
 	let inputs = $state<{ [index: InteropableAddress]: number | null }>(
 		Object.fromEntries(
 			(currentInputTokens ?? []).map(({ token, amount }) => [
-				getInteropableAddress(token.address, chainMap[token.chain].id),
+				getInteropableAddress(token.address, token.chainId),
 				Number(amount) / 10 ** token.decimals
 			])
 		)
@@ -32,7 +32,7 @@
 	let enabledByToken = $state<{ [index: InteropableAddress]: boolean }>(
 		Object.fromEntries(
 			(currentInputTokens ?? []).map(({ token }) => [
-				getInteropableAddress(token.address, chainMap[token.chain].id),
+				getInteropableAddress(token.address, token.chainId),
 				true
 			])
 		)
@@ -43,7 +43,7 @@
 	type SortOrder = "largest" | "smallest";
 	let sortOrder = $state<SortOrder>("largest");
 	const rowColumns = "4.5rem minmax(0,1fr) 2rem";
-	const iaddrFor = (token: Token) => getInteropableAddress(token.address, chainMap[token.chain].id);
+	const iaddrFor = (token: Token) => getInteropableAddress(token.address, token.chainId);
 
 	const isEnabled = (address: InteropableAddress) => enabledByToken[address] ?? true;
 
@@ -57,7 +57,7 @@
 	function save() {
 		// Go over every single non-0 instance in the array:
 		const inputKeys = Object.keys(inputs) as InteropableAddress[];
-		const inputTokens: TokenContext[] = [];
+		const inputTokens: AppTokenContext[] = [];
 		for (const key of inputKeys) {
 			// Check that key is a number
 			const inputValue = v(inputs[key]);
@@ -117,9 +117,9 @@
 		}
 		const balancePromises = selectedIndices.map(
 			(i) =>
-				(store.intentType === "compact" ? store.compactBalances : store.balances)[tokens[i].chain][
-					tokens[i].address
-				]
+				(store.intentType === "compact" ? store.compactBalances : store.balances)[
+					tokens[i].chainId
+				][tokens[i].address]
 		);
 		const balances = await Promise.all(balancePromises);
 
@@ -212,10 +212,12 @@
 				<div>
 					{#each tokenSet as tkn, rowIndex}
 						{@const iaddr = iaddrFor(tkn)}
-						<div data-testid={`input-token-row-${tkn.chain}`}>
+						<div data-testid={`input-token-row-${getChainName(tkn.chainId)}`}>
 							<FieldRow columns={rowColumns} striped index={rowIndex}>
-								<div class="truncate text-xs font-medium text-gray-700">{tkn.chain}</div>
-								{#await (store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chain][tkn.address]}
+								<div class="truncate text-xs font-medium text-gray-700">
+									{getChainName(tkn.chainId)}
+								</div>
+								{#await (store.intentType === "compact" ? store.compactBalances : store.balances)[tkn.chainId][tkn.address]}
 									<InlineMetaField
 										bind:value={inputs[iaddr]}
 										metaText="..."

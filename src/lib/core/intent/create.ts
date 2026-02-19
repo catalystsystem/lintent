@@ -1,5 +1,6 @@
-import { COIN_FILLER, chainMap, getOracle, type Verifier } from "../../config";
+import { COIN_FILLER } from "../constants";
 import { toId } from "../compact/idLib";
+import type { IntentDeps } from "../deps";
 import type {
 	CompactLock,
 	CreateIntentOptions,
@@ -24,24 +25,26 @@ export class Intent {
 	private user: () => `0x${string}`;
 	private inputs: TokenContext[];
 	private outputs: TokenContext[];
-	private verifier: Verifier;
+	private getOracle: IntentDeps["getOracle"];
+	private verifier: string;
 	private exclusiveFor: `0x${string}`;
 
 	private _nonce?: bigint;
 	private expiry = ONE_DAY;
 	private fillDeadline = 2 * ONE_HOUR;
 
-	constructor(opts: CreateIntentOptionsEscrow | CreateIntentOptionsCompact) {
+	constructor(opts: CreateIntentOptionsEscrow | CreateIntentOptionsCompact, deps: IntentDeps) {
 		this.lock = opts.lock;
 		this.user = opts.account;
 		this.inputs = opts.inputTokens;
 		this.outputs = opts.outputTokens;
 		this.verifier = opts.verifier;
+		this.getOracle = deps.getOracle;
 		this.exclusiveFor = opts.exclusiveFor as `0x${string}`;
 	}
 
 	numInputChains() {
-		const tokenChains = this.inputs.map(({ token }) => token.chain);
+		const tokenChains = this.inputs.map(({ token }) => token.chainId);
 		return [...new Set(tokenChains)].length;
 	}
 
@@ -51,11 +54,11 @@ export class Intent {
 
 	isSameChain() {
 		if (this.isMultichain()) return false;
-		const inputChain = this.inputs[0].token.chain;
-		const outputChains = this.outputs.map((o) => o.token.chain);
+		const inputChain = this.inputs[0].token.chainId;
+		const outputChains = this.outputs.map((o) => o.token.chainId);
 		const numOutputChains = [...new Set(outputChains)].length;
 		if (numOutputChains > 1) return false;
-		const outputChain = this.outputs[0].token.chain;
+		const outputChain = this.outputs[0].token.chainId;
 		return inputChain === outputChain;
 	}
 
@@ -74,7 +77,7 @@ export class Intent {
 			throw new Error(`Not supported as single chain with ${this.numInputChains()} chains`);
 		}
 
-		const inputChain = this.inputs[0].token.chain;
+		const inputChain = this.inputs[0].token.chainId;
 		const inputs: [bigint, bigint][] = this.inputs.map(({ token, amount }) => [
 			this.lock.type === "compact"
 				? toId(true, this.lock.resetPeriod, this.lock.allocatorId, token.address)
@@ -83,12 +86,14 @@ export class Intent {
 		]);
 
 		const currentTime = Math.floor(Date.now() / 1000);
-		const inputOracle = this.isSameChain() ? COIN_FILLER : getOracle(this.verifier, inputChain)!;
+		const inputOracle = this.isSameChain()
+			? COIN_FILLER
+			: this.getOracle(this.verifier, inputChain)!;
 
 		const order: StandardOrder = {
 			user: this.user(),
 			nonce: this.nonce(),
-			originChainId: BigInt(chainMap[inputChain].id),
+			originChainId: inputChain,
 			fillDeadline: currentTime + this.fillDeadline,
 			expires: currentTime + this.expiry,
 			inputOracle,
@@ -96,6 +101,7 @@ export class Intent {
 			outputs: buildMandateOutputs({
 				exclusiveFor: this.exclusiveFor,
 				outputTokens: this.outputs,
+				getOracle: this.getOracle,
 				verifier: this.verifier,
 				sameChain: this.isSameChain(),
 				recipient: this.user(),
@@ -108,14 +114,14 @@ export class Intent {
 
 	multichain() {
 		const currentTime = Math.floor(Date.now() / 1000);
-		const inputOracle = getOracle(this.verifier, this.inputs[0].token.chain)!;
+		const inputOracle = this.getOracle(this.verifier, this.inputs[0].token.chainId)!;
 
 		const inputs: { chainId: bigint; inputs: [bigint, bigint][] }[] = [
-			...new Set(this.inputs.map(({ token }) => token.chain))
+			...new Set(this.inputs.map(({ token }) => token.chainId))
 		].map((chain) => {
-			const chainInputs = this.inputs.filter(({ token }) => token.chain === chain);
+			const chainInputs = this.inputs.filter(({ token }) => token.chainId === chain);
 			return {
-				chainId: BigInt(chainMap[chain].id),
+				chainId: chain,
 				inputs: chainInputs.map(({ token, amount }) => [
 					this.lock.type === "compact"
 						? toId(true, this.lock.resetPeriod, this.lock.allocatorId, token.address)
@@ -134,6 +140,7 @@ export class Intent {
 			outputs: buildMandateOutputs({
 				exclusiveFor: this.exclusiveFor,
 				outputTokens: this.outputs,
+				getOracle: this.getOracle,
 				verifier: this.verifier,
 				sameChain: false,
 				recipient: this.user(),

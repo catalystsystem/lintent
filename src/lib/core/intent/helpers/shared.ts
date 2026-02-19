@@ -1,25 +1,14 @@
 import {
-	chainMap,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
 	MULTICHAIN_INPUT_SETTLER_COMPACT,
-	MULTICHAIN_INPUT_SETTLER_ESCROW,
-	type chain
-} from "../../../config";
+	MULTICHAIN_INPUT_SETTLER_ESCROW
+} from "../../constants";
 import type { CompactLock, EscrowLock } from "../../types";
 
 export const ONE_MINUTE = 60;
 export const ONE_HOUR = 60 * ONE_MINUTE;
 export const ONE_DAY = 24 * ONE_HOUR;
-
-export function findChain(chainId: bigint) {
-	for (const [name, data] of Object.entries(chainMap)) {
-		if (BigInt(data.id) === chainId) {
-			return chainMap[name as chain];
-		}
-	}
-	return undefined;
-}
 
 export function selectAllBut<T>(arr: T[], index: number): T[] {
 	return [...arr.slice(0, index), ...arr.slice(index + 1, arr.length)];

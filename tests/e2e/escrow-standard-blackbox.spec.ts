@@ -29,9 +29,21 @@ async function expectRightRailState(page: Page, state: FlowState) {
 	}
 }
 
+async function lockVerticalScrollAtTop(page: Page) {
+	await page.addInitScript(() => {
+		const enforceTop = () => {
+			if (window.scrollY > 0) window.scrollTo(0, 0);
+		};
+		window.addEventListener("scroll", enforceTop, { passive: true });
+		window.addEventListener("load", enforceTop);
+	});
+}
+
 test("black-box escrow flow shows expected UI state transitions", async ({ page }) => {
 	const issuerAddress = e2eWalletAddress();
 	let sawRequiredInputAmount = false;
+
+	await lockVerticalScrollAtTop(page);
 
 	await page.route("**/quote/request", async (route) => {
 		const body = route.request().postDataJSON() as

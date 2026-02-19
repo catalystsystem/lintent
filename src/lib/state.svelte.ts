@@ -1,8 +1,8 @@
-import type { OrderContainer, TokenContext } from "./core/types";
+import type { OrderContainer } from "./core/types";
+import type { AppTokenContext } from "./appTypes";
 import {
 	ALWAYS_OK_ALLOCATOR,
-	chainMap,
-	clients,
+	clientsById,
 	coinList,
 	COMPACT,
 	INPUT_SETTLER_COMPACT_LIFI,
@@ -10,7 +10,6 @@ import {
 	MULTICHAIN_INPUT_SETTLER_COMPACT,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	type availableAllocators,
-	type chain,
 	type Token,
 	type Verifier,
 	type WC
@@ -210,8 +209,8 @@ class Store {
 	walletClient = $state<WC>(undefined as unknown as WC);
 	_unwatchWalletConnection?: () => void;
 
-	inputTokens = $state<TokenContext[]>([]);
-	outputTokens = $state<TokenContext[]>([]);
+	inputTokens = $state<AppTokenContext[]>([]);
+	outputTokens = $state<AppTokenContext[]>([]);
 	fillTransactions = $state<{ [outputId: string]: `0x${string}` }>({});
 	transactionReceipts = $state<Record<string, string>>({});
 
@@ -261,7 +260,7 @@ class Store {
 		});
 	});
 
-	multichain = $derived([...new Set(this.inputTokens.map((i) => i.token.chain))].length > 1);
+	multichain = $derived([...new Set(this.inputTokens.map((i) => i.token.chainId))].length > 1);
 
 	inputSettler = $derived.by(() => {
 		if (this.intentType === "escrow" && !this.multichain) return INPUT_SETTLER_ESCROW_LIFI;
@@ -295,7 +294,7 @@ class Store {
 	refreshTokenBalance(token: Token, force = true) {
 		if (force) {
 			invalidateRpcPrefix(
-				`balance:${this.mainnet ? "mainnet" : "testnet"}:${token.chain}:${token.address}:`
+				`balance:${this.mainnet ? "mainnet" : "testnet"}:${token.chainId}:${token.address}:`
 			);
 		}
 		this.refreshEpoch += 1;
@@ -304,7 +303,7 @@ class Store {
 	refreshTokenAllowance(token: Token, force = true) {
 		if (force) {
 			invalidateRpcPrefix(
-				`allowance:${this.mainnet ? "mainnet" : "testnet"}:${token.chain}:${token.address}:`
+				`allowance:${this.mainnet ? "mainnet" : "testnet"}:${token.chainId}:${token.address}:`
 			);
 		}
 		this.refreshEpoch += 1;
@@ -313,7 +312,7 @@ class Store {
 	refreshCompactBalance(token: Token, force = true) {
 		if (force) {
 			invalidateRpcPrefix(
-				`compact:${this.mainnet ? "mainnet" : "testnet"}:${token.chain}:${token.address}:`
+				`compact:${this.mainnet ? "mainnet" : "testnet"}:${token.chainId}:${token.address}:`
 			);
 		}
 		this.refreshEpoch += 1;
@@ -368,12 +367,12 @@ class Store {
 		}
 	}
 
-	async setWalletToCorrectChain(chain: chain) {
+	async setWalletToCorrectChain(chainId: number | bigint) {
 		try {
-			return await switchWalletChain(this.walletClient, chainMap[chain].id);
+			return await switchWalletChain(this.walletClient, Number(chainId));
 		} catch (error) {
 			console.warn(
-				`Wallet does not support switchChain or failed to switch chain: ${chainMap[chain].id}`,
+				`Wallet does not support switchChain or failed to switch chain: ${Number(chainId)}`,
 				error
 			);
 			return undefined;
@@ -385,16 +384,19 @@ class Store {
 		ttlMs: number;
 		isMainnet: boolean;
 		scopeKey: string;
-		fetcher: (asset: `0x${string}`, client: (typeof clients)[keyof typeof clients]) => Promise<T>;
+		fetcher: (
+			asset: `0x${string}`,
+			client: (typeof clientsById)[keyof typeof clientsById]
+		) => Promise<T>;
 	}) {
 		const { bucket, ttlMs, isMainnet, scopeKey, fetcher } = opts;
-		const resolved: Record<chain, Record<`0x${string}`, Promise<T>>> = {} as any;
+		const resolved: Record<number, Record<`0x${string}`, Promise<T>>> = {};
 		for (const token of coinList(isMainnet)) {
-			if (!resolved[token.chain as chain]) resolved[token.chain] = {};
-			const key = `${bucket}:${isMainnet ? "mainnet" : "testnet"}:${token.chain}:${token.address}:${scopeKey}`;
-			resolved[token.chain][token.address] = getOrFetchRpc(
+			if (!resolved[token.chainId]) resolved[token.chainId] = {};
+			const key = `${bucket}:${isMainnet ? "mainnet" : "testnet"}:${token.chainId}:${token.address}:${scopeKey}`;
+			resolved[token.chainId][token.address] = getOrFetchRpc(
 				key,
-				() => fetcher(token.address, clients[token.chain]),
+				() => fetcher(token.address, clientsById[token.chainId]),
 				{ ttlMs }
 			);
 		}

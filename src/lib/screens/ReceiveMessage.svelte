@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatTokenAmount, getChainName, getClient, getCoin, type chain } from "$lib/config";
+	import { formatTokenAmount, getChainName, getClient, getCoin } from "$lib/config";
 	import { addressToBytes32 } from "$lib/core/helpers/convert";
 	import { encodeMandateOutput } from "$lib/core/orderLib";
 	import { hashStruct, keccak256 } from "viem";
@@ -26,7 +26,7 @@
 	}: {
 		scroll: (direction: boolean | number) => () => void;
 		orderContainer: OrderContainer;
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook: () => Promise<any>;
 		account: () => `0x${string}`;
 	} = $props();
@@ -180,10 +180,9 @@
 								<TokenAmountChip
 									amountText={formatTokenAmount(
 										output.amount,
-										getCoin({ address: output.token, chain: getChainName(output.chainId) }).decimals
+										getCoin({ address: output.token, chainId: output.chainId }).decimals
 									)}
-									symbol={getCoin({ address: output.token, chain: getChainName(output.chainId) })
-										.name}
+									symbol={getCoin({ address: output.token, chainId: output.chainId }).name}
 									tone="warning"
 								/>
 							{:else}
@@ -206,7 +205,7 @@
 																primaryType: "MandateOutput"
 															})
 														],
-													sourceChain: getChainName(inputChain),
+													sourceChainId: Number(inputChain),
 													mainnet: store.mainnet
 												},
 												{
@@ -219,13 +218,12 @@
 									{#snippet name()}
 										{formatTokenAmount(
 											output.amount,
-											getCoin({ address: output.token, chain: getChainName(output.chainId) })
-												.decimals
+											getCoin({ address: output.token, chainId: output.chainId }).decimals
 										)}
 										&nbsp;
 										{getCoin({
 											address: output.token,
-											chain: getChainName(output.chainId)
+											chainId: output.chainId
 										}).name.toUpperCase()}
 									{/snippet}
 									{#snippet awaiting()}

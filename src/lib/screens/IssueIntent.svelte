@@ -4,14 +4,14 @@
 	import FormControl from "$lib/components/ui/FormControl.svelte";
 	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
 	import SectionCard from "$lib/components/ui/SectionCard.svelte";
-	import { POLYMER_ALLOCATOR, formatTokenAmount, type chain } from "$lib/config";
+	import { POLYMER_ALLOCATOR, formatTokenAmount, getChainName } from "$lib/config";
 	import { IntentFactory, escrowApprove } from "$lib/libraries/intentFactory";
 	import { CompactLib } from "$lib/libraries/compactLib";
 	import store from "$lib/state.svelte";
 	import InputTokenModal from "../components/InputTokenModal.svelte";
 	import OutputTokenModal from "$lib/components/OutputTokenModal.svelte";
 	import { ResetPeriod } from "$lib/core/compact/idLib";
-	import type { CreateIntentOptions } from "$lib/core/types";
+	import type { AppCreateIntentOptions } from "$lib/appTypes";
 
 	const bigIntSum = (...nums: bigint[]) => nums.reduce((a, b) => a + b, 0n);
 	const REQUIRED_INPUT_USDC_RAW = 100n;
@@ -23,7 +23,7 @@
 		account
 	}: {
 		scroll: (direction: boolean | number) => () => void;
-		preHook?: (chain: chain) => Promise<any>;
+		preHook?: (chainId: number) => Promise<any>;
 		postHook: () => Promise<void>;
 		account: () => `0x${string}`;
 	} = $props();
@@ -44,7 +44,7 @@
 			resetPeriod: ResetPeriod.OneDay
 		},
 		account
-	} as CreateIntentOptions);
+	} as AppCreateIntentOptions);
 
 	const postHookScroll = async () => {
 		await postHook();
@@ -70,13 +70,13 @@
 	let allowanceCheck = $state(true);
 	$effect(() => {
 		allowanceCheck = true;
-		if (!store.allowances[store.inputTokens[0].token.chain]) {
+		if (!store.allowances[store.inputTokens[0].token.chainId]) {
 			allowanceCheck = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
 			const { token, amount } = store.inputTokens[i];
-			store.allowances[token.chain][token.address].then((a) => {
+			store.allowances[token.chainId][token.address].then((a) => {
 				allowanceCheck = allowanceCheck && a >= amount;
 			});
 		}
@@ -84,13 +84,13 @@
 	let balanceCheckWallet = $state(true);
 	$effect(() => {
 		balanceCheckWallet = true;
-		if (!store.balances[store.inputTokens[0].token.chain]) {
+		if (!store.balances[store.inputTokens[0].token.chainId]) {
 			balanceCheckWallet = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
 			const { token, amount } = store.inputTokens[i];
-			store.balances[token.chain][token.address].then((b) => {
+			store.balances[token.chainId][token.address].then((b) => {
 				balanceCheckWallet = balanceCheckWallet && b >= amount;
 			});
 		}
@@ -98,13 +98,13 @@
 	let balanceCheckCompact = $state(true);
 	$effect(() => {
 		balanceCheckCompact = true;
-		if (!store.compactBalances[store.inputTokens[0].token.chain]) {
+		if (!store.compactBalances[store.inputTokens[0].token.chainId]) {
 			balanceCheckCompact = false;
 			return;
 		}
 		for (let i = 0; i < store.inputTokens.length; ++i) {
 			const { token, amount } = store.inputTokens[i];
-			store.compactBalances[token.chain][token.address].then((b) => {
+			store.compactBalances[token.chainId][token.address].then((b) => {
 				balanceCheckCompact = balanceCheckCompact && b >= amount;
 			});
 		}
@@ -132,7 +132,9 @@
 				decimals: store.inputTokens.find((v) => v.token.name == name)!.token.decimals,
 				chains: [
 					...new Set(
-						store.inputTokens.filter((v) => v.token.name == name).map((v) => v.token.chain)
+						store.inputTokens
+							.filter((v) => v.token.name == name)
+							.map((v) => getChainName(v.token.chainId))
 					)
 				]
 			};
@@ -141,15 +143,15 @@
 	});
 
 	const numInputChains = $derived.by(() => {
-		const tokenChains = store.inputTokens.map(({ token }) => token.chain);
+		const tokenChains = store.inputTokens.map(({ token }) => token.chainId);
 		const uniqueChains = [...new Set(tokenChains)];
 		return uniqueChains.length;
 	});
 
 	const sameChain = $derived.by(() => {
 		if (numInputChains > 1) return false;
-		const inputChain = store.inputTokens[0].token.chain;
-		const outputChains = store.outputTokens.map((o) => o.token.chain);
+		const inputChain = store.inputTokens[0].token.chainId;
+		const outputChains = store.outputTokens.map((o) => o.token.chainId);
 		const numOutputChains = [...new Set(outputChains)].length;
 		if (numOutputChains > 1) return false;
 		const outputChain = outputChains[0];
@@ -236,7 +238,7 @@
 				</div>
 				<div class="flex flex-col justify-center space-y-1">
 					<h2 class="text-center text-xs font-semibold text-gray-500">You Receive</h2>
-					{#each store.outputTokens as outputToken, i (`${outputToken.token.chain}-${outputToken.token.address}-${i}`)}
+					{#each store.outputTokens as outputToken, i (`${outputToken.token.chainId}-${outputToken.token.address}-${i}`)}
 						<button
 							data-testid={`open-output-modal-${i}`}
 							class="h-14 w-28 cursor-pointer rounded border border-gray-200 bg-white px-2 py-1 text-center transition-shadow ease-linear hover:shadow-md"
@@ -250,7 +252,7 @@
 									</div>
 								</div>
 								<div class="mt-0.5 text-[11px] leading-tight text-gray-500">
-									{outputToken.token.chain}
+									{getChainName(outputToken.token.chainId)}
 								</div>
 							</div>
 						</button>

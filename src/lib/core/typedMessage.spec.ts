@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT } from "../config";
+import { INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT } from "./constants";
 import { compactClaimHash, multichainCompactClaimHash } from "./intent/compact/claims";
 import { toMultichainBatchCompact, toStandardBatchCompact } from "./intent/compact/conversions";
 import { compact_type_hash, compactTypes, multichain_compact_type_hash } from "./typedMessage";

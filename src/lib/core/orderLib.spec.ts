@@ -3,27 +3,50 @@ import {
 	COIN_FILLER,
 	INPUT_SETTLER_COMPACT_LIFI,
 	INPUT_SETTLER_ESCROW_LIFI,
-	MULTICHAIN_INPUT_SETTLER_ESCROW,
-	chainMap
-} from "../config";
+	MULTICHAIN_INPUT_SETTLER_ESCROW
+} from "./constants";
+import type { OrderValidationDeps } from "./deps";
 import {
+	createOrderValidator,
 	encodeMandateOutput,
 	getOutputHash,
-	validateOrder,
-	validateOrderContainer,
-	validateOrderContainerWithReason,
-	validateOrderWithReason,
 	VALIDATION_ERRORS
 } from "./orderLib";
 import type { OrderContainer } from "./types";
 import {
 	b32,
+	CHAIN_ID_ARBITRUM,
+	CHAIN_ID_ETHEREUM,
 	makeMandateOutput,
 	makeMultichainOrder,
 	makeStandardOrder
 } from "./testing/orderFixtures";
 
-const output = makeMandateOutput("arbitrum", 1n, { context: "0x00" });
+const output = makeMandateOutput(CHAIN_ID_ARBITRUM, 1n, { context: "0x00" });
+
+const validationDeps: OrderValidationDeps = {
+	compactSettlers: [INPUT_SETTLER_COMPACT_LIFI],
+	allowedInputOracles(chainId, sameChainFill) {
+		if (chainId !== CHAIN_ID_ETHEREUM) return undefined;
+		const allowed = ["0x0000003E06000007A224AeE90052fA6bb46d43C9" as `0x${string}`];
+		if (sameChainFill) allowed.push(COIN_FILLER);
+		return allowed;
+	},
+	allowedOutputOracles(chainId) {
+		if (chainId !== CHAIN_ID_ARBITRUM && chainId !== CHAIN_ID_ETHEREUM) return undefined;
+		return ["0x0000003E06000007A224AeE90052fA6bb46d43C9"];
+	},
+	allowedOutputSettlers() {
+		return [COIN_FILLER];
+	}
+};
+
+const {
+	validateOrder,
+	validateOrderContainer,
+	validateOrderContainerWithReason,
+	validateOrderWithReason
+} = createOrderValidator(validationDeps);
 
 describe("orderLib", () => {
 	it("produces stable output hashes", () => {
@@ -65,7 +88,7 @@ describe("orderLib", () => {
 	it("accepts same-chain intents with COIN_FILLER as inputOracle", () => {
 		const sameChainCoinFiller = makeStandardOrder({
 			inputOracle: COIN_FILLER,
-			outputs: [{ ...output, chainId: BigInt(chainMap.ethereum.id) }]
+			outputs: [{ ...output, chainId: CHAIN_ID_ETHEREUM }]
 		});
 		expect(validateOrder(sameChainCoinFiller)).toBe(true);
 	});

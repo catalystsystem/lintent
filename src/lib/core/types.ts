@@ -1,5 +1,5 @@
-import type { Token, Verifier } from "../config";
 import type { ResetPeriod } from "./compact/idLib";
+import type { CoreVerifier } from "./deps";
 
 export type Quote = {
 	fromAsset: string;
@@ -43,8 +43,15 @@ export type CompactLock = {
 	allocatorId: string;
 };
 
+export type CoreToken = {
+	address: `0x${string}`;
+	name: string;
+	chainId: bigint;
+	decimals: number;
+};
+
 export type TokenContext = {
-	token: Token;
+	token: CoreToken;
 	amount: bigint;
 };
 
@@ -52,7 +59,7 @@ export type CreateIntentOptionsEscrow = {
 	exclusiveFor: string;
 	inputTokens: TokenContext[];
 	outputTokens: TokenContext[];
-	verifier: Verifier;
+	verifier: CoreVerifier;
 	account: () => `0x${string}`;
 	lock: EscrowLock;
 };
@@ -61,7 +68,7 @@ export type CreateIntentOptionsCompact = {
 	exclusiveFor: string;
 	inputTokens: TokenContext[];
 	outputTokens: TokenContext[];
-	verifier: Verifier;
+	verifier: CoreVerifier;
 	account: () => `0x${string}`;
 	lock: CompactLock;
 };

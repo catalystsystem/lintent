@@ -1,5 +1,5 @@
 import { encodeAbiParameters, encodePacked, hashStruct, keccak256, parseAbiParameters } from "viem";
-import { INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT } from "../../config";
+import { INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT } from "../constants";
 import {
 	MULTICHAIN_COMPACT_TYPEHASH_WITH_WITNESS,
 	multichainCompactClaimHash
