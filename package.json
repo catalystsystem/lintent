@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "husky",
     "test": "bun run test:package && bun run test:explorer && bun run test:issue-intent",
     "test:package": "bun run --cwd packages/lintent test",
     "test:explorer": "bun run --cwd app/explorer test",
@@ -21,7 +22,11 @@
     "build:explorer": "bun run --cwd app/explorer build",
     "build:issue-intent": "bun run --cwd app/issue-intent build"
   },
+  "lint-staged": {
+    "*.{js,ts,svelte,css,md,json,html}": "prettier --write"
+  },
   "devDependencies": {
+    "husky": "9.1.7",
     "lint-staged": "16.1.0",
     "prettier": "3.4.2",
     "prettier-plugin-svelte": "3.3.3",
