@@ -2,45 +2,28 @@ import { describe, expect, it } from "bun:test";
 import {
 	COIN_FILLER,
 	INPUT_SETTLER_COMPACT_LIFI,
-	POLYMER_ORACLE,
+	INPUT_SETTLER_ESCROW_LIFI,
+	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	chainMap
-} from "../../src/lib/config";
+} from "../config";
 import {
+	encodeMandateOutput,
 	getOutputHash,
 	validateOrder,
 	validateOrderContainer,
+	validateOrderContainerWithReason,
 	validateOrderWithReason,
 	VALIDATION_ERRORS
-} from "../../src/lib/core/orderLib";
-import { addressToBytes32 } from "../../src/lib/core/helpers/convert";
-import type { MandateOutput, OrderContainer, StandardOrder } from "../../src/lib/core/types";
+} from "./orderLib";
+import type { OrderContainer } from "./types";
+import {
+	b32,
+	makeMandateOutput,
+	makeMultichainOrder,
+	makeStandardOrder
+} from "./testing/orderFixtures";
 
-const b32 = (byte: string) => `0x${byte.repeat(64)}` as `0x${string}`;
-
-const output: MandateOutput = {
-	oracle: addressToBytes32(COIN_FILLER),
-	settler: addressToBytes32(COIN_FILLER),
-	chainId: BigInt(chainMap.arbitrum.id),
-	token: b32("3"),
-	amount: 1n,
-	recipient: b32("4"),
-	callbackData: "0x",
-	context: "0x00"
-};
-
-function makeOrder(overrides: Partial<StandardOrder> = {}): StandardOrder {
-	return {
-		user: "0x1111111111111111111111111111111111111111",
-		nonce: 1n,
-		originChainId: BigInt(chainMap.ethereum.id),
-		expires: Math.floor(Date.now() / 1000) + 1000,
-		fillDeadline: Math.floor(Date.now() / 1000) + 1000,
-		inputOracle: POLYMER_ORACLE.ethereum,
-		inputs: [[1n, 1n]],
-		outputs: [output],
-		...overrides
-	};
-}
+const output = makeMandateOutput("arbitrum", 1n, { context: "0x00" });
 
 describe("orderLib", () => {
 	it("produces stable output hashes", () => {
@@ -56,9 +39,9 @@ describe("orderLib", () => {
 	});
 
 	it("rejects orders where fillDeadline is later than expires", () => {
-		const invalidTiming = makeOrder({
-			expires: Math.floor(Date.now() / 1000) + 1000,
-			fillDeadline: Math.floor(Date.now() / 1000) + 1001
+		const invalidTiming = makeStandardOrder({
+			expires: 2_000_000_000,
+			fillDeadline: 2_000_000_001
 		});
 		const result = validateOrderWithReason(invalidTiming);
 		expect(result.passed).toBe(false);
@@ -66,12 +49,12 @@ describe("orderLib", () => {
 	});
 
 	it("accepts orders with multiple outputs", () => {
-		const multiOutput = makeOrder({ outputs: [output, { ...output, amount: 2n }] });
+		const multiOutput = makeStandardOrder({ outputs: [output, { ...output, amount: 2n }] });
 		expect(validateOrder(multiOutput)).toBe(true);
 	});
 
 	it("rejects orders with unknown source oracle", () => {
-		const invalidOracle = makeOrder({
+		const invalidOracle = makeStandardOrder({
 			inputOracle: "0x0000000000000000000000000000000000000001"
 		});
 		const result = validateOrderWithReason(invalidOracle);
@@ -80,7 +63,7 @@ describe("orderLib", () => {
 	});
 
 	it("accepts same-chain intents with COIN_FILLER as inputOracle", () => {
-		const sameChainCoinFiller = makeOrder({
+		const sameChainCoinFiller = makeStandardOrder({
 			inputOracle: COIN_FILLER,
 			outputs: [{ ...output, chainId: BigInt(chainMap.ethereum.id) }]
 		});
@@ -88,21 +71,28 @@ describe("orderLib", () => {
 	});
 
 	it("rejects orders with empty inputs", () => {
-		const emptyInputs = makeOrder({ inputs: [] });
+		const emptyInputs = makeStandardOrder({ inputs: [] });
 		const result = validateOrderWithReason(emptyInputs);
 		expect(result.passed).toBe(false);
 		expect(result.reason).toBe(VALIDATION_ERRORS.NO_INPUTS);
 	});
 
+	it("rejects orders with non-positive input amount", () => {
+		const invalidInputAmount = makeStandardOrder({ inputs: [[1n, 0n]] });
+		const result = validateOrderWithReason(invalidInputAmount);
+		expect(result.passed).toBe(false);
+		expect(result.reason).toBe(VALIDATION_ERRORS.INPUT_AMOUNT_NON_POSITIVE);
+	});
+
 	it("accepts orders with zero output amount", () => {
-		const zeroOutputAmount = makeOrder({
+		const zeroOutputAmount = makeStandardOrder({
 			outputs: [{ ...output, amount: 0n }]
 		});
 		expect(validateOrder(zeroOutputAmount)).toBe(true);
 	});
 
 	it("rejects orders with negative output amount", () => {
-		const negativeOutputAmount = makeOrder({
+		const negativeOutputAmount = makeStandardOrder({
 			outputs: [{ ...output, amount: -1n }]
 		});
 		const result = validateOrderWithReason(negativeOutputAmount);
@@ -111,7 +101,7 @@ describe("orderLib", () => {
 	});
 
 	it("rejects orders with unknown output chain", () => {
-		const badOutputChain = makeOrder({
+		const badOutputChain = makeStandardOrder({
 			outputs: [{ ...output, chainId: 999999999n }]
 		});
 		const result = validateOrderWithReason(badOutputChain);
@@ -120,7 +110,7 @@ describe("orderLib", () => {
 	});
 
 	it("rejects orders with non-whitelisted output oracle", () => {
-		const badOutputOracle = makeOrder({
+		const badOutputOracle = makeStandardOrder({
 			outputs: [{ ...output, oracle: b32("a") }]
 		});
 		const result = validateOrderWithReason(badOutputOracle);
@@ -129,7 +119,7 @@ describe("orderLib", () => {
 	});
 
 	it("rejects orders with non-whitelisted output settler", () => {
-		const badOutputSettler = makeOrder({
+		const badOutputSettler = makeStandardOrder({
 			outputs: [{ ...output, settler: b32("b") }]
 		});
 		const result = validateOrderWithReason(badOutputSettler);
@@ -137,15 +127,68 @@ describe("orderLib", () => {
 		expect(result.reason).toBe(VALIDATION_ERRORS.INVALID_OUTPUT_SETTLER);
 	});
 
+	it("rejects orders with zero token", () => {
+		const invalidToken = makeStandardOrder({
+			outputs: [{ ...output, token: b32("0") }]
+		});
+		const result = validateOrderWithReason(invalidToken);
+		expect(result.passed).toBe(false);
+		expect(result.reason).toBe(VALIDATION_ERRORS.OUTPUT_TOKEN_ZERO);
+	});
+
+	it("rejects orders with zero recipient", () => {
+		const invalidRecipient = makeStandardOrder({
+			outputs: [{ ...output, recipient: b32("0") }]
+		});
+		const result = validateOrderWithReason(invalidRecipient);
+		expect(result.passed).toBe(false);
+		expect(result.reason).toBe(VALIDATION_ERRORS.OUTPUT_RECIPIENT_ZERO);
+	});
+
+	it("returns standard-order validation result from container validator", () => {
+		const invalidStandardContainer: OrderContainer = {
+			inputSettler: INPUT_SETTLER_ESCROW_LIFI,
+			order: makeStandardOrder({
+				inputOracle: "0x0000000000000000000000000000000000000001"
+			}),
+			sponsorSignature: { type: "None", payload: "0x" },
+			allocatorSignature: { type: "None", payload: "0x" }
+		};
+
+		const result = validateOrderContainerWithReason(invalidStandardContainer);
+		expect(result.passed).toBe(false);
+		expect(result.reason).toBe(VALIDATION_ERRORS.INPUT_ORACLE_NOT_ALLOWED);
+	});
+
+	it("accepts multichain containers in TODO validation path", () => {
+		const multichainContainer: OrderContainer = {
+			inputSettler: MULTICHAIN_INPUT_SETTLER_ESCROW,
+			order: makeMultichainOrder(),
+			sponsorSignature: { type: "None", payload: "0x" },
+			allocatorSignature: { type: "None", payload: "0x" }
+		};
+		expect(validateOrderContainer(multichainContainer)).toBe(true);
+	});
+
 	it("treats compact intents as valid in container validator (TODO path)", () => {
 		const compactContainer: OrderContainer = {
 			inputSettler: INPUT_SETTLER_COMPACT_LIFI,
-			order: makeOrder({
+			order: makeStandardOrder({
 				inputOracle: "0x0000000000000000000000000000000000000001"
 			}),
 			sponsorSignature: { type: "None", payload: "0x" },
 			allocatorSignature: { type: "None", payload: "0x" }
 		};
 		expect(validateOrderContainer(compactContainer)).toBe(true);
+	});
+
+	it("encodes mandate output deterministically", () => {
+		const solver = b32("1");
+		const orderId = b32("2");
+		const encoded1 = encodeMandateOutput(solver, orderId, 1234, output);
+		const encoded2 = encodeMandateOutput(solver, orderId, 1234, output);
+
+		expect(encoded1).toBe(encoded2);
+		expect(encoded1.startsWith("0x")).toBe(true);
 	});
 });
