@@ -6,8 +6,30 @@ on:
     branches: [main]
 
 jobs:
-  unit:
+  lintent-package:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/lintent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Run package typecheck
+        run: bun run check
+      - name: Run package tests
+        run: bun run test
+
+  explorer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/explorer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,6 +39,27 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Run explorer checks
+        run: bun run check
+      - name: Run explorer tests
+        run: bun run test
+
+  issue-intent-unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/issue-intent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Run type checks
+        run: bun run check
       - name: Run unit tests
         run: bun run test:unit
       - name: Upload coverage artifact
@@ -24,11 +67,14 @@ jobs:
         if: always()
         with:
           name: coverage-report
-          path: coverage
+          path: app/issue-intent/coverage
           if-no-files-found: ignore
 
-  e2e:
+  issue-intent-e2e:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/issue-intent
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,7 +83,7 @@ jobs:
         with:
           bun-version: latest
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
       - name: Run E2E tests
@@ -48,6 +94,6 @@ jobs:
         with:
           name: playwright-artifacts
           path: |
-            test-results
-            playwright-report
+            app/issue-intent/test-results
+            app/issue-intent/playwright-report
           if-no-files-found: ignore
