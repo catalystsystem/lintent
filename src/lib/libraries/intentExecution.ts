@@ -79,7 +79,7 @@ export async function openEscrowIntent(
 ): Promise<`0x${string}`[]> {
 	if (intent instanceof StandardOrderIntent) {
 		const chain = findChain(intent.order.originChainId);
-		walletClient.switchChain({ id: Number(intent.order.originChainId) });
+		await walletClient.switchChain({ id: Number(intent.order.originChainId) });
 		if (!chain) {
 			throw new Error("Chain not found for chainId " + intent.order.originChainId.toString());
 		}
@@ -100,7 +100,7 @@ export async function openEscrowIntent(
 	for (const { chainId, orderComponent } of components) {
 		const chain = findChain(chainId);
 		if (!chain) throw new Error("Chain not found for chainId " + chainId.toString());
-		walletClient.switchChain({ id: chain.id });
+		await walletClient.switchChain({ id: chain.id });
 		results.push(
 			await walletClient.writeContract({
 				chain,

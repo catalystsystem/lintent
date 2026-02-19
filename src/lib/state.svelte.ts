@@ -1,4 +1,3 @@
-import type { WalletState } from "@web3-onboard/core";
 import type { OrderContainer, TokenContext } from "./core/types";
 import {
 	ALWAYS_OK_ALLOCATOR,
@@ -13,11 +12,10 @@ import {
 	type availableAllocators,
 	type chain,
 	type Token,
-	type Verifier
+	type Verifier,
+	type WC
 } from "./config";
 import { getAllowance, getBalance, getCompactBalance } from "./libraries/token";
-import onboard from "./utils/web3-onboard";
-import { createWalletClient, custom } from "viem";
 import { browser } from "$app/environment";
 import { initDb, db } from "./db";
 import {
@@ -28,6 +26,13 @@ import {
 import { and, eq } from "drizzle-orm";
 import { orderToIntent } from "./core/intent";
 import { getOrFetchRpc, invalidateRpcPrefix } from "./libraries/rpcCache";
+import {
+	getCurrentConnection,
+	getCurrentWalletClient,
+	reconnectWallet,
+	type WalletConnection,
+	watchWalletConnection
+} from "./utils/wagmi";
 
 class Store {
 	mainnet = $state<boolean>(true);
@@ -195,14 +200,14 @@ class Store {
 		}
 	}
 
-	wallets = onboard.state.select("wallets");
-	activeWallet = $state<{ wallet?: WalletState }>({});
-	connectedAccount = $derived(this.activeWallet.wallet?.accounts?.[0]);
-	walletClient = $derived(
-		this.activeWallet?.wallet?.provider
-			? createWalletClient({ transport: custom(this.activeWallet.wallet.provider) })
+	walletConnection = $state<WalletConnection>(getCurrentConnection());
+	connectedAccount = $derived(
+		this.walletConnection.status === "connected"
+			? { address: this.walletConnection.address }
 			: undefined
-	)!;
+	);
+	walletClient = $state<WC>(undefined as unknown as WC);
+	_unwatchWalletConnection?: () => void;
 
 	inputTokens = $state<TokenContext[]>([]);
 	outputTokens = $state<TokenContext[]>([]);
@@ -349,6 +354,19 @@ class Store {
 		}
 	}
 
+	async syncWalletClient() {
+		if (this.walletConnection.status !== "connected") {
+			this.walletClient = undefined as unknown as WC;
+			return;
+		}
+		try {
+			this.walletClient = (await getCurrentWalletClient()) as unknown as WC;
+		} catch (error) {
+			console.warn("getCurrentWalletClient failed", error);
+			this.walletClient = undefined as unknown as WC;
+		}
+	}
+
 	async setWalletToCorrectChain(chain: chain) {
 		try {
 			return await this.walletClient?.switchChain({ id: chainMap[chain].id });
@@ -388,9 +406,19 @@ class Store {
 		this.inputTokens = [{ token: coinList(this.mainnet)[0], amount: 1000000n }];
 		this.outputTokens = [{ token: coinList(this.mainnet)[1], amount: 1000000n }];
 
-		this.wallets.subscribe((v) => {
-			this.activeWallet.wallet = v?.[0];
-		});
+		if (browser) {
+			reconnectWallet()
+				.catch((error) => console.warn("reconnectWallet failed", error))
+				.finally(() => {
+					this.walletConnection = getCurrentConnection();
+					this.syncWalletClient().catch((error) => console.warn("syncWalletClient failed", error));
+				});
+
+			this._unwatchWalletConnection = watchWalletConnection((connection) => {
+				this.walletConnection = connection;
+				this.syncWalletClient().catch((error) => console.warn("syncWalletClient failed", error));
+			});
+		}
 
 		this.startRpcRefreshLoop();
 

@@ -392,11 +392,17 @@ export const clients = {
 	}),
 	bsc: createPublicClient({
 		chain: bsc,
-		transport: fallback([...bsc.rpcUrls.default.http.map((v) => http(v))])
+		transport: fallback([
+			http("https://bsc-rpc.publicnode.com"),
+			...bsc.rpcUrls.default.http.map((v) => http(v))
+		])
 	}),
 	polygon: createPublicClient({
 		chain: base,
-		transport: fallback([...polygon.rpcUrls.default.http.map((v) => http(v))])
+		transport: fallback([
+			http("https://polygon-bor-rpc.publicnode.com"),
+			...polygon.rpcUrls.default.http.map((v) => http(v))
+		])
 	}),
 	megaeth: createPublicClient({
 		chain: megaeth,

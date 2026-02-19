@@ -1,5 +1,4 @@
 <script lang="ts">
-	import onboard from "$lib/utils/web3-onboard";
 	import type { NoSignature, OrderContainer, Signature, StandardOrder } from "$lib/core/types";
 	import { coinList, type chain } from "$lib/config";
 	import { onDestroy } from "svelte";
@@ -90,12 +89,6 @@
 	onDestroy(() => {
 		if (disconnectWs) disconnectWs();
 	});
-
-	// --- Wallet --- //
-
-	export async function connect() {
-		await onboard.connectWallet();
-	}
 
 	// --- Execute Transaction Variables --- //
 	const preHook = (chain: chain) => store.setWalletToCorrectChain(chain);
@@ -215,7 +208,7 @@
 					{/if}
 					<div class="flex h-full w-max flex-row">
 						{#if !store.connectedAccount || !store.walletClient}
-							<ConnectWallet {onboard}></ConnectWallet>
+							<ConnectWallet></ConnectWallet>
 						{:else}
 							<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
 							<IssueIntent {scroll} {preHook} {postHook} {account}></IssueIntent>
