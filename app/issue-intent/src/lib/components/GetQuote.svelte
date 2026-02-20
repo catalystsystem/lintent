@@ -2,7 +2,7 @@
 	import { IntentApi } from "@lifi/lintent/api/intentApi";
 	import type { AppTokenContext } from "$lib/appTypes";
 	import { interval } from "rxjs";
-	import { getAddress } from "viem";
+	import { isAddress } from "viem";
 
 	let {
 		exclusiveFor = $bindable(),
@@ -20,20 +20,17 @@
 		mainnet: boolean;
 	} = $props();
 
-	const toChecksumAddress = (value: string): `0x${string}` | undefined => {
-		try {
-			return getAddress(value);
-		} catch {
-			return undefined;
-		}
-	};
+	const toRawAddress = (value: string): `0x${string}` | undefined =>
+		isAddress(value, { strict: false }) ? (value as `0x${string}`) : undefined;
 
 	const intentApi = $derived(new IntentApi(mainnet));
 
 	async function getQuoteAndSet() {
 		try {
 			const requestedExclusiveFor = useExclusiveForQuoteRequest
-				? toChecksumAddress(exclusiveFor)
+				? [toRawAddress(exclusiveFor)].filter(
+						(value): value is `0x${string}` => value !== undefined
+					)
 				: undefined;
 
 			const response = await intentApi.getQuotes({
@@ -63,11 +60,12 @@
 				if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000;
 				quoteDuration = quoteExpires - new Date().getTime();
 				outputTokens[0].amount = BigInt(quote.preview.outputs[0].amount);
-				exclusiveFor = quote.metadata.exclusiveFor ?? "";
+				exclusiveFor = Array.isArray(quote.metadata.exclusiveFor)
+					? (quote.metadata.exclusiveFor[0] ?? "")
+					: (quote.metadata.exclusiveFor ?? "");
 				updater();
 			} else {
 				quoteExpires = 0;
-				exclusiveFor = "";
 			}
 		} catch (e) {
 			console.log("Could not fetch a quote", e);
@@ -127,7 +125,7 @@
 	{#await quoteRequest}
 		<div
 			data-testid="quote-loading"
-			class="relative h-6 w-full rounded border border-gray-200 bg-white px-2 text-xs font-semibold leading-6 text-gray-500"
+			class="relative h-6 w-full rounded border border-gray-200 bg-white px-2 text-xs leading-6 font-semibold text-gray-500"
 		>
 			Quote
 		</div>
@@ -135,7 +133,7 @@
 		<!-- Button gradually shows how long until it is expired by fill background -->
 		{#if quoteExpires !== 0}
 			<div
-				class="absolute left-0 top-0 h-6 rounded bg-sky-100 transition-all"
+				class="absolute top-0 left-0 h-6 rounded bg-sky-100 transition-all"
 				style="width: {width}%"
 			></div>
 			<button
@@ -145,7 +143,7 @@
 			>
 		{:else}
 			<div
-				class="absolute left-0 top-0 h-6 rounded bg-rose-100 transition-all"
+				class="absolute top-0 left-0 h-6 rounded bg-rose-100 transition-all"
 				style="width: 100%"
 			></div>
 			<button

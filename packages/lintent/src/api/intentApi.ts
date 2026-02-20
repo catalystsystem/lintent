@@ -68,7 +68,7 @@ type GetQuoteOptions = {
     amount: bigint;
   }[];
   minValidUntil?: number;
-  exclusiveFor?: `0x${string}`;
+  exclusiveFor?: `0x${string}`[];
 };
 
 type GetQuoteResponse = {
@@ -78,7 +78,7 @@ type GetQuoteResponse = {
     validUntil: null;
     quoteId: null;
     metadata: {
-      exclusiveFor: `0x${string}`;
+      exclusiveFor: `0x${string}` | `0x${string}`[];
     };
     preview: {
       inputs: {
@@ -422,11 +422,11 @@ export class IntentApi {
         }[];
         swapType: "exact-input";
         minValidUntil: number | undefined;
+        metadata?: {
+          exclusiveFor: `0x${string}`[];
+        };
       };
       supportedTypes: ["oif-escrow-v0"];
-      metadata?: {
-        exclusiveFor: `0x${string}`;
-      };
     } = {
       user: getInteropableAddress(user, userChainId),
       intent: {
@@ -451,7 +451,8 @@ export class IntentApi {
       },
       supportedTypes: ["oif-escrow-v0"],
     };
-    if (exclusiveFor) rq.metadata = { exclusiveFor };
+    if (exclusiveFor && exclusiveFor.length > 0)
+      rq.intent.metadata = { exclusiveFor };
 
     try {
       return await this.postWithRetry<GetQuoteResponse>("/quote/request", rq, {
