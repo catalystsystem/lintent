@@ -17,8 +17,12 @@
 </script>
 
 <div class={["h-[29rem] w-[25rem] flex-shrink-0 snap-center snap-always p-4", contentClass]}>
-	<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">{title}</h1>
-	<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">{description}</p>
+	{#if title}
+		<h1 class="mb-1 w-full text-center text-2xl font-medium text-gray-900">{title}</h1>
+	{/if}
+	{#if description}
+		<p class="mb-2 text-center text-xs leading-relaxed text-gray-500">{description}</p>
+	{/if}
 	<div class={bodyClass}>
 		{@render children?.()}
 	</div>

@@ -4,18 +4,26 @@ import injectedWalletsModule from "@web3-onboard/injected-wallets";
 import zealWalletModule from "@web3-onboard/zeal";
 import coinbaseWalletModule from "@web3-onboard/coinbase";
 import walletConnectModule from "@web3-onboard/walletconnect";
-import { PUBLIC_WALLET_CONNECT_PROJECT_ID } from "$env/static/public";
+import { env } from "$env/dynamic/public";
 import { chainMap } from "../config";
 
 const injected = injectedWalletsModule();
 const zealWalletSdk = zealWalletModule();
 const coinbaseWalletSdk = coinbaseWalletModule();
-const walletConnect = walletConnectModule({
-	projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
-	dappUrl: "lintent.org"
-});
+const walletConnectProjectId = env.PUBLIC_WALLET_CONNECT_PROJECT_ID;
+const walletConnect = walletConnectProjectId
+	? walletConnectModule({
+			projectId: walletConnectProjectId,
+			dappUrl: "lintent.org"
+		})
+	: undefined;
 
-const wallets = [injected, walletConnect, zealWalletSdk, coinbaseWalletSdk];
+const wallets = [
+	injected,
+	zealWalletSdk,
+	coinbaseWalletSdk,
+	...(walletConnect ? [walletConnect] : [])
+];
 
 const getChains = () => {
 	return Object.values(chainMap).map((v) => {

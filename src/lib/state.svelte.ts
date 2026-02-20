@@ -252,6 +252,7 @@ class Store {
 	allocatorId = $state<availableAllocators>(ALWAYS_OK_ALLOCATOR);
 	verifier = $state<Verifier>("polymer");
 	exclusiveFor: string = $state("");
+	useExclusiveForQuoteRequest = $state(false);
 
 	invalidateWalletReadCache(scope: "all" | "balance" | "allowance" | "compact" = "all") {
 		if (scope === "all" || scope === "balance") invalidateRpcPrefix("balance:");

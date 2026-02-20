@@ -7,9 +7,9 @@ import {
 	INPUT_SETTLER_COMPACT_LIFI,
 	MULTICHAIN_INPUT_SETTLER_ESCROW,
 	MULTICHAIN_INPUT_SETTLER_COMPACT
-} from "$lib/config";
-import { orderToIntent } from "$lib/libraries/intent";
-import { bytes32ToAddress, idToToken } from "$lib/utils/convert";
+} from "../config";
+import { orderToIntent } from "./intent";
+import { bytes32ToAddress, idToToken } from "../utils/convert";
 import type { OrderContainer, StandardOrder, MultichainOrder } from "../../types";
 
 export type Chip = {

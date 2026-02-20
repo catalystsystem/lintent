@@ -1,23 +1,26 @@
 <script lang="ts">
-	import AwaitButton from "$lib/components/AwaitButton.svelte";
 	import ScreenFrame from "$lib/components/ui/ScreenFrame.svelte";
 
 	let { onboard }: { onboard: any } = $props();
+	let connecting = $state(false);
+
+	const connectWallet = async () => {
+		try {
+			connecting = true;
+			await onboard.connectWallet();
+		} finally {
+			connecting = false;
+		}
+	};
 </script>
 
-<ScreenFrame
-	title="Connect Wallet"
-	description="Connect your wallet to continue with intent issuance and filling."
-	contentClass="px-10"
-	bodyClass="mb-14 flex h-[22rem] flex-col items-center justify-center align-middle"
->
-	<AwaitButton buttonFunction={() => onboard.connectWallet()} fullWidth baseClass={["h-full"]}>
-		{#snippet name()}
-			Connect Wallet
-		{/snippet}
-		{#snippet awaiting()}
-			Waiting for wallet...
-		{/snippet}
-	</AwaitButton>
-	<div></div>
+<ScreenFrame title="" description="" contentClass="px-0" bodyClass="h-full">
+	<button
+		type="button"
+		class="h-full w-full cursor-pointer text-base font-semibold text-gray-700 hover:text-sky-700 disabled:cursor-not-allowed disabled:text-gray-400"
+		disabled={connecting}
+		onclick={connectWallet}
+	>
+		{connecting ? "Waiting for wallet..." : "Connect Wallet"}
+	</button>
 </ScreenFrame>

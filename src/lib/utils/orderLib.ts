@@ -1,6 +1,6 @@
 import { encodeAbiParameters, encodePacked, keccak256, parseAbiParameters } from "viem";
 import type { MandateOutput, MultichainOrder, StandardOrder } from "../../types";
-import { type chain, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE } from "$lib/config";
+import { type chain, chainMap, POLYMER_ORACLE, WORMHOLE_ORACLE } from "../config";
 
 export function getOutputHash(output: MandateOutput) {
 	return keccak256(

@@ -62,6 +62,7 @@ type GetQuoteOptions = {
 		amount: bigint;
 	}[];
 	minValidUntil?: number;
+	exclusiveFor?: `0x${string}`;
 };
 
 type GetQuoteResponse = {
@@ -197,11 +198,33 @@ export class OrderServer {
 	 * @returns The response data containing the quotes
 	 */
 	async getQuotes(options: GetQuoteOptions): Promise<GetQuoteResponse> {
-		const { user, userChain, inputs, outputs, minValidUntil } = options;
+		const { user, userChain, inputs, outputs, minValidUntil, exclusiveFor } = options;
 
 		const lockType: undefined | { kind: "the-compact" } = undefined;
 
-		const rq = {
+		const rq: {
+			user: string;
+			intent: {
+				intentType: "oif-swap";
+				inputs: {
+					user: string;
+					asset: string;
+					amount: string;
+					lock: { kind: "the-compact" } | undefined;
+				}[];
+				outputs: {
+					receiver: string;
+					asset: string;
+					amount: string;
+				}[];
+				swapType: "exact-input";
+				minValidUntil: number | undefined;
+			};
+			supportedTypes: ["oif-escrow-v0"];
+			metadata?: {
+				exclusiveFor: `0x${string}`;
+			};
+		} = {
 			user: getInteropableAddress(user, chainMap[userChain].id),
 			intent: {
 				intentType: "oif-swap",
@@ -225,6 +248,7 @@ export class OrderServer {
 			},
 			supportedTypes: ["oif-escrow-v0"]
 		};
+		if (exclusiveFor) rq.metadata = { exclusiveFor };
 
 		try {
 			return await this.postWithRetry<GetQuoteResponse>("/quote/request", rq, {
