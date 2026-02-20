@@ -1,10 +1,10 @@
-import { serverConfig } from '$lib/server/config';
+import { serverConfig } from "$lib/server/config";
 import {
   getOrderStatusResponseSchema,
   listOrdersResponseSchema,
   type ListOrdersResponse,
-  type OrderDto
-} from '$lib/server/order-server/schemas';
+  type OrderDto,
+} from "$lib/server/intent-api/schemas";
 
 export interface ListOrdersParams {
   limit: number;
@@ -15,29 +15,29 @@ export interface ListOrdersParams {
   catalystOrderId?: string;
 }
 
-export class OrderServerClient {
+export class IntentApiClient {
   constructor(
-    private readonly baseUrl: string = serverConfig.orderServerBaseUrl,
-    private readonly timeoutMs: number = serverConfig.orderServerTimeoutMs
+    private readonly baseUrl: string = serverConfig.intentApiBaseUrl,
+    private readonly timeoutMs: number = serverConfig.intentApiTimeoutMs,
   ) {}
 
   async listOrders(params: ListOrdersParams): Promise<ListOrdersResponse> {
     const search = new URLSearchParams({
       limit: String(params.limit),
-      offset: String(params.offset)
+      offset: String(params.offset),
     });
 
     if (params.status) {
-      search.set('status', params.status);
+      search.set("status", params.status);
     }
     if (params.user) {
-      search.set('user', params.user);
+      search.set("user", params.user);
     }
     if (params.onChainOrderId) {
-      search.set('onChainOrderId', params.onChainOrderId);
+      search.set("onChainOrderId", params.onChainOrderId);
     }
     if (params.catalystOrderId) {
-      search.set('catalystOrderId', params.catalystOrderId);
+      search.set("catalystOrderId", params.catalystOrderId);
     }
 
     const raw = await this.fetchJson(`/orders?${search.toString()}`);
@@ -64,15 +64,15 @@ export class OrderServerClient {
 
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          Accept: 'application/json'
+          Accept: "application/json",
         },
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`Order server responded with status ${response.status}`);
+        throw new Error(`Intent API responded with status ${response.status}`);
       }
 
       return await response.json();

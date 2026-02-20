@@ -12,7 +12,7 @@
     "test": "bun run test:package && bun run test:explorer && bun run test:issue-intent",
     "test:package": "bun run --cwd packages/lintent test",
     "test:explorer": "bun run --cwd app/explorer test",
-    "test:issue-intent": "bun run --cwd app/issue-intent test:unit",
+    "test:issue-intent": "bun run --cwd app/issue-intent test:all",
     "check": "bun run check:package && bun run check:explorer && bun run check:issue-intent",
     "check:package": "bun run --cwd packages/lintent check",
     "check:explorer": "bun run --cwd app/explorer check",

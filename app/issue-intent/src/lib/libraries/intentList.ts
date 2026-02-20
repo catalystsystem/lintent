@@ -10,10 +10,8 @@ import {
 import { isStandardOrder, orderToIntent } from "@lifi/lintent/intent";
 import { bytes32ToAddress, idToToken } from "@lifi/lintent/helpers/convert";
 import type { OrderContainer, StandardOrder, MultichainOrder } from "@lifi/lintent/types";
-import { createOrderValidator } from "@lifi/lintent/orderLib";
+import { validateOrderContainerWithReason } from "@lifi/lintent/validation";
 import { orderValidationDeps } from "./coreDeps";
-
-const orderValidator = createOrderValidator(orderValidationDeps);
 
 export type Chip = {
 	key: string;
@@ -209,7 +207,10 @@ export function buildBaseIntentRow(orderContainer: OrderContainer): BaseIntentRo
 	const chainScope = getChainScope(order);
 	const contextDetails = getContextDetails(orderContainer);
 
-	const validation = orderValidator.validateOrderContainerWithReason(orderContainer);
+	const validation = validateOrderContainerWithReason({
+		orderContainer,
+		deps: orderValidationDeps
+	});
 
 	return {
 		orderContainer,

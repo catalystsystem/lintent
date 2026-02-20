@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { BYTES32_ZERO, formatTokenAmount, getChainName, getClient, getCoin } from "$lib/config";
 	import { bytes32ToAddress } from "@lifi/lintent/helpers/convert";
-	import { getOutputHash } from "@lifi/lintent/orderLib";
+	import { getOutputHash } from "@lifi/lintent/output";
 	import type { MandateOutput, OrderContainer } from "@lifi/lintent/types";
 	import { Solver } from "$lib/libraries/solver";
 	import { COIN_FILLER_ABI } from "$lib/abi/outputsettler";

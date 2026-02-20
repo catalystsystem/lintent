@@ -21,13 +21,13 @@
 
 - Route/UI surface: `app/explorer/src/routes/` (SSR list/detail pages and API routes).
 - Domain logic (no network/runtime coupling): `app/explorer/src/lib/domain/`.
-- Server integrations/services: `app/explorer/src/lib/server/order-server/`, `app/explorer/src/lib/server/intents/`.
+- Server integrations/services: `app/explorer/src/lib/server/intent-api/`, `app/explorer/src/lib/server/intents/`.
 - Shared helpers: `app/explorer/src/lib/shared/`.
 
 ### `packages/lintent` (Core Library)
 
-- Canonical order/intent types and conversion/hydration flow: `packages/lintent/src/types.ts`, `packages/lintent/src/intent/`.
-- Hashing/id/validation/parsing utilities: `packages/lintent/src/orderLib.ts`, `packages/lintent/src/typedMessage.ts`, `packages/lintent/src/api/orderServer.ts`.
+- Canonical order/intent types and conversion/hydration flow: `packages/lintent/src/types/`, `packages/lintent/src/intent/`.
+- Hashing/id/validation/parsing utilities: `packages/lintent/src/output.ts`, `packages/lintent/src/validation.ts`, `packages/lintent/src/typedMessage.ts`, `packages/lintent/src/api/intentApi.ts`.
 - Compact and helper modules: `packages/lintent/src/compact/`, `packages/lintent/src/helpers/`.
 - Keep protocol/domain logic here; keep app-level orchestration in `app/*`.
 
@@ -70,6 +70,7 @@ Use `bun` for all workflows.
   - App tests generally use `*.test.ts`.
 - Keep route files focused on composition/transport; move deterministic logic to domain modules.
 - Use `@lifi/lintent` interfaces/types in apps instead of duplicating order/intent domain types.
+- When making changes and moving files around, do not leave behind path import files containing only exports lke `export * from "./filename";`. Always update paths such that these files are not required. `index.ts` files are the only exception.
 
 ## Testing Guidelines
 
@@ -98,5 +99,5 @@ Use `bun` for all workflows.
   - Cloudflare deployment config: `app/issue-intent/svelte.config.js`, `app/issue-intent/wrangler.jsonc`
 - Explorer app:
   - copy `app/explorer/.env.example` to `app/explorer/.env`
-  - key server envs include `ORDER_SERVER_BASE_URL` and `ORDER_SERVER_TIMEOUT_MS`
+  - key server envs include `INTENT_API_BASE_URL` and `INTENT_API_TIMEOUT_MS`
 - Root `.gitignore` allows checked-in examples (`.env.example`, `.env.e2e.example`) while ignoring local `.env*` files.

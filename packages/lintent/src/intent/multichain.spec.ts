@@ -10,7 +10,7 @@ import {
   hashMultichainInputs,
   MultichainOrderIntent,
 } from "./multichain";
-import { b32, makeMultichainOrder } from "../testing/orderFixtures";
+import { b32, makeMultichainOrder } from "../../tests/orderFixtures";
 
 describe("multichain intent", () => {
   it("hashMultichainInputs is deterministic and sensitive to input amounts", () => {

@@ -5,7 +5,7 @@ import {
 	POLYMER_ORACLE,
 	WORMHOLE_ORACLE
 } from "$lib/config";
-import type { IntentDeps, OrderValidationDeps } from "@lifi/lintent/deps";
+import type { IntentDeps, OrderContainerValidationDeps } from "@lifi/lintent/deps";
 
 function isNonZeroAddress(value: string | undefined): value is `0x${string}` {
 	return !!value && value.toLowerCase() !== "0x0000000000000000000000000000000000000000";
@@ -23,9 +23,9 @@ export const intentDeps: IntentDeps = {
 	}
 };
 
-export const orderValidationDeps: OrderValidationDeps = {
-	compactSettlers: [INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT],
-	allowedInputOracles(chainId, sameChainFill) {
+export const orderValidationDeps: OrderContainerValidationDeps = {
+	inputSettlers: [INPUT_SETTLER_COMPACT_LIFI, MULTICHAIN_INPUT_SETTLER_COMPACT],
+	allowedInputOracles({ chainId, sameChainFill }) {
 		const key = Number(chainId);
 		if (!Number.isFinite(key)) return undefined;
 		const polymer = POLYMER_ORACLE[key];

@@ -6,7 +6,7 @@ Phase 0 scaffold for the LI.FI Intent Standalone Explorer.
 
 - Bun runtime
 - SvelteKit + TypeScript (strict)
-- Order server proxy (Phase 0 data source)
+- Intent API proxy (Phase 0 data source)
 
 ## Quick Start
 

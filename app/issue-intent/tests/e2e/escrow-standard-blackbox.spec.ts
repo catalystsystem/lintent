@@ -12,6 +12,7 @@ const TEST_TIMEOUT_MS = 2 * 60_000;
 const UI_TIMEOUT_MS = 30_000;
 const TX_TIMEOUT_MS = 45_000;
 const PROVE_ATTEMPT_TIMEOUT_MS = 20_000;
+const ORDER_STATUS_CLAIMED = 2;
 type FlowStepName = "Asset" | "Issue" | "Fetch" | "Fill" | "Prove" | "Claim";
 type FlowStepStatus = "Now" | "Done" | "Next" | "Locked";
 type FlowState = Record<FlowStepName, FlowStepStatus>;
@@ -42,6 +43,11 @@ async function lockVerticalScrollAtTop(page: Page) {
 test("black-box escrow flow shows expected UI state transitions", async ({ page }) => {
 	const issuerAddress = e2eWalletAddress();
 	let sawRequiredInputAmount = false;
+	const getReceiptCount = async () =>
+		await page.evaluate(async () => {
+			const { default: store } = await import("/src/lib/state.svelte.ts");
+			return Object.keys(store.transactionReceipts).length;
+		});
 
 	await lockVerticalScrollAtTop(page);
 
@@ -173,6 +179,28 @@ test("black-box escrow flow shows expected UI state transitions", async ({ page 
 		timeout: UI_TIMEOUT_MS
 	});
 	await activeIntentRow.click();
+	const currentOrder = await page.evaluate(async () => {
+		const { default: store } = await import("/src/lib/state.svelte.ts");
+		const { buildBaseIntentRow } = await import("/src/lib/libraries/intentList.ts");
+		const latest = store.orders.at(-1);
+		if (!latest) return null;
+		const baseRow = buildBaseIntentRow(latest);
+
+		const order = latest.order as
+			| { originChainId?: bigint }
+			| { inputs?: Array<{ chainId: bigint }> };
+		const inputChainId =
+			"originChainId" in order && typeof order.originChainId === "bigint"
+				? order.originChainId.toString()
+				: (order.inputs?.[0]?.chainId?.toString() ?? "");
+
+		return {
+			orderId: baseRow.orderId,
+			inputSettler: latest.inputSettler,
+			inputChainId
+		};
+	});
+	expect(currentOrder).not.toBeNull();
 
 	await expect(page.getByRole("heading", { name: "Fill Intent" })).toBeVisible({
 		timeout: UI_TIMEOUT_MS
@@ -231,12 +259,32 @@ test("black-box escrow flow shows expected UI state transitions", async ({ page 
 
 	const claimButton = page.getByRole("button", { name: "Claim" }).first();
 	await expect(claimButton).toBeEnabled({ timeout: UI_TIMEOUT_MS });
+	const receiptsBeforeClaim = await getReceiptCount();
 	await claimButton.click();
 
-	await expect(page.getByRole("button", { name: "Finalised" }).first()).toBeVisible({
-		timeout: TX_TIMEOUT_MS
-	});
-	await expect(page.getByText("All inputs finalised")).toBeVisible({ timeout: TX_TIMEOUT_MS });
+	await expect
+		.poll(async () => await getReceiptCount(), { timeout: TX_TIMEOUT_MS })
+		.toBeGreaterThan(receiptsBeforeClaim);
+
+	await expect
+		.poll(
+			async () =>
+				await page.evaluate(async (orderMeta) => {
+					const { getClient } = await import("/src/lib/config.ts");
+					const { SETTLER_ESCROW_ABI } = await import("/src/lib/abi/escrow.ts");
+					if (!orderMeta) return -1;
+					const status = await getClient(orderMeta.inputChainId).readContract({
+						address: orderMeta.inputSettler as `0x${string}`,
+						abi: SETTLER_ESCROW_ABI,
+						functionName: "orderStatus",
+						args: [orderMeta.orderId as `0x${string}`]
+					});
+					return Number(status);
+				}, currentOrder),
+			{ timeout: TX_TIMEOUT_MS }
+		)
+		.toBe(ORDER_STATUS_CLAIMED);
+
 	await expectRightRailState(page, {
 		Asset: "Done",
 		Issue: "Done",

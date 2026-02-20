@@ -21,7 +21,7 @@ type SubmitOrderDto = {
   compactRegistrationTxHash?: `0x${string}`;
 };
 
-type orderPush = (orderArr: {
+type intentApiPush = (orderArr: {
   order: StandardOrder;
   inputSettler: `0x${string}`;
   sponsorSignature?: `0x${string}`;
@@ -263,15 +263,15 @@ export function parseOrderStatusPayload(payload: unknown): OrderContainer {
   };
 }
 
-export class OrderServer {
+export class IntentApi {
   baseUrl: string;
   websocketUrl: string;
 
   api;
 
   constructor(mainnet: boolean) {
-    this.baseUrl = OrderServer.getOrderServerUrl(mainnet);
-    this.websocketUrl = OrderServer.getOrderServerWssUrl(mainnet);
+    this.baseUrl = IntentApi.getIntentApiUrl(mainnet);
+    this.websocketUrl = IntentApi.getIntentApiWssUrl(mainnet);
 
     this.api = axios.create({
       baseURL: this.baseUrl,
@@ -300,7 +300,7 @@ export class OrderServer {
         };
         window.addEventListener("online", onOnline, { once: true });
       }),
-      OrderServer.sleep(maxWaitMs),
+      IntentApi.sleep(maxWaitMs),
     ]);
   }
 
@@ -317,27 +317,26 @@ export class OrderServer {
         const response = await this.api.post(path, body);
         return response.data as T;
       } catch (error) {
-        if (!OrderServer.isNetworkError(error) || attempt >= retries)
-          throw error;
+        if (!IntentApi.isNetworkError(error) || attempt >= retries) throw error;
         await this.waitForOnline();
-        await OrderServer.sleep(baseDelayMs * 2 ** attempt);
+        await IntentApi.sleep(baseDelayMs * 2 ** attempt);
         attempt += 1;
       }
     }
   }
 
-  static getOrderServerUrl(mainnet: boolean) {
+  static getIntentApiUrl(mainnet: boolean) {
     return mainnet ? "https://order.li.fi" : "https://order-dev.li.fi";
   }
 
-  static getOrderServerWssUrl(mainnet: boolean) {
+  static getIntentApiWssUrl(mainnet: boolean) {
     return mainnet ? "wss://order.li.fi" : "wss://order-dev.li.fi";
   }
 
   /**
-   * @notice Submits an order to the order server
+   * @notice Submits an order to the intent-api
    * @param request The order submission request
-   * @returns The response data from the order server
+   * @returns The response data from the intent-api
    */
   async submitOrder(request: SubmitOrderDto) {
     try {
@@ -352,7 +351,7 @@ export class OrderServer {
   }
 
   /**
-   * @notice Gets latest orders from the order server
+   * @notice Gets latest orders from the intent-api
    * @param options Optional parameters to filter orders
    * @returns The response data containing the orders
    */
@@ -465,7 +464,7 @@ export class OrderServer {
     }
   }
 
-  connectOrderServerSocket(newOrderFunction: orderPush) {
+  connectIntentApiSocket(newOrderFunction: intentApiPush) {
     let shouldReconnect = true;
     let backoffMs = 1000;
     const MAX_BACKOFF = 30000;
@@ -498,12 +497,12 @@ export class OrderServer {
       };
 
       socket.addEventListener("open", () => {
-        console.log("Connected to Catalyst order server");
+        console.log("Connected to Catalyst intent-api");
         backoffMs = 1000; // Reset backoff on successful connection
       });
 
       socket.addEventListener("close", () => {
-        console.log("Disconnected from Catalyst order server");
+        console.log("Disconnected from Catalyst intent-api");
         if (shouldReconnect) {
           console.log(`Reconnecting in ${backoffMs}ms...`);
           if (reconnectTimer) clearTimeout(reconnectTimer);
@@ -540,7 +539,7 @@ export class OrderServer {
   // -- Translations -- //
 
   /**
-   * @notice Fetches all intents from the LI.FI order server and then transmutes them into OrderContainers.
+   * @notice Fetches all intents from the LI.FI intent-api and then transmutes them into OrderContainers.
    */
   async getAndParseOrders(): Promise<OrderContainer[] | undefined> {
     const response = await this.getOrders();

@@ -3,7 +3,7 @@
 	import { coinList } from "$lib/config";
 	import { onDestroy } from "svelte";
 	import Introduction from "$lib/components/Introduction.svelte";
-	import { OrderServer } from "@lifi/lintent/api/orderServer";
+	import { IntentApi } from "@lifi/lintent/api/intentApi";
 	import ManageDeposit from "$lib/screens/ManageDeposit.svelte";
 	import IssueIntent from "$lib/screens/IssueIntent.svelte";
 	import IntentList from "$lib/screens/IntentList.svelte";
@@ -33,7 +33,7 @@
 		store.outputTokens = [{ token: coinList(store.mainnet)[1], amount: 0n }];
 	});
 
-	const orderServer = $derived(new OrderServer(store.mainnet));
+	const intentApi = $derived(new IntentApi(store.mainnet));
 
 	let disconnectWs: (() => void) | undefined;
 
@@ -44,7 +44,7 @@
 		await store.dbReady;
 
 		// Connect to websocket server
-		const connection = orderServer.connectOrderServerSocket((order: OrderPackage) => {
+		const connection = intentApi.connectIntentApiSocket((order: OrderPackage) => {
 			try {
 				const allocatorSignature = order.allocatorSignature
 					? ({
@@ -99,7 +99,7 @@
 	let currentScreenIndex = $state(0);
 	let scrollStepProgress = $state(0);
 	async function importOrderById(orderId: `0x${string}`): Promise<"inserted" | "updated"> {
-		const importedOrder = await orderServer.getOrderByOnChainOrderId(orderId);
+		const importedOrder = await intentApi.getOrderByOnChainOrderId(orderId);
 		const importedOrderId = orderToIntent(importedOrder).orderId();
 		const existingIndex = store.orders.findIndex(
 			(o) => orderToIntent(o).orderId() === importedOrderId
@@ -193,14 +193,14 @@
 					{#if !(!store.connectedAccount || !store.walletClient)}
 						<!-- Right Button -->
 						<button
-							class="absolute top-1.5 left-[23rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
+							class="absolute left-[23rem] top-1.5 z-50 cursor-pointer rounded bg-sky-50 px-1"
 							onclick={scroll(true)}
 						>
 							→
 						</button>
 						<!-- Back Button -->
 						<button
-							class="absolute top-1.5 left-[1rem] z-50 cursor-pointer rounded bg-sky-50 px-1"
+							class="absolute left-[1rem] top-1.5 z-50 cursor-pointer rounded bg-sky-50 px-1"
 							onclick={scroll(false)}
 						>
 							←

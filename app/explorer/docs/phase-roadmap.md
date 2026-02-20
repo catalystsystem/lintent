@@ -3,7 +3,7 @@
 ## Phase 0 (current scaffold)
 
 - SvelteKit skeleton with list/detail pages.
-- Order server proxy via server-side client.
+- Intent API proxy via server-side client.
 - Intent service/repository boundaries established.
 
 ## Phase 1 planned additions
@@ -11,7 +11,7 @@
 - Postgres schema + migration setup.
 - Goldsky poller + Graphile worker.
 - Cursor/checkpoint storage and reorg handling.
-- Repository swap from order server to local indexed store.
+- Repository swap from intent-api to local indexed store.
 
 ## Phase 2 planned additions
 

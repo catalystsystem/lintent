@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const nullableString = z.string().nullable().optional();
 const nullableStringish = z.preprocess((value) => {
@@ -6,7 +6,7 @@ const nullableStringish = z.preprocess((value) => {
     return value;
   }
 
-  if (typeof value === 'number' || typeof value === 'bigint') {
+  if (typeof value === "number" || typeof value === "bigint") {
     return String(value);
   }
 
@@ -20,7 +20,7 @@ const orderLegSchema = z.preprocess(
       return {
         token: token ?? null,
         amount: amount ?? null,
-        chainId
+        chainId,
       };
     }
 
@@ -30,9 +30,9 @@ const orderLegSchema = z.preprocess(
     .object({
       token: nullableStringish,
       amount: nullableStringish,
-      chainId: chainIdSchema
+      chainId: chainIdSchema,
     })
-    .passthrough()
+    .passthrough(),
 );
 
 export const orderMetaSchema = z
@@ -49,7 +49,7 @@ export const orderMetaSchema = z
     orderInitiatedTxHash: nullableString,
     orderDeliveredTxHash: nullableString,
     orderVerifiedTxHash: nullableString,
-    orderSettledTxHash: nullableString
+    orderSettledTxHash: nullableString,
   })
   .passthrough();
 
@@ -59,7 +59,7 @@ export const orderDtoSchema = z
       .object({
         user: nullableString,
         inputs: z.array(orderLegSchema).optional(),
-        outputs: z.array(orderLegSchema).optional()
+        outputs: z.array(orderLegSchema).optional(),
       })
       .passthrough()
       .optional(),
@@ -67,7 +67,7 @@ export const orderDtoSchema = z
     inputOracle: nullableString,
     outputOracle: nullableString,
     outputSettler: nullableString,
-    meta: orderMetaSchema.optional()
+    meta: orderMetaSchema.optional(),
   })
   .passthrough();
 
@@ -78,10 +78,10 @@ export const listOrdersResponseSchema = z
       .object({
         total: z.number().int().nonnegative().optional(),
         limit: z.number().int().nonnegative().optional(),
-        offset: z.number().int().nonnegative().optional()
+        offset: z.number().int().nonnegative().optional(),
       })
       .passthrough()
-      .optional()
+      .optional(),
   })
   .passthrough();
 

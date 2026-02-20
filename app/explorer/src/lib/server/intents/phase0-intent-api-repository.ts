@@ -1,33 +1,36 @@
-import { mapOrderServerStatus } from '$lib/domain/intents/status';
+import { mapIntentApiStatus } from "$lib/domain/intents/status";
 import type {
   IntentDetail,
   IntentListQuery,
   IntentSummary,
-  PaginatedIntents
-} from '$lib/domain/intents/types';
-import { decodeOffsetCursor, encodeOffsetCursor } from '$lib/shared/pagination';
-import { OrderServerClient } from '$lib/server/order-server/client';
-import type { OrderDto } from '$lib/server/order-server/schemas';
-import type { IntentRepository } from './repository';
+  PaginatedIntents,
+} from "$lib/domain/intents/types";
+import { decodeOffsetCursor, encodeOffsetCursor } from "$lib/shared/pagination";
+import { IntentApiClient } from "$lib/server/intent-api/client";
+import type { OrderDto } from "$lib/server/intent-api/schemas";
+import type { IntentRepository } from "./repository";
 
-const MAX_ORDER_SERVER_OFFSET = 1000;
+const MAX_INTENT_API_OFFSET = 1000;
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 50;
 
-export class Phase0OrderServerIntentRepository implements IntentRepository {
-  constructor(private readonly orderServerClient: OrderServerClient) {}
+export class Phase0IntentApiIntentRepository implements IntentRepository {
+  constructor(private readonly intentApiClient: IntentApiClient) {}
 
   async list(query: IntentListQuery): Promise<PaginatedIntents> {
     const limit = clampLimit(query.limit);
-    const offset = Math.min(decodeOffsetCursor(query.cursor), MAX_ORDER_SERVER_OFFSET);
+    const offset = Math.min(
+      decodeOffsetCursor(query.cursor),
+      MAX_INTENT_API_OFFSET,
+    );
 
-    const response = await this.orderServerClient.listOrders({
+    const response = await this.intentApiClient.listOrders({
       limit,
       offset,
       status: query.status,
       user: query.user,
       onChainOrderId: query.orderId,
-      catalystOrderId: query.catalystOrderId
+      catalystOrderId: query.catalystOrderId,
     });
 
     const total = response.meta?.total ?? offset + response.data.length;
@@ -36,14 +39,16 @@ export class Phase0OrderServerIntentRepository implements IntentRepository {
     return {
       items: response.data.map(mapToIntentSummary),
       nextCursor:
-        response.data.length < limit || nextOffset >= total || nextOffset > MAX_ORDER_SERVER_OFFSET
+        response.data.length < limit ||
+        nextOffset >= total ||
+        nextOffset > MAX_INTENT_API_OFFSET
           ? null
-          : encodeOffsetCursor(nextOffset)
+          : encodeOffsetCursor(nextOffset),
     };
   }
 
   async get(orderId: string): Promise<IntentDetail | null> {
-    const order = await this.orderServerClient.getOrderByOnChainOrderId(orderId);
+    const order = await this.intentApiClient.getOrderByOnChainOrderId(orderId);
     if (!order) {
       return null;
     }
@@ -58,15 +63,15 @@ export class Phase0OrderServerIntentRepository implements IntentRepository {
       return { items: [], nextCursor: null };
     }
 
-    const response = await this.orderServerClient.listOrders({
+    const response = await this.intentApiClient.listOrders({
       limit: clampLimit(limit),
       offset: 0,
-      onChainOrderId: trimmed
+      onChainOrderId: trimmed,
     });
 
     return {
       items: response.data.map(mapToIntentSummary),
-      nextCursor: null
+      nextCursor: null,
     };
   }
 }
@@ -84,9 +89,9 @@ function mapToIntentSummary(order: OrderDto): IntentSummary {
   const firstOutput = order.order?.outputs?.[0];
 
   return {
-    orderId: order.meta?.onChainOrderId ?? 'unknown',
+    orderId: order.meta?.onChainOrderId ?? "unknown",
     catalystOrderId: order.meta?.catalystOrderId ?? null,
-    status: mapOrderServerStatus(order.meta?.orderStatus),
+    status: mapIntentApiStatus(order.meta?.orderStatus),
     sourceChain: chainToLabel(firstInput?.chainId),
     destinationChain: chainToLabel(firstOutput?.chainId),
     inputAmount: firstInput?.amount ?? null,
@@ -95,8 +100,12 @@ function mapToIntentSummary(order: OrderDto): IntentSummary {
     outputToken: firstOutput?.token ?? null,
     user: order.order?.user ?? null,
     solver: order.meta?.solverAddress ?? null,
-    updatedAt: order.meta?.settledAt ?? order.meta?.deliveredAt ?? order.meta?.signedAt ?? null,
-    intentSource: 'lifi'
+    updatedAt:
+      order.meta?.settledAt ??
+      order.meta?.deliveredAt ??
+      order.meta?.signedAt ??
+      null,
+    intentSource: "lifi",
   };
 }
 
@@ -106,48 +115,52 @@ function mapToIntentDetail(order: OrderDto): IntentDetail {
   return {
     ...summary,
     timeline: [
-      { label: 'Signed', timestamp: order.meta?.signedAt ?? null, txHash: null },
       {
-        label: 'Delivered',
+        label: "Signed",
+        timestamp: order.meta?.signedAt ?? null,
+        txHash: null,
+      },
+      {
+        label: "Delivered",
         timestamp: order.meta?.deliveredAt ?? null,
-        txHash: order.meta?.orderDeliveredTxHash ?? null
+        txHash: order.meta?.orderDeliveredTxHash ?? null,
       },
       {
-        label: 'Validated',
+        label: "Validated",
         timestamp: null,
-        txHash: order.meta?.orderVerifiedTxHash ?? null
+        txHash: order.meta?.orderVerifiedTxHash ?? null,
       },
       {
-        label: 'Settled',
+        label: "Settled",
         timestamp: order.meta?.settledAt ?? null,
-        txHash: order.meta?.orderSettledTxHash ?? null
-      }
+        txHash: order.meta?.orderSettledTxHash ?? null,
+      },
     ],
     componentAddresses: {
       inputSettler: order.inputSettler ?? null,
       inputOracle: order.inputOracle ?? null,
       outputOracle: order.outputOracle ?? null,
-      outputSettler: order.outputSettler ?? null
+      outputSettler: order.outputSettler ?? null,
     },
     txHashes: {
       initiated: order.meta?.orderInitiatedTxHash ?? null,
       delivered: order.meta?.orderDeliveredTxHash ?? null,
       verified: order.meta?.orderVerifiedTxHash ?? null,
-      settled: order.meta?.orderSettledTxHash ?? null
+      settled: order.meta?.orderSettledTxHash ?? null,
     },
-    raw: order
+    raw: order,
   };
 }
 
 function chainToLabel(chainId: string | number | undefined): string {
   switch (String(chainId)) {
-    case '1':
-      return 'Ethereum';
-    case '42161':
-      return 'Arbitrum';
-    case '8453':
-      return 'Base';
+    case "1":
+      return "Ethereum";
+    case "42161":
+      return "Arbitrum";
+    case "8453":
+      return "Base";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }

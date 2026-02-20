@@ -1,13 +1,13 @@
-import { OrderServerClient } from '$lib/server/order-server/client';
-import { Phase0OrderServerIntentRepository } from '$lib/server/intents/phase0-order-server-repository';
-import { IntentService } from '$lib/server/intents/service';
+import { IntentApiClient } from "$lib/server/intent-api/client";
+import { Phase0IntentApiIntentRepository } from "$lib/server/intents/phase0-intent-api-repository";
+import { IntentService } from "$lib/server/intents/service";
 
 let service: IntentService | null = null;
 
 export function getIntentService(): IntentService {
   if (!service) {
-    const client = new OrderServerClient();
-    const repository = new Phase0OrderServerIntentRepository(client);
+    const client = new IntentApiClient();
+    const repository = new Phase0IntentApiIntentRepository(client);
     service = new IntentService(repository);
   }
 

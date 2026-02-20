@@ -19,7 +19,7 @@ import type {
 import type { AppCreateIntentOptions, AppTokenContext } from "$lib/appTypes";
 import { ERC20_ABI } from "$lib/abi/erc20";
 import { Intent } from "@lifi/lintent/intent";
-import { OrderServer } from "@lifi/lintent/api/orderServer";
+import { IntentApi } from "@lifi/lintent/api/intentApi";
 import { store } from "$lib/state.svelte";
 import { depositAndRegisterCompact, openEscrowIntent, signIntentCompact } from "./intentExecution";
 import { intentDeps } from "./coreDeps";
@@ -69,7 +69,7 @@ function toCoreCreateIntentOptions(opts: AppCreateIntentOptions): CreateIntentOp
  */
 export class IntentFactory {
 	mainnet: boolean;
-	orderServer: OrderServer;
+	intentApi: IntentApi;
 
 	walletClient: WC;
 
@@ -87,7 +87,7 @@ export class IntentFactory {
 	}) {
 		const { mainnet, walletClient, preHook, postHook, ordersPointer } = options;
 		this.mainnet = mainnet;
-		this.orderServer = new OrderServer(mainnet);
+		this.intentApi = new IntentApi(mainnet);
 		this.walletClient = walletClient;
 
 		this.preHook = preHook;
@@ -143,7 +143,7 @@ export class IntentFactory {
 				}
 			});
 
-			const signedOrder = await this.orderServer.submitOrder({
+			const signedOrder = await this.intentApi.submitOrder({
 				orderType: "CatalystCompactOrder",
 				order: intent.asOrder() as StandardOrder,
 				inputSettler: INPUT_SETTLER_COMPACT_LIFI,
@@ -178,8 +178,8 @@ export class IntentFactory {
 				inputSettler: INPUT_SETTLER_COMPACT_LIFI
 			});
 
-			// Submit the order to the order server.
-			const unsignedOrder = await this.orderServer.submitOrder({
+			// Submit the order to the intent-api.
+			const unsignedOrder = await this.intentApi.submitOrder({
 				orderType: "CatalystCompactOrder",
 				order: intent.asStandardOrder(),
 				inputSettler: INPUT_SETTLER_COMPACT_LIFI,

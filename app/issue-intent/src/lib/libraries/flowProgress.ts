@@ -13,7 +13,7 @@ import { SETTLER_ESCROW_ABI } from "$lib/abi/escrow";
 import { COMPACT_ABI } from "$lib/abi/compact";
 import { hashStruct, keccak256 } from "viem";
 import { compactTypes } from "@lifi/lintent/typedMessage";
-import { getOutputHash, encodeMandateOutput } from "@lifi/lintent/orderLib";
+import { getOutputHash, encodeMandateOutput } from "@lifi/lintent/output";
 import { addressToBytes32, bytes32ToAddress } from "@lifi/lintent/helpers/convert";
 import { isStandardOrder, orderToIntent } from "@lifi/lintent/intent";
 import { getOrFetchRpc } from "$lib/libraries/rpcCache";
@@ -102,12 +102,12 @@ async function isOutputValidatedOnChain(
 		{ ttlMs: PROGRESS_TTL_MS }
 	);
 
-	const encodedOutput = encodeMandateOutput(
-		addressToBytes32(receipt.from),
+	const encodedOutput = encodeMandateOutput({
+		solver: addressToBytes32(receipt.from),
 		orderId,
-		Number(block.timestamp),
+		timestamp: Number(block.timestamp),
 		output
-	);
+	});
 	const outputHash = keccak256(encodedOutput);
 
 	return getOrFetchRpc(

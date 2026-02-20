@@ -201,20 +201,12 @@ test("executes full standard escrow flow from base to arbitrum with raw input 10
 
 	const fillButton = page.getByRole("button", { name: /^Fill$/ }).first();
 	await expect(fillButton).toBeEnabled({ timeout: UI_TIMEOUT_MS });
+	const receiptsBeforeFill = await getReceiptCount();
 	await fillButton.click();
 
 	await expect
-		.poll(
-			async () =>
-				await page.evaluate(async () => {
-					const { default: store } = await import("/src/lib/state.svelte.ts");
-					return Object.values(store.fillTransactions).filter(
-						(hash) => typeof hash === "string" && hash.startsWith("0x") && hash.length === 66
-					).length;
-				}),
-			{ timeout: UI_TIMEOUT_MS }
-		)
-		.toBeGreaterThan(0);
+		.poll(async () => await getReceiptCount(), { timeout: TX_TIMEOUT_MS })
+		.toBeGreaterThan(receiptsBeforeFill);
 
 	await expect(page.getByRole("heading", { name: "Submit Proof of Fill" })).toBeVisible({
 		timeout: TX_TIMEOUT_MS

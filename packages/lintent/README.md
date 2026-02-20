@@ -21,16 +21,17 @@ It does not own:
   - Canonical types such as `StandardOrder`, `MultichainOrder`, and `OrderContainer`.
   - Core token model is chain-id based (`token.chainId`), not chain-name based.
 - `deps.ts`
-  - Minimal dependency interfaces consumed by core constructors/factories.
+  - Minimal dependency interfaces consumed by core constructors/functions.
 - `intent/`
   - `create.ts`: High-level `Intent` builder.
   - `fromOrder.ts`: `orderToIntent(...)` and `isStandardOrder(...)`.
   - `standard.ts` / `multichain.ts`: Concrete intent implementations and order-id derivation.
   - `compact/*`: Compact conversions/signing/claims helpers used by intent flows.
 - `orderLib.ts`
-  - Validation factory (`createOrderValidator(...)`) and output encoding/hash helpers.
-- `api/orderServer.ts`
-  - Normalization/parsing for order server payloads.
+  - Validation helpers (`validateOrder...`) and output encoding/hash helpers.
+  - Multi-argument helpers accept object params, e.g. `validateOrderWithReason({ order, deps })`.
+- `api/intentApi.ts`
+  - Normalization/parsing for intent-api payloads.
 - `typedMessage.ts`
   - EIP-712 type definitions and precomputed type hashes used in compact flows.
 - `helpers/` and `compact/`
@@ -74,7 +75,7 @@ import { orderToIntent } from "@lifi/lintent/intent";
 import type { OrderContainer } from "@lifi/lintent/types";
 
 function getOrderId(orderContainer: OrderContainer): `0x${string}` {
-	return orderToIntent(orderContainer).orderId();
+  return orderToIntent(orderContainer).orderId();
 }
 ```
 
@@ -85,12 +86,16 @@ import { isStandardOrder, orderToIntent } from "@lifi/lintent/intent";
 import type { OrderContainer } from "@lifi/lintent/types";
 
 function getInputCount(orderContainer: OrderContainer): number {
-	if (isStandardOrder(orderContainer.order)) return orderContainer.order.inputs.length;
-	return orderContainer.order.inputs.reduce((sum, v) => sum + v.inputs.length, 0);
+  if (isStandardOrder(orderContainer.order))
+    return orderContainer.order.inputs.length;
+  return orderContainer.order.inputs.reduce(
+    (sum, v) => sum + v.inputs.length,
+    0,
+  );
 }
 
 function getInputChains(orderContainer: OrderContainer): bigint[] {
-	return orderToIntent(orderContainer).inputChains();
+  return orderToIntent(orderContainer).inputChains();
 }
 ```
 
@@ -108,7 +113,7 @@ When touching compact hashing or typed message definitions:
 - `orderLib.ts`
   - `validateOrderWithReason(...)`
   - `validateOrderContainerWithReason(...)`
-- `api/orderServer.ts`
+- `api/intentApi.ts`
   - `parseOrderStatusPayload(...)`
 
 These utilities are the core gate for normalizing and validating inbound order data before execution paths consume it.
@@ -116,10 +121,11 @@ These utilities are the core gate for normalizing and validating inbound order d
 ## Dependency Model
 
 - Core has no direct imports from app config/util modules.
-- Dependencies are passed in scope at creation time (constructor/factory), never via global mutable runtime.
+- Dependencies are passed in scope at creation time (constructor/function), never via global mutable runtime.
 - Keep dependencies minimal:
   - `Intent` receives `IntentDeps`.
-  - Order validation is created via `createOrderValidator(orderValidationDeps)`.
+  - Standard order validation receives `StandardOrderValidationDeps` (`{ order, deps }`).
+  - Container validation receives `OrderContainerValidationDeps` (`{ orderContainer, deps }`), adding `inputSettlers` for compact input-settler policy.
   - Core-internal protocol constants live in `constants.ts`.
 
 ## Safe Change Checklist
@@ -132,12 +138,13 @@ These utilities are the core gate for normalizing and validating inbound order d
 
 ## File References
 
-- `src/types.ts`
+- `src/types/index.ts`
 - `src/intent/index.ts`
 - `src/intent/create.ts`
 - `src/intent/fromOrder.ts`
 - `src/intent/standard.ts`
 - `src/intent/multichain.ts`
-- `src/orderLib.ts`
-- `src/api/orderServer.ts`
+- `src/output.ts`
+- `src/validation.ts`
+- `src/api/intentApi.ts`
 - `src/typedMessage.ts`

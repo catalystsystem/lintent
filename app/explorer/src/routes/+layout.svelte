@@ -5,7 +5,7 @@
 <div class="app-shell">
   <header>
     <h1>LI.FI Intent Explorer</h1>
-    <p>Phase 0 scaffold: order server proxy</p>
+    <p>Phase 0 scaffold: intent-api proxy</p>
   </header>
 
   <main>

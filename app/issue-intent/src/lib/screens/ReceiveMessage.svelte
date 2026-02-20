@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatTokenAmount, getChainName, getClient, getCoin } from "$lib/config";
 	import { addressToBytes32 } from "@lifi/lintent/helpers/convert";
-	import { encodeMandateOutput } from "@lifi/lintent/orderLib";
+	import { encodeMandateOutput } from "@lifi/lintent/output";
 	import { hashStruct, keccak256 } from "viem";
 	import type { MandateOutput, OrderContainer } from "@lifi/lintent/types";
 	import { POLYMER_ORACLE_ABI } from "$lib/abi/polymeroracle";
@@ -72,12 +72,12 @@
 		const block = await outputClient.getBlock({
 			blockHash: blockHashOfFill
 		});
-		const encodedOutput = encodeMandateOutput(
-			addressToBytes32(transactionReceipt.from),
+		const encodedOutput = encodeMandateOutput({
+			solver: addressToBytes32(transactionReceipt.from),
 			orderId,
-			Number(block.timestamp),
+			timestamp: Number(block.timestamp),
 			output
-		);
+		});
 		const outputHash = keccak256(encodedOutput);
 		const sourceChainClient = getClient(chainId);
 		return await sourceChainClient.readContract({
@@ -171,7 +171,7 @@
 			<SectionCard compact>
 				<ChainActionRow chainLabel={getChainName(inputChain)}>
 					{#snippet action()}
-						<div class="text-[11px] font-semibold text-gray-500 uppercase">Validate outputs</div>
+						<div class="text-[11px] font-semibold uppercase text-gray-500">Validate outputs</div>
 					{/snippet}
 					{#snippet chips()}
 						{#each orderContainer.order.outputs as output}

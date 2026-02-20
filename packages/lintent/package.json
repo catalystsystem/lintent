@@ -4,16 +4,19 @@
   "version": "0.1.0",
   "type": "module",
   "files": [
-    "src"
+    "src",
+    "tests"
   ],
   "exports": {
     ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./types/*": "./src/types/*.ts",
     "./intent": "./src/intent/index.ts",
     "./intent/*": "./src/intent/*.ts",
     "./api/*": "./src/api/*.ts",
     "./helpers/*": "./src/helpers/*.ts",
     "./compact/*": "./src/compact/*.ts",
-    "./testing/*": "./src/testing/*.ts",
+    "./testing/*": "./tests/*.ts",
     "./*": "./src/*.ts"
   },
   "scripts": {

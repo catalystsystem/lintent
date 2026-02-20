@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { INPUT_SETTLER_ESCROW_LIFI } from "../constants";
 import { isStandardOrder } from "../intent";
-import { parseOrderStatusPayload } from "./orderServer";
+import { parseOrderStatusPayload } from "./intentApi";
 
 const BYTES32_ONE =
   "0x0000000000000000000000000000000000000000000000000000000000000001" as const;
