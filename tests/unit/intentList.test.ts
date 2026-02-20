@@ -45,7 +45,9 @@ const baseRow: BaseIntentRow = {
 	inputChips: [],
 	inputOverflow: 0,
 	outputChips: [],
-	outputOverflow: 0
+	outputOverflow: 0,
+	validationPassed: true,
+	validationReason: "Validation pass"
 };
 
 describe("intentList timing and formatting", () => {

@@ -9,7 +9,6 @@ import type {
 } from "../../types";
 import { type chain, chainMap } from "$lib/config";
 import { getInteropableAddress } from "../utils/interopableAddresses";
-import { validateOrder } from "$lib/utils/orderLib";
 
 type OrderStatus = "Signed" | "Delivered" | "Settled";
 
@@ -69,7 +68,7 @@ type GetQuoteOptions = {
 		amount: bigint;
 	}[];
 	minValidUntil?: number;
-	exclusiveFor?: `0x${string}`;
+	exclusiveFor?: `0x${string}`[];
 };
 
 type GetQuoteResponse = {
@@ -79,7 +78,7 @@ type GetQuoteResponse = {
 		validUntil: null;
 		quoteId: null;
 		metadata: {
-			exclusiveFor: `0x${string}`;
+			exclusiveFor: `0x${string}` | `0x${string}`[];
 		};
 		preview: {
 			inputs: {
@@ -398,11 +397,11 @@ export class OrderServer {
 				}[];
 				swapType: "exact-input";
 				minValidUntil: number | undefined;
+				metadata?: {
+					exclusiveFor: `0x${string}`[];
+				};
 			};
 			supportedTypes: ["oif-escrow-v0"];
-			metadata?: {
-				exclusiveFor: `0x${string}`;
-			};
 		} = {
 			user: getInteropableAddress(user, chainMap[userChain].id),
 			intent: {
@@ -427,7 +426,7 @@ export class OrderServer {
 			},
 			supportedTypes: ["oif-escrow-v0"]
 		};
-		if (exclusiveFor) rq.metadata = { exclusiveFor };
+		if (exclusiveFor && exclusiveFor.length > 0) rq.intent.metadata = { exclusiveFor };
 
 		try {
 			return await this.postWithRetry<GetQuoteResponse>("/quote/request", rq, {
@@ -522,45 +521,43 @@ export class OrderServer {
 		if (parsedOrders) {
 			if (Array.isArray(parsedOrders)) {
 				// For each order, if a field is string ending in n, convert it to bigint.
-				return parsedOrders
-					.filter((instance) => validateOrder(instance.order))
-					.map((instance) => {
-						instance.order.nonce = BigInt(instance.order.nonce);
-						instance.order.originChainId = BigInt(instance.order.originChainId);
-						if (instance.order.inputs) {
-							instance.order.inputs = instance.order.inputs.map((input) => {
-								return [BigInt(input[0]), BigInt(input[1])];
-							});
-						}
-						if (instance.order.outputs) {
-							instance.order.outputs = instance.order.outputs.map((output) => {
-								return {
-									...output,
-									chainId: BigInt(output.chainId),
-									amount: BigInt(output.amount)
-								};
-							});
-						}
-						const allocatorSignature = instance.allocatorSignature
-							? ({
-									type: "ECDSA",
-									payload: instance.allocatorSignature
-								} as Signature)
-							: ({
-									type: "None",
-									payload: "0x"
-								} as NoSignature);
-						const sponsorSignature = instance.sponsorSignature
-							? ({
-									type: "ECDSA",
-									payload: instance.sponsorSignature
-								} as Signature)
-							: ({
-									type: "None",
-									payload: "0x"
-								} as NoSignature);
-						return { ...instance, allocatorSignature, sponsorSignature };
-					});
+				return parsedOrders.map((instance) => {
+					instance.order.nonce = BigInt(instance.order.nonce);
+					instance.order.originChainId = BigInt(instance.order.originChainId);
+					if (instance.order.inputs) {
+						instance.order.inputs = instance.order.inputs.map((input) => {
+							return [BigInt(input[0]), BigInt(input[1])];
+						});
+					}
+					if (instance.order.outputs) {
+						instance.order.outputs = instance.order.outputs.map((output) => {
+							return {
+								...output,
+								chainId: BigInt(output.chainId),
+								amount: BigInt(output.amount)
+							};
+						});
+					}
+					const allocatorSignature = instance.allocatorSignature
+						? ({
+								type: "ECDSA",
+								payload: instance.allocatorSignature
+							} as Signature)
+						: ({
+								type: "None",
+								payload: "0x"
+							} as NoSignature);
+					const sponsorSignature = instance.sponsorSignature
+						? ({
+								type: "ECDSA",
+								payload: instance.sponsorSignature
+							} as Signature)
+						: ({
+								type: "None",
+								payload: "0x"
+							} as NoSignature);
+					return { ...instance, allocatorSignature, sponsorSignature };
+				});
 			}
 		}
 	}
