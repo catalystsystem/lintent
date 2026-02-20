@@ -1,5 +1,12 @@
 import axios from "axios";
-import type { NoSignature, OrderContainer, Quote, Signature, StandardOrder } from "../../types";
+import type {
+	MultichainOrder,
+	NoSignature,
+	OrderContainer,
+	Quote,
+	Signature,
+	StandardOrder
+} from "../../types";
 import { type chain, chainMap } from "$lib/config";
 import { getInteropableAddress } from "../utils/interopableAddresses";
 import { validateOrder } from "$lib/utils/orderLib";
@@ -91,6 +98,156 @@ type GetQuoteResponse = {
 		failureHandling: "refund-automatic";
 	}[];
 };
+
+type OrderEnvelope = {
+	order: unknown;
+	inputSettler: unknown;
+	sponsorSignature?: unknown;
+	allocatorSignature?: unknown;
+};
+
+function toHexString(value: unknown, field: string): `0x${string}` {
+	if (typeof value !== "string" || !value.startsWith("0x")) {
+		throw new Error(`Order payload invalid: ${field}`);
+	}
+	return value as `0x${string}`;
+}
+
+function toBigIntValue(value: unknown, field: string): bigint {
+	if (typeof value === "bigint") return value;
+	if (typeof value === "number" && Number.isFinite(value)) return BigInt(value);
+	if (typeof value === "string" && value.length > 0) return BigInt(value);
+	throw new Error(`Order payload invalid: ${field}`);
+}
+
+function toNumberValue(value: unknown, field: string): number {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "bigint") return Number(value);
+	if (typeof value === "string" && value.length > 0) return Number(value);
+	throw new Error(`Order payload invalid: ${field}`);
+}
+
+function normalizeSignature(value: unknown): Signature | NoSignature {
+	if (!value) return { type: "None", payload: "0x" };
+	return {
+		type: "ECDSA",
+		payload: toHexString(value, "signature")
+	};
+}
+
+function normalizeOutputs(value: unknown) {
+	if (!Array.isArray(value)) throw new Error("Order payload invalid: outputs");
+	return value.map((output, index) => {
+		if (!output || typeof output !== "object") {
+			throw new Error(`Order payload invalid: outputs[${index}]`);
+		}
+		const o = output as Record<string, unknown>;
+		return {
+			oracle: toHexString(o.oracle, `outputs[${index}].oracle`),
+			settler: toHexString(o.settler, `outputs[${index}].settler`),
+			chainId: toBigIntValue(o.chainId, `outputs[${index}].chainId`),
+			token: toHexString(o.token, `outputs[${index}].token`),
+			amount: toBigIntValue(o.amount, `outputs[${index}].amount`),
+			recipient: toHexString(o.recipient, `outputs[${index}].recipient`),
+			callbackData: toHexString(o.callbackData ?? "0x", `outputs[${index}].callbackData`),
+			context: toHexString(o.context ?? "0x", `outputs[${index}].context`)
+		};
+	});
+}
+
+function normalizeStandardOrder(order: Record<string, unknown>): StandardOrder {
+	if (!Array.isArray(order.inputs)) throw new Error("Order payload invalid: inputs");
+	return {
+		user: toHexString(order.user, "order.user"),
+		nonce: toBigIntValue(order.nonce, "order.nonce"),
+		originChainId: toBigIntValue(order.originChainId, "order.originChainId"),
+		expires: toNumberValue(order.expires, "order.expires"),
+		fillDeadline: toNumberValue(order.fillDeadline, "order.fillDeadline"),
+		inputOracle: toHexString(order.inputOracle, "order.inputOracle"),
+		inputs: order.inputs.map((input, index) => {
+			if (!Array.isArray(input) || input.length !== 2) {
+				throw new Error(`Order payload invalid: inputs[${index}]`);
+			}
+			return [
+				toBigIntValue(input[0], `inputs[${index}][0]`),
+				toBigIntValue(input[1], `inputs[${index}][1]`)
+			];
+		}),
+		outputs: normalizeOutputs(order.outputs)
+	};
+}
+
+function normalizeMultichainOrder(order: Record<string, unknown>): MultichainOrder {
+	if (!Array.isArray(order.inputs)) throw new Error("Order payload invalid: inputs");
+	return {
+		user: toHexString(order.user, "order.user"),
+		nonce: toBigIntValue(order.nonce, "order.nonce"),
+		expires: toNumberValue(order.expires, "order.expires"),
+		fillDeadline: toNumberValue(order.fillDeadline, "order.fillDeadline"),
+		inputOracle: toHexString(order.inputOracle, "order.inputOracle"),
+		outputs: normalizeOutputs(order.outputs),
+		inputs: order.inputs.map((input, index) => {
+			if (!input || typeof input !== "object") {
+				throw new Error(`Order payload invalid: inputs[${index}]`);
+			}
+			const i = input as Record<string, unknown>;
+			if (!Array.isArray(i.inputs)) {
+				throw new Error(`Order payload invalid: inputs[${index}].inputs`);
+			}
+			return {
+				chainId: toBigIntValue(i.chainId, `inputs[${index}].chainId`),
+				inputs: i.inputs.map((tuple, tupleIndex) => {
+					if (!Array.isArray(tuple) || tuple.length !== 2) {
+						throw new Error(`Order payload invalid: inputs[${index}].inputs[${tupleIndex}]`);
+					}
+					return [
+						toBigIntValue(tuple[0], `inputs[${index}].inputs[${tupleIndex}][0]`),
+						toBigIntValue(tuple[1], `inputs[${index}].inputs[${tupleIndex}][1]`)
+					];
+				})
+			};
+		})
+	};
+}
+
+function extractOrderEnvelope(payload: unknown): OrderEnvelope {
+	const root =
+		payload && typeof payload === "object" && "data" in payload
+			? (payload as Record<string, unknown>).data
+			: payload;
+	const candidateRaw = Array.isArray(root) ? root[0] : root;
+	if (!candidateRaw || typeof candidateRaw !== "object") {
+		throw new Error("Order payload invalid: data");
+	}
+	const candidate = candidateRaw as Record<string, unknown>;
+	const c =
+		candidate.intent && typeof candidate.intent === "object"
+			? (candidate.intent as Record<string, unknown>)
+			: candidate;
+	if (!("order" in c) || !("inputSettler" in c)) {
+		throw new Error("Order payload invalid: missing order fields");
+	}
+	return c as OrderEnvelope;
+}
+
+export function parseOrderStatusPayload(payload: unknown): OrderContainer {
+	const envelope = extractOrderEnvelope(payload);
+	const rawOrder = envelope.order as Record<string, unknown>;
+	if (!rawOrder || typeof rawOrder !== "object") {
+		throw new Error("Order payload invalid: order");
+	}
+	const order =
+		"originChainId" in rawOrder
+			? normalizeStandardOrder(rawOrder)
+			: normalizeMultichainOrder(rawOrder);
+
+	return {
+		inputSettler: toHexString(envelope.inputSettler, "inputSettler"),
+		order,
+		sponsorSignature: normalizeSignature(envelope.sponsorSignature),
+		allocatorSignature: normalizeSignature(envelope.allocatorSignature)
+	};
+}
 
 export class OrderServer {
 	baseUrl: string;
@@ -189,6 +346,28 @@ export class OrderServer {
 		} catch (error) {
 			console.error("Error getting orders:", error);
 			throw error;
+		}
+	}
+
+	/**
+	 * @notice Gets an order by on-chain order id.
+	 * @param orderId On-chain order id (0x-prefixed hash)
+	 */
+	async getOrderByOnChainOrderId(orderId: `0x${string}`): Promise<OrderContainer> {
+		try {
+			const response = await this.api.get("/orders/status/", {
+				params: { onChainOrderId: orderId }
+			});
+			return parseOrderStatusPayload(response.data);
+		} catch (error) {
+			if (axios.isAxiosError(error) && error.response?.status === 404) {
+				throw new Error("Order not found");
+			}
+			if (error instanceof Error && error.message.startsWith("Order payload invalid")) {
+				throw error;
+			}
+			console.error("Error getting order by id:", error);
+			throw new Error("Failed to fetch order");
 		}
 	}
 

@@ -49,25 +49,46 @@ class Store {
 	async saveOrderToDb(order: OrderContainer) {
 		if (!browser) return;
 		if (!db) await initDb();
-		if (!db) return;
 		const orderId = orderToIntent(order).orderId();
-		const now = Date.now();
+		const now = Math.floor(Date.now() / 1000);
 		const id =
 			(order as any).id ?? (typeof crypto !== "undefined" ? crypto.randomUUID() : String(now));
 		const intentType = (order as any).intentType ?? "escrow";
-		await db!
-			.insert(intents)
-			.values({
-				id,
-				orderId,
-				intentType,
-				data: JSON.stringify(order),
-				createdAt: now
-			})
-			.onConflictDoUpdate({
-				target: intents.orderId,
-				set: { intentType, data: JSON.stringify(order) }
-			});
+		const data = JSON.stringify(order);
+		if (db) {
+			try {
+				try {
+					await db
+						.insert(intents)
+						.values({
+							id,
+							orderId,
+							intentType,
+							data,
+							createdAt: now
+						})
+						.onConflictDoUpdate({
+							target: intents.orderId,
+							set: { intentType, data }
+						});
+				} catch (_error) {
+					const existing = await db.select().from(intents).where(eq(intents.orderId, orderId));
+					if (existing.length > 0) {
+						await db.update(intents).set({ intentType, data }).where(eq(intents.orderId, orderId));
+					} else {
+						await db.insert(intents).values({
+							id,
+							orderId,
+							intentType,
+							data,
+							createdAt: now
+						});
+					}
+				}
+			} catch (error) {
+				console.warn("saveOrderToDb db write failed", { orderId, error });
+			}
+		}
 		const idx = this.orders.findIndex((o) => orderToIntent(o).orderId() === orderId);
 		if (idx >= 0) this.orders[idx] = order;
 		else this.orders.push(order);
@@ -158,7 +179,7 @@ class Store {
 				chainId: chainIdNumber,
 				txHash,
 				receipt: serializedReceipt,
-				createdAt: Date.now()
+				createdAt: Math.floor(Date.now() / 1000)
 			});
 		}
 		this.transactionReceipts[`${chainIdNumber}:${txHash}`] = serializedReceipt;

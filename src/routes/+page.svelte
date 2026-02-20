@@ -105,6 +105,23 @@
 	let selectedOrder = $state<OrderContainer | undefined>(undefined);
 	let currentScreenIndex = $state(0);
 	let scrollStepProgress = $state(0);
+	async function importOrderById(orderId: `0x${string}`): Promise<"inserted" | "updated"> {
+		const importedOrder = await orderServer.getOrderByOnChainOrderId(orderId);
+		const importedOrderId = orderToIntent(importedOrder).orderId();
+		const existingIndex = store.orders.findIndex(
+			(o) => orderToIntent(o).orderId() === importedOrderId
+		);
+		await store.saveOrderToDb(importedOrder);
+		selectedOrder =
+			store.orders.find((o) => orderToIntent(o).orderId() === importedOrderId) ?? importedOrder;
+		return existingIndex >= 0 ? "updated" : "inserted";
+	}
+	async function deleteOrderById(orderId: `0x${string}`): Promise<void> {
+		await store.deleteOrderFromDb(orderId);
+		if (selectedOrder && orderToIntent(selectedOrder).orderId() === orderId) {
+			selectedOrder = undefined;
+		}
+	}
 
 	let snapContainer: HTMLDivElement;
 
@@ -202,7 +219,13 @@
 						{:else}
 							<ManageDeposit {scroll} {preHook} {postHook} {account}></ManageDeposit>
 							<IssueIntent {scroll} {preHook} {postHook} {account}></IssueIntent>
-							<IntentList {scroll} bind:selectedOrder orderContainers={store.orders}></IntentList>
+							<IntentList
+								{scroll}
+								bind:selectedOrder
+								orderContainers={store.orders}
+								onImportOrder={importOrderById}
+								onDeleteOrder={deleteOrderById}
+							></IntentList>
 							{#if selectedOrder !== undefined}
 								<!-- <IntentDescription></IntentDescription> -->
 								<FillIntent {scroll} orderContainer={selectedOrder} {account} {preHook} {postHook}
