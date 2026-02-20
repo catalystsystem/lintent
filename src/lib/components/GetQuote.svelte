@@ -2,7 +2,7 @@
 	import { OrderServer } from "$lib/libraries/orderServer";
 	import type { TokenContext } from "$lib/state.svelte";
 	import { interval } from "rxjs";
-	import { getAddress } from "viem";
+	import { isAddress } from "viem";
 
 	let {
 		exclusiveFor = $bindable(),
@@ -20,20 +20,17 @@
 		mainnet: boolean;
 	} = $props();
 
-	const toChecksumAddress = (value: string): `0x${string}` | undefined => {
-		try {
-			return getAddress(value);
-		} catch {
-			return undefined;
-		}
-	};
+	const toRawAddress = (value: string): `0x${string}` | undefined =>
+		isAddress(value, { strict: false }) ? (value as `0x${string}`) : undefined;
 
 	const orderServer = $derived(new OrderServer(mainnet));
 
 	async function getQuoteAndSet() {
 		try {
 			const requestedExclusiveFor = useExclusiveForQuoteRequest
-				? toChecksumAddress(exclusiveFor)
+				? [toRawAddress(exclusiveFor)].filter(
+						(value): value is `0x${string}` => value !== undefined
+					)
 				: undefined;
 
 			const response = await orderServer.getQuotes({
@@ -63,11 +60,12 @@
 				if (quoteExpires < new Date().getTime()) quoteExpires = new Date().getTime() + 30 * 1000;
 				quoteDuration = quoteExpires - new Date().getTime();
 				outputTokens[0].amount = BigInt(quote.preview.outputs[0].amount);
-				exclusiveFor = quote.metadata.exclusiveFor ?? "";
+				exclusiveFor = Array.isArray(quote.metadata.exclusiveFor)
+					? (quote.metadata.exclusiveFor[0] ?? "")
+					: (quote.metadata.exclusiveFor ?? "");
 				updater();
 			} else {
 				quoteExpires = 0;
-				exclusiveFor = "";
 			}
 		} catch (e) {
 			console.log("Could not fetch a quote", e);
