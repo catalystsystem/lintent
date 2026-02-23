@@ -98,6 +98,10 @@ type GetQuoteResponse = {
 	}[];
 };
 
+function normalizeHexAddress<T extends `0x${string}`>(value: T): T {
+	return value.toLowerCase() as T;
+}
+
 type OrderEnvelope = {
 	order: unknown;
 	inputSettler: unknown;
@@ -426,7 +430,9 @@ export class OrderServer {
 			},
 			supportedTypes: ["oif-escrow-v0"]
 		};
-		if (exclusiveFor && exclusiveFor.length > 0) rq.intent.metadata = { exclusiveFor };
+		if (exclusiveFor && exclusiveFor.length > 0) {
+			rq.intent.metadata = { exclusiveFor: exclusiveFor.map(normalizeHexAddress) };
+		}
 
 		try {
 			return await this.postWithRetry<GetQuoteResponse>("/quote/request", rq, {
