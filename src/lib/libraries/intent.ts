@@ -111,7 +111,7 @@ export class Intent {
 	private outputs: TokenContext[];
 	private verifier: Verifier;
 
-	private exclusiveFor: `0x${string}`;
+	private exclusiveFor?: `0x${string}`;
 
 	private _nonce?: bigint;
 
@@ -126,7 +126,17 @@ export class Intent {
 		this.outputs = opts.outputTokens;
 		this.verifier = opts.verifier;
 
-		this.exclusiveFor = opts.exclusiveFor as `0x${string}`;
+		this.exclusiveFor = this.normalizeExclusiveFor(opts.exclusiveFor);
+	}
+
+	private normalizeExclusiveFor(exclusiveFor: string): `0x${string}` | undefined {
+		const trimmed = exclusiveFor.trim();
+		if (trimmed.length === 0) return undefined;
+		const normalized = trimmed.toLowerCase();
+		if (!/^0x[0-9a-f]{40}$/.test(normalized)) {
+			throw new Error(`ExclusiveFor not formatted correctly ${exclusiveFor}`);
+		}
+		return normalized as `0x${string}`;
 	}
 
 	numInputChains() {
@@ -169,15 +179,6 @@ export class Intent {
 	}
 
 	encodeOutputs(currentTime: number) {
-		// Check if exclusiveFor has right formatting:
-		if (this.exclusiveFor) {
-			// Length should be 42.
-			const formattedCorrectly =
-				this.exclusiveFor.length === 42 && this.exclusiveFor.slice(0, 2) === "0x";
-			if (!formattedCorrectly)
-				throw new Error(`ExclusiveFor not formatted correctly ${this.exclusiveFor}`);
-		}
-
 		// Get the current epoch timestamp:
 		currentTime;
 		const ONE_MINUTE = 60;
